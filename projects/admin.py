@@ -1,7 +1,12 @@
-from django import forms
-from django.contrib import admin
+import datetime
 
-from .admin_forms import GenericChoiceFormMixin
+from django import forms
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import path, reverse
+
+from .admin_forms import GenericChoiceFormMixin, _build_choices, _decode
 from .models import (
     Assignment,
     ExternalCollaborator,
@@ -163,6 +168,7 @@ class ProposalDecisionInline(admin.TabularInline):
 @admin.register(Proposal)
 class ProposalAdmin(admin.ModelAdmin):
     form = ProposalAdminForm
+    change_form_template = "admin/projects/proposal/change_form.html"
     list_display = (
         "code",
         "title",
@@ -183,13 +189,114 @@ class ProposalAdmin(admin.ModelAdmin):
             "budget", "description", "resource_requirement",
         )}),
         ("مجری پیشنهادی", {"fields": ("executor_choice",)}),
-        ("وضعیت فرآیند تصویب", {"fields": ("status", "pending_revision_target", "current_version")}),
+        ("وضعیت فرآیند تصویب (فقط از طریق دکمه‌های بالای صفحه تغییر می‌کند)", {
+            "fields": ("status", "pending_revision_target", "current_version"),
+        }),
         ("اطلاعات سیستمی", {
             "fields": ("submitted_at", "decided_at", "order_issued_at", "updated_at"),
             "classes": ("collapse",),
         }),
     )
-    readonly_fields = ("submitted_at", "updated_at", "decided_at", "order_issued_at")
+    readonly_fields = (
+        "submitted_at", "updated_at", "decided_at", "order_issued_at",
+        "status", "pending_revision_target", "current_version",
+    )
+
+    # --- دکمه‌های فرآیند تصویب --------------------------------------
+
+    def get_urls(self):
+        custom = [
+            path("<int:pk>/start-review/", self.admin_site.admin_view(self.start_review_view), name="proposal_start_review"),
+            path("<int:pk>/institute-decision/", self.admin_site.admin_view(self.institute_decision_view), name="proposal_institute_decision"),
+            path("<int:pk>/academy-decision/", self.admin_site.admin_view(self.academy_decision_view), name="proposal_academy_decision"),
+            path("<int:pk>/resubmit/", self.admin_site.admin_view(self.resubmit_view), name="proposal_resubmit"),
+            path("<int:pk>/issue-order/", self.admin_site.admin_view(self.issue_order_view), name="proposal_issue_order"),
+        ]
+        return custom + super().get_urls()
+
+    def _redirect_to_change(self, pk):
+        return redirect(reverse("admin:projects_proposal_change", args=[pk]))
+
+    @staticmethod
+    def _error_text(exc):
+        return "؛ ".join(exc.messages) if hasattr(exc, "messages") else str(exc)
+
+    def start_review_view(self, request, pk):
+        proposal = get_object_or_404(Proposal, pk=pk)
+        if request.method == "POST":
+            try:
+                proposal.start_institute_review()
+                messages.success(request, "پروپوزال وارد بررسی در پژوهشکده شد.")
+            except ValidationError as exc:
+                messages.error(request, self._error_text(exc))
+        return self._redirect_to_change(pk)
+
+    def resubmit_view(self, request, pk):
+        proposal = get_object_or_404(Proposal, pk=pk)
+        if request.method == "POST":
+            try:
+                proposal.resubmit_after_revision(recorded_by=request.user)
+                messages.success(request, "اصلاحیه ثبت و پروپوزال مجدداً ارسال شد.")
+            except ValidationError as exc:
+                messages.error(request, self._error_text(exc))
+        return self._redirect_to_change(pk)
+
+    def institute_decision_view(self, request, pk):
+        return self._decision_view(request, pk, council="institute")
+
+    def academy_decision_view(self, request, pk):
+        return self._decision_view(request, pk, council="academy")
+
+    def _decision_view(self, request, pk, council):
+        proposal = get_object_or_404(Proposal, pk=pk)
+        council_label = "شورای علمی پژوهشکده" if council == "institute" else "شورای پژوهشی پژوهشگاه"
+        if request.method == "POST":
+            decision = request.POST.get("decision")
+            comments = request.POST.get("comments", "")
+            try:
+                if council == "institute":
+                    proposal.record_institute_decision(decision, comments, recorded_by=request.user)
+                else:
+                    proposal.record_academy_decision(decision, comments, recorded_by=request.user)
+                messages.success(request, "تصمیم شورا ثبت شد.")
+                return self._redirect_to_change(pk)
+            except ValidationError as exc:
+                messages.error(request, self._error_text(exc))
+        context = {
+            **self.admin_site.each_context(request),
+            "proposal": proposal,
+            "council_label": council_label,
+            "decision_choices": Proposal.Decision.choices,
+            "title": f"ثبت تصمیم {council_label}",
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/projects/proposal/decision_form.html", context)
+
+    def issue_order_view(self, request, pk):
+        proposal = get_object_or_404(Proposal, pk=pk)
+        if request.method == "POST":
+            value = request.POST.get("executor_choice")
+            assigned_date_raw = request.POST.get("executor_assigned_date")
+            assigned_date = datetime.date.fromisoformat(assigned_date_raw) if assigned_date_raw else None
+            if not value:
+                messages.error(request, "انتخاب مجری الزامی است.")
+            else:
+                content_type, object_id = _decode(value)
+                executor = content_type.get_object_for_this_type(pk=object_id)
+                try:
+                    proposal.issue_executor_order(executor, executor_content_type=content_type, assigned_date=assigned_date)
+                    messages.success(request, "حکم مجری صادر شد و پروژه‌ی مرتبط ایجاد شد.")
+                    return self._redirect_to_change(pk)
+                except ValidationError as exc:
+                    messages.error(request, self._error_text(exc))
+        context = {
+            **self.admin_site.each_context(request),
+            "proposal": proposal,
+            "executor_choices": _build_choices(EXECUTOR_MODELS_AND_LABELS),
+            "title": "صدور حکم مجری",
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/projects/proposal/issue_order_form.html", context)
 
 
 @admin.register(Assignment)

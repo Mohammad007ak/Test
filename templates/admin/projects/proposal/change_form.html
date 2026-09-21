@@ -1,0 +1,70 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools %}
+{% if original %}
+<div class="proposal-workflow">
+    <div class="pw-status">
+        <span class="pw-caption">وضعیت فعلی:</span>
+        <strong>{{ original.get_status_display }}</strong>
+    </div>
+    <div class="pw-actions">
+        {% if original.status == "submitted" %}
+            <form method="post" action="{% url 'admin:proposal_start_review' original.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="button">شروع بررسی در پژوهشکده</button>
+            </form>
+        {% elif original.status == "institute_review" %}
+            <a class="button" href="{% url 'admin:proposal_institute_decision' original.pk %}">ثبت تصمیم شورای علمی پژوهشکده</a>
+        {% elif original.status == "academy_review" %}
+            <a class="button" href="{% url 'admin:proposal_academy_decision' original.pk %}">ثبت تصمیم شورای پژوهشی پژوهشگاه</a>
+        {% elif original.status == "needs_revision" %}
+            <form method="post" action="{% url 'admin:proposal_resubmit' original.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="button">ثبت اصلاحیه و ارسال مجدد به {{ original.get_pending_revision_target_display }}</button>
+            </form>
+            <span class="pw-hint">پیش از کلیک، فیلدهای پروپوزال را در فرم پایین اصلاح و ذخیره کنید.</span>
+        {% elif original.status == "approved" %}
+            <a class="button" href="{% url 'admin:proposal_issue_order' original.pk %}">صدور حکم مجری</a>
+        {% elif original.status == "rejected" %}
+            <span class="pw-hint">این پروپوزال رد شده و فرآیند برایش متوقف است.</span>
+        {% elif original.status == "in_progress" %}
+            <span class="pw-hint">
+                حکم مجری صادر شده و پروژه ایجاد شده است.
+                {% if original.project %}<a href="{% url 'admin:projects_project_change' original.project.pk %}">مشاهده‌ی پروژه</a>{% endif %}
+            </span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{{ block.super }}
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+    .proposal-workflow{
+        background: var(--darkened-bg);
+        border: 1px solid var(--hairline-color);
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .pw-caption{color: var(--body-quiet-color); font-size: 12.5px; margin-left: 6px;}
+    .pw-actions{display: flex; align-items: center; gap: 10px; flex-wrap: wrap;}
+    .pw-actions form{margin: 0;}
+    .pw-hint{color: var(--body-quiet-color); font-size: 12.5px;}
+    /* جنگو به‌صورت پیش‌فرض .object-tools را با float و margin-top منفی طوری
+       جابه‌جا می‌کند که کنار h1 بنشیند؛ چون این پنل را قبل از آن اضافه
+       کرده‌ایم، باید آن positioning را خنثی کنیم تا رویش نیفتد. */
+    .object-tools{
+        float:none !important; position:static !important;
+        margin:0 0 16px !important; clear:both; padding:0 !important;
+    }
+    .object-tools li{float:none !important; display:inline-block !important; height:auto !important;}
+    .object-tools li a{font-size:12.5px !important;}
+</style>
+{% endblock %}

@@ -262,6 +262,85 @@ class AdminEntityCreationTests(TestCase):
         self.assertEqual(assignment.allocation_percent, 40)
 
 
+class ProposalAdminWorkflowTests(TestCase):
+    """دکمه‌های فرآیند تصویب در پنل مدیریت باید واقعاً وضعیت را جابه‌جا کنند."""
+
+    def setUp(self):
+        self.client = Client()
+        User.objects.create_superuser(username="wfadmin", password="pass12345", email="")
+        self.client.login(username="wfadmin", password="pass12345")
+        self.proposal = make_proposal(code="WF-1")
+
+    def test_full_happy_path_through_admin_views(self):
+        self.assertEqual(
+            self.client.post(reverse("admin:proposal_start_review", args=[self.proposal.pk])).status_code, 302
+        )
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.status, Proposal.Status.INSTITUTE_REVIEW)
+
+        resp = self.client.post(
+            reverse("admin:proposal_institute_decision", args=[self.proposal.pk]),
+            data={"decision": Proposal.Decision.APPROVED, "comments": "خوب است"},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.status, Proposal.Status.ACADEMY_REVIEW)
+
+        resp = self.client.post(
+            reverse("admin:proposal_academy_decision", args=[self.proposal.pk]),
+            data={"decision": Proposal.Decision.APPROVED, "comments": "تصویب نهایی"},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.status, Proposal.Status.APPROVED)
+
+        executor = InternalCollaborator.objects.create(
+            full_name="مجری تستی", employment_type=InternalCollaborator.EmploymentType.OFFICIAL
+        )
+        from django.contrib.contenttypes.models import ContentType
+
+        ct = ContentType.objects.get_for_model(executor)
+        resp = self.client.post(
+            reverse("admin:proposal_issue_order", args=[self.proposal.pk]),
+            data={"executor_choice": f"{ct.pk}:{executor.pk}", "executor_assigned_date": ""},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.status, Proposal.Status.IN_PROGRESS)
+        self.assertTrue(Project.objects.filter(proposal=self.proposal).exists())
+
+    def test_revision_round_trip_through_admin_views(self):
+        self.client.post(reverse("admin:proposal_start_review", args=[self.proposal.pk]))
+        self.client.post(
+            reverse("admin:proposal_institute_decision", args=[self.proposal.pk]),
+            data={"decision": Proposal.Decision.NEEDS_REVISION, "comments": "بودجه را بازبینی کنید"},
+        )
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.status, Proposal.Status.NEEDS_REVISION)
+
+        resp = self.client.post(reverse("admin:proposal_resubmit", args=[self.proposal.pk]))
+        self.assertEqual(resp.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.status, Proposal.Status.INSTITUTE_REVIEW)
+        self.assertEqual(self.proposal.current_version, 2)
+
+    def test_decision_view_rejects_wrong_state_with_message_not_crash(self):
+        # پروپوزال هنوز SUBMITTED است، نه INSTITUTE_REVIEW.
+        resp = self.client.post(
+            reverse("admin:proposal_institute_decision", args=[self.proposal.pk]),
+            data={"decision": Proposal.Decision.APPROVED, "comments": ""},
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.status, Proposal.Status.SUBMITTED)
+
+    def test_change_form_renders_workflow_panel(self):
+        resp = self.client.get(reverse("admin:projects_proposal_change", args=[self.proposal.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "شروع بررسی در پژوهشکده")
+
+
 class ReportAccessTests(TestCase):
     def setUp(self):
         self.client = Client()

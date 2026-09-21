@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="module" style="max-width:560px; padding:22px 26px;">
+    <h1 style="margin:0 0 6px; font-size:19px;">صدور حکم مجری</h1>
+    <p style="color:var(--body-quiet-color); margin:0 0 20px;">پروپوزال: {{ proposal.code }} &mdash; {{ proposal.title }}</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-row">
+            <label for="id_executor_choice">مجری</label>
+            <select name="executor_choice" id="id_executor_choice" required>
+                {% for value, label in executor_choices %}
+                <option value="{{ value }}"{% if not value %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-row">
+            <label for="id_executor_assigned_date">تاریخ انتصاب (اختیاری، پیش‌فرض امروز)</label>
+            <input type="date" name="executor_assigned_date" id="id_executor_assigned_date">
+        </div>
+        <div class="submit-row">
+            <input type="submit" value="صدور حکم" class="default">
+            <a class="button cancel-link" href="{% url 'admin:projects_proposal_change' proposal.pk %}">انصراف</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

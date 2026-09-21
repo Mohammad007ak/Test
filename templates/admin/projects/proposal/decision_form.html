@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="module" style="max-width:560px; padding:22px 26px;">
+    <h1 style="margin:0 0 6px; font-size:19px;">{{ title }}</h1>
+    <p style="color:var(--body-quiet-color); margin:0 0 20px;">پروپوزال: {{ proposal.code }} &mdash; {{ proposal.title }}</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-row">
+            <label for="id_decision">تصمیم شورا</label>
+            <select name="decision" id="id_decision" required>
+                {% for value, label in decision_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-row">
+            <label for="id_comments">نظر / دلیل (اختیاری)</label>
+            <textarea name="comments" id="id_comments" rows="4" style="width:100%;"></textarea>
+        </div>
+        <div class="submit-row">
+            <input type="submit" value="ثبت تصمیم" class="default">
+            <a class="button cancel-link" href="{% url 'admin:projects_proposal_change' proposal.pk %}">انصراف</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
