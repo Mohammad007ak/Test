@@ -182,6 +182,86 @@ class AssignmentTests(TestCase):
         self.assertEqual(self.soldier.active_project_count(), 1)
 
 
+class AdminEntityCreationTests(TestCase):
+    """اطمینان از اینکه فرم‌های سفارشی مجری/نیرو در پنل مدیریت واقعاً موجودیت می‌سازند."""
+
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = User.objects.create_superuser(username="siteadmin", password="pass12345", email="")
+        self.client.login(username="siteadmin", password="pass12345")
+        self.institute = ResearchInstitute.objects.create(name="امنیت")
+
+    def test_create_project_with_executor_via_admin_form(self):
+        from django.contrib.contenttypes.models import ContentType
+
+        executor = InternalCollaborator.objects.create(
+            full_name="دکتر تستی", employment_type=InternalCollaborator.EmploymentType.OFFICIAL
+        )
+        ct = ContentType.objects.get_for_model(executor)
+        today = timezone.localdate()
+
+        response = self.client.post(
+            reverse("admin:projects_project_add"),
+            data={
+                "code": "TST-1",
+                "title": "پروژه‌ی آزمایشی",
+                "research_institute": self.institute.pk,
+                "project_type": "research",
+                "client_or_funder": "",
+                "planned_start_date": today.isoformat(),
+                "planned_end_date": (today + datetime.timedelta(days=30)).isoformat(),
+                "actual_start_date": "",
+                "actual_end_date": "",
+                "status": Project.Status.DEFINED,
+                "progress_percent": 0,
+                "budget": 0,
+                "cost_spent": 0,
+                "executor_choice": f"{ct.pk}:{executor.pk}",
+                "executor_assigned_date": "",
+                "assignments-TOTAL_FORMS": 0,
+                "assignments-INITIAL_FORMS": 0,
+                "assignments-MIN_NUM_FORMS": 0,
+                "assignments-MAX_NUM_FORMS": 1000,
+            },
+        )
+        self.assertEqual(response.status_code, 302, response.context["adminform"].form.errors if response.status_code == 200 else None)
+        project = Project.objects.get(code="TST-1")
+        self.assertEqual(project.executor, executor)
+
+    def test_create_assignment_with_person_via_admin_form(self):
+        project = Project.objects.create(
+            code="TST-2",
+            title="پروژه‌ی دوم",
+            research_institute=self.institute,
+            planned_start_date=timezone.localdate(),
+            planned_end_date=timezone.localdate() + datetime.timedelta(days=10),
+        )
+        soldier = Soldier.objects.create(
+            full_name="سرباز تستی",
+            service_start_date=timezone.localdate(),
+            service_end_date=timezone.localdate() + datetime.timedelta(days=200),
+        )
+        from django.contrib.contenttypes.models import ContentType
+
+        ct = ContentType.objects.get_for_model(soldier)
+
+        response = self.client.post(
+            reverse("admin:projects_assignment_add"),
+            data={
+                "project": project.pk,
+                "person_choice": f"{ct.pk}:{soldier.pk}",
+                "allocation_percent": 40,
+                "role_description": "تحلیلگر",
+                "start_date": "",
+                "end_date": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        assignment = Assignment.objects.get(project=project)
+        self.assertEqual(assignment.person, soldier)
+        self.assertEqual(assignment.allocation_percent, 40)
+
+
 class ReportAccessTests(TestCase):
     def setUp(self):
         self.client = Client()
