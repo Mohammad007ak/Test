@@ -16,6 +16,44 @@
 </div>
 {% endif %}
 
+{% if proposal_pipeline %}
+<div class="card">
+    <h2>مدیریت فرآیند تصویب پروپوزال‌ها</h2>
+    <p class="card-note">وضعیت فعلی پروپوزال‌های در جریان و اقدام بعدی لازم برای هرکدام</p>
+
+    <div class="stage-bars">
+        {% for stage in proposal_pipeline.stage_counts %}
+        <div class="stage-bar-row">
+            <span class="label">{{ stage.label }}</span>
+            <div class="track"><div class="fill" style="width:{{ stage.percent }}%;"></div></div>
+            <span class="count">{{ stage.count }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <tr><th>پروپوزال</th><th>پژوهشکده</th><th>وضعیت</th><th>اقدام لازم</th></tr>
+            {% for row in proposal_pipeline.pending_rows %}
+            <tr>
+                <td>{{ row.proposal.code }} - {{ row.proposal.title }}</td>
+                <td>{{ row.proposal.research_institute }}</td>
+                <td>
+                    {% if row.proposal.status == "needs_revision" %}<span class="badge badge-warning">{{ row.proposal.get_status_display }}</span>
+                    {% elif row.proposal.status == "approved" %}<span class="badge badge-success">{{ row.proposal.get_status_display }}</span>
+                    {% elif row.proposal.status == "submitted" %}<span class="badge badge-muted">{{ row.proposal.get_status_display }}</span>
+                    {% else %}<span class="badge badge-info">{{ row.proposal.get_status_display }}</span>{% endif %}
+                </td>
+                <td><a class="badge badge-info" href="{% url 'admin:projects_proposal_change' row.proposal.pk %}">{{ row.action_label }}</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="empty-state">در حال حاضر پروپوزالی نیازمند اقدام نیست.</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endif %}
+
 {% for group_title, items in nav_groups %}
 <div class="card">
     <h2>{{ group_title }}</h2>

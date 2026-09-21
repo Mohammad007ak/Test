@@ -114,20 +114,66 @@ def _executor_kpis(user):
     ]
 
 
+_PIPELINE_STAGES = [
+    (Proposal.Status.SUBMITTED, "ارسال‌شده"),
+    (Proposal.Status.INSTITUTE_REVIEW, "در حال بررسی در پژوهشکده"),
+    (Proposal.Status.NEEDS_REVISION, "نیازمند اصلاح"),
+    (Proposal.Status.ACADEMY_REVIEW, "در حال بررسی در پژوهشگاه"),
+    (Proposal.Status.APPROVED, "تأییدشده (در انتظار صدور حکم)"),
+]
+
+_PIPELINE_ACTION_LABELS = {
+    Proposal.Status.SUBMITTED: "شروع بررسی در پژوهشکده",
+    Proposal.Status.INSTITUTE_REVIEW: "ثبت تصمیم شورای پژوهشکده",
+    Proposal.Status.NEEDS_REVISION: "اصلاح و ارسال مجدد",
+    Proposal.Status.ACADEMY_REVIEW: "ثبت تصمیم شورای پژوهشگاه",
+    Proposal.Status.APPROVED: "صدور حکم مجری",
+}
+
+
+def _proposal_pipeline():
+    counts = [
+        {"label": label, "count": Proposal.objects.filter(status=status).count()}
+        for status, label in _PIPELINE_STAGES
+    ]
+    max_count = max((c["count"] for c in counts), default=0)
+    for c in counts:
+        c["percent"] = round(c["count"] / max_count * 100) if max_count else 0
+
+    actionable_statuses = [status for status, _ in _PIPELINE_STAGES]
+    pending = (
+        Proposal.objects.filter(status__in=actionable_statuses)
+        .select_related("research_institute")
+        .order_by("updated_at")[:8]
+    )
+    rows = [
+        {"proposal": p, "action_label": _PIPELINE_ACTION_LABELS.get(p.status, "بررسی")}
+        for p in pending
+    ]
+    return {"stage_counts": counts, "pending_rows": rows}
+
+
 @login_required
 def report_home(request):
     roles = user_roles(request.user)
     is_admin_like = request.user.is_superuser or bool(roles & {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL})
     if is_admin_like:
         kpis = _global_kpis(include_admin_only=request.user.is_superuser or ROLE_SUPER_ADMIN in roles)
+        proposal_pipeline = _proposal_pipeline()
     elif ROLE_EXECUTOR in roles:
         kpis = _executor_kpis(request.user)
+        proposal_pipeline = None
     else:
         kpis = []
+        proposal_pipeline = None
     return render(
         request,
         "projects/report_home.html",
-        {"nav_groups": visible_nav_groups(request.user), "kpis": kpis},
+        {
+            "nav_groups": visible_nav_groups(request.user),
+            "kpis": kpis,
+            "proposal_pipeline": proposal_pipeline,
+        },
     )
 
 
