@@ -94,9 +94,13 @@ class ProjectAdmin(admin.ModelAdmin):
         "progress_percent",
         "planned_start_date",
         "planned_end_date",
-        "executor",
+        "executor_display",
     )
     list_filter = ("status", "project_type", "research_institute")
+
+    @admin.display(description="مجری")
+    def executor_display(self, obj):
+        return obj.executor
     search_fields = ("code", "title", "client_or_funder")
     inlines = [AssignmentInline]
     fieldsets = (
