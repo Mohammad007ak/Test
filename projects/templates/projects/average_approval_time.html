@@ -1,0 +1,12 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<h1>میانگین زمان تصویب</h1>
+<div class="card">
+    {% if avg_days is not None %}
+    <p>میانگین زمان از ثبت پروپوزال تا صدور حکم مجری: <strong>{{ avg_days }} روز</strong></p>
+    <p>بر اساس {{ sample_size }} پروپوزال که به صدور حکم رسیده‌اند.</p>
+    {% else %}
+    <p>هنوز پروپوزالی به صدور حکم نرسیده است.</p>
+    {% endif %}
+</div>
+{% endblock %}

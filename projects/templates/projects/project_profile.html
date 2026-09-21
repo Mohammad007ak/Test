@@ -1,0 +1,50 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<h1>شناسنامه‌ی پروژه: {{ project.title }}</h1>
+<div class="card">
+    <p><strong>کد پروژه:</strong> {{ project.code }}</p>
+    <p><strong>پژوهشکده:</strong> {{ project.research_institute }}</p>
+    <p><strong>نوع پروژه:</strong> {{ project.get_project_type_display }}</p>
+    <p><strong>کارفرما/منبع تأمین:</strong> {{ project.client_or_funder|default:"-" }}</p>
+    <p><strong>وضعیت:</strong> {{ project.get_status_display }}</p>
+    <p><strong>مجری:</strong> {{ project.executor|default:"-" }} ({{ project.executor_assigned_date|default:"-" }})</p>
+    <p><strong>بازه‌ی برنامه‌ریزی‌شده:</strong> {{ project.planned_start_date }} تا {{ project.planned_end_date }}</p>
+    <p><strong>بازه‌ی واقعی:</strong> {{ project.actual_start_date|default:"-" }} تا {{ project.actual_end_date|default:"-" }}</p>
+    <p><strong>درصد پیشرفت:</strong> {{ project.progress_percent }}% (برنامه‌ای: {{ project.expected_progress_percent }}%)</p>
+    <p><strong>بودجه:</strong> {{ project.budget }} | <strong>هزینه‌ی مصرف‌شده:</strong> {{ project.cost_spent }}</p>
+</div>
+
+<div class="card">
+    <h2 style="font-size:16px;">نیروهای تخصیص‌یافته</h2>
+    <table>
+        <tr><th>نیرو</th><th>نوع</th><th>سهم زمانی</th><th>نقش</th></tr>
+        {% for a in assignments %}
+        <tr>
+            <td>{{ a.person }}</td>
+            <td>{{ a.person_content_type.name }}</td>
+            <td>{{ a.allocation_percent }}%</td>
+            <td>{{ a.role_description|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">نیرویی تخصیص نیافته است.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% if decisions %}
+<div class="card">
+    <h2 style="font-size:16px;">سابقه‌ی تصمیم‌های پروپوزال</h2>
+    <table>
+        <tr><th>شورا</th><th>تصمیم</th><th>نظر</th><th>تاریخ</th></tr>
+        {% for d in decisions %}
+        <tr>
+            <td>{{ d.get_council_display }}</td>
+            <td>{{ d.get_decision_display }}</td>
+            <td>{{ d.comments|default:"-" }}</td>
+            <td>{{ d.decided_at }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+{% endblock %}

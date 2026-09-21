@@ -1,0 +1,24 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<h1>بار کاری افراد</h1>
+<div class="card">
+    <table>
+        <tr><th>نام</th><th>نوع</th><th>تعداد پروژه</th><th>مجموع سهم زمانی</th><th>وضعیت</th></tr>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.person }}</td>
+            <td>{{ row.type }}</td>
+            <td>{{ row.project_count }}</td>
+            <td>{{ row.total_allocation }}%</td>
+            <td>
+                {% if row.overloaded %}
+                <span class="badge badge-danger">بیش‌ازحد درگیر</span>
+                {% else %}
+                <span class="badge badge-success">عادی</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

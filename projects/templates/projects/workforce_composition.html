@@ -1,0 +1,25 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<h1>ترکیب نیروها</h1>
+<div class="card">
+    <h2 style="font-size:16px;">کل بخش</h2>
+    <table>
+        <tr>{% for label, count in overall.items %}<th>{{ label }}</th>{% endfor %}</tr>
+        <tr>{% for label, count in overall.items %}<td>{{ count }}</td>{% endfor %}</tr>
+    </table>
+</div>
+<div class="card">
+    <h2 style="font-size:16px;">به تفکیک پروژه</h2>
+    <table>
+        <tr><th>پروژه</th><th>سرباز</th><th>همکار داخلی</th><th>همکار خارجی</th></tr>
+        {% for row in per_project %}
+        <tr>
+            <td>{{ row.project.code }} - {{ row.project.title }}</td>
+            <td>{{ row.counts.soldier }}</td>
+            <td>{{ row.counts.internalcollaborator }}</td>
+            <td>{{ row.counts.externalcollaborator }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

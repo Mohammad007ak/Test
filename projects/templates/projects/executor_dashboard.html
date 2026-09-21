@@ -1,0 +1,26 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<h1>داشبورد مجری</h1>
+<div class="card">
+    <table>
+        <tr><th>پروژه</th><th>وضعیت</th><th>پیشرفت</th><th>تعداد نیروها</th><th>موعد</th></tr>
+        {% for row in rows %}
+        <tr>
+            <td><a href="{% url 'project_profile' row.project.pk %}">{{ row.project.code }} - {{ row.project.title }}</a></td>
+            <td>{{ row.project.get_status_display }}</td>
+            <td>{{ row.project.progress_percent }}%</td>
+            <td>{{ row.people_count }}</td>
+            <td>
+                {% if row.deadline_soon %}
+                <span class="badge badge-warning">نزدیک به موعد</span>
+                {% else %}
+                {{ row.project.planned_end_date }}
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">پروژه‌ای برای شما یافت نشد.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

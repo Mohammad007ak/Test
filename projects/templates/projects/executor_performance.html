@@ -1,0 +1,20 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<h1>عملکرد مجریان</h1>
+<div class="card">
+    <table>
+        <tr><th>مجری</th><th>تعداد پروژه</th><th>در حال اجرا</th><th>خاتمه‌یافته</th><th>دارای تأخیر</th></tr>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.executor }}</td>
+            <td>{{ row.project_count }}</td>
+            <td>{{ row.in_progress }}</td>
+            <td>{{ row.finished }}</td>
+            <td>{{ row.delayed }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">مجری‌ای با پروژه یافت نشد.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

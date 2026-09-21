@@ -1,0 +1,19 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<h1>پروپوزال‌های در جریان</h1>
+<div class="card">
+    <table>
+        <tr><th>پروپوزال</th><th>پژوهشکده</th><th>وضعیت</th><th>مدت ماندگاری در مرحله (روز)</th></tr>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.proposal.code }} - {{ row.proposal.title }}</td>
+            <td>{{ row.proposal.research_institute }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.days_in_stage }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">پروپوزال در جریانی وجود ندارد.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

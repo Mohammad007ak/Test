@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}سامانه مدیریت پروژه‌های امنیت{% endblock %}</title>
+    <style>
+        body { font-family: Tahoma, Arial, sans-serif; margin: 0; background: #f5f6f8; color: #222; }
+        header { background: #16324f; color: #fff; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+        header a { color: #fff; text-decoration: none; }
+        nav.sidebar { float: right; width: 240px; background: #fff; min-height: 100vh; padding: 16px; box-sizing: border-box; border-left: 1px solid #ddd; }
+        nav.sidebar a { display: block; padding: 8px 6px; color: #16324f; text-decoration: none; border-radius: 4px; }
+        nav.sidebar a:hover { background: #eef2f7; }
+        main { margin-right: 260px; padding: 24px; }
+        table { border-collapse: collapse; width: 100%; background: #fff; }
+        th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: right; font-size: 14px; }
+        th { background: #eef2f7; }
+        .badge { padding: 2px 8px; border-radius: 10px; font-size: 12px; color: #fff; }
+        .badge-danger { background: #c0392b; }
+        .badge-warning { background: #d68910; }
+        .badge-success { background: #1e8449; }
+        .badge-muted { background: #7f8c8d; }
+        .card { background: #fff; border-radius: 6px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        h1 { font-size: 20px; }
+    </style>
+</head>
+<body>
+<header>
+    <a href="{% url 'report_home' %}"><strong>سامانه مدیریت پروژه‌های امنیت پژوهشگاه</strong></a>
+    <div>
+        {% if user.is_authenticated %}
+            {{ user.get_full_name|default:user.username }} |
+            <a href="{% url 'logout' %}">خروج</a>
+        {% else %}
+            <a href="{% url 'login' %}">ورود</a>
+        {% endif %}
+    </div>
+</header>
+{% if user.is_authenticated %}
+<nav class="sidebar">
+    <a href="{% url 'report_home' %}">خانه گزارش‌ها</a>
+    <a href="/admin/">ورود داده / مدیریت</a>
+</nav>
+{% endif %}
+<main>
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>

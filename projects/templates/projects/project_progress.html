@@ -1,0 +1,23 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<h1>پیشرفت پروژه‌ها</h1>
+<div class="card">
+    <table>
+        <tr><th>پروژه</th><th>پیشرفت برنامه‌ای</th><th>پیشرفت واقعی</th><th>تأخیر</th></tr>
+        {% for row in rows %}
+        <tr>
+            <td><a href="{% url 'project_profile' row.project.pk %}">{{ row.project.code }} - {{ row.project.title }}</a></td>
+            <td>{{ row.expected }}%</td>
+            <td>{{ row.actual }}%</td>
+            <td>
+                {% if row.delay > 0 %}
+                <span class="badge badge-danger">{{ row.delay }}%</span>
+                {% else %}
+                <span class="badge badge-success">بدون تأخیر</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

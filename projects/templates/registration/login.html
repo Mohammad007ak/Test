@@ -1,0 +1,11 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<div class="card" style="max-width:360px;margin:60px auto;">
+    <h1>ورود به سامانه</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">ورود</button>
+    </form>
+</div>
+{% endblock %}

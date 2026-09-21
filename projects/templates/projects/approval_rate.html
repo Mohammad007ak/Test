@@ -1,0 +1,17 @@
+{% extends "projects/base.html" %}
+{% block content %}
+<h1>نرخ تصویب</h1>
+{% for council, info in data.items %}
+<div class="card">
+    <h2 style="font-size:16px;">{{ council }} (مجموع: {{ info.total }})</h2>
+    <table>
+        <tr><th>تصمیم</th><th>تعداد</th><th>درصد</th></tr>
+        {% for row in info.breakdown %}
+        <tr><td>{{ row.decision }}</td><td>{{ row.total }}</td><td>{{ row.percent }}%</td></tr>
+        {% empty %}
+        <tr><td colspan="3">داده‌ای ثبت نشده است.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endfor %}
+{% endblock %}
