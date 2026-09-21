@@ -99,6 +99,10 @@ if os.environ.get("POSTGRES_DB"):
             "HOST": os.environ.get("POSTGRES_HOST", "db"),
             "PORT": os.environ.get("POSTGRES_PORT", "5432"),
             "CONN_MAX_AGE": 600,
+            # بدون این، اگر دیتابیس در دسترس نباشد (شبکه/سلامت سرویس)، اتصال
+            # به‌جای شکست سریع و خطای واضح، تا مدت طولانی/نامعلوم هنگ می‌کند
+            # و کل برنامه را (از جمله migrate در entrypoint.sh) قفل می‌کند.
+            "OPTIONS": {"connect_timeout": 5},
         }
     }
 else:
