@@ -2,6 +2,6 @@ __pycache__/
 *.pyc
 db.sqlite3
 .env
-*.egg-info/
-.DS_Store
+.git
+.gitignore
 staticfiles/

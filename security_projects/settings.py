@@ -10,22 +10,31 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
+# همه‌ی تنظیمات زیر برای اجرای محلی (development) مقدار پیش‌فرض امن دارند؛
+# برای اجرای واقعی روی سرور، این متغیرهای محیطی را در فایل .env (کنار
+# docker-compose.yml) مقداردهی کنید. به README.md بخش «استقرار روی سرور»
+# مراجعه کنید.
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-z!pvc-m_w@x32$%8frt7sp4r23##izqzl7zo7$b-58)!^@z_md"
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY", "django-insecure-z!pvc-m_w@x32$%8frt7sp4r23##izqzl7zo7$b-58)!^@z_md"
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h.strip()]
+
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
+]
 
 
 # Application definition
@@ -42,6 +51,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -74,13 +84,30 @@ WSGI_APPLICATION = "security_projects.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+#
+# روی سرور (docker-compose)، POSTGRES_DB تنظیم می‌شود و از PostgreSQL استفاده
+# می‌شود. اجرای محلی بدون این متغیر، از یک فایل SQLite ساده استفاده می‌کند —
+# چیزی که تا الان با آن کار کرده‌اید همچنان دست‌نخورده باقی می‌ماند.
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+if os.environ.get("POSTGRES_DB"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ["POSTGRES_DB"],
+            "USER": os.environ.get("POSTGRES_USER", os.environ["POSTGRES_DB"]),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": os.environ.get("POSTGRES_HOST", "db"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+            "CONN_MAX_AGE": 600,
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -118,6 +145,21 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# فقط در سرور (پس از collectstatic) از فایل‌های فشرده و دارای هش استفاده
+# می‌شود؛ برای اجرای محلی با runserver این تنظیم نادیده گرفته می‌شود تا
+# نیازی به collectstatic برای تست/توسعه نباشد.
+if not DEBUG:
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# در پشت یک ریورس‌پروکسی (مثل کدی که Caddy/Nginx برایتان تنظیم می‌کند) که
+# HTTPS را ترمینیت می‌کند، این هدر باعث می‌شود جنگو درخواست را همچنان امن
+# تشخیص دهد.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
