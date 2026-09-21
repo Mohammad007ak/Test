@@ -1,50 +1,80 @@
 {% extends "projects/base.html" %}
 {% block content %}
-<h1>شناسنامه‌ی پروژه: {{ project.title }}</h1>
-<div class="card">
-    <p><strong>کد پروژه:</strong> {{ project.code }}</p>
-    <p><strong>پژوهشکده:</strong> {{ project.research_institute }}</p>
-    <p><strong>نوع پروژه:</strong> {{ project.get_project_type_display }}</p>
-    <p><strong>کارفرما/منبع تأمین:</strong> {{ project.client_or_funder|default:"-" }}</p>
-    <p><strong>وضعیت:</strong> {{ project.get_status_display }}</p>
-    <p><strong>مجری:</strong> {{ project.executor|default:"-" }} ({{ project.executor_assigned_date|default:"-" }})</p>
-    <p><strong>بازه‌ی برنامه‌ریزی‌شده:</strong> {{ project.planned_start_date }} تا {{ project.planned_end_date }}</p>
-    <p><strong>بازه‌ی واقعی:</strong> {{ project.actual_start_date|default:"-" }} تا {{ project.actual_end_date|default:"-" }}</p>
-    <p><strong>درصد پیشرفت:</strong> {{ project.progress_percent }}% (برنامه‌ای: {{ project.expected_progress_percent }}%)</p>
-    <p><strong>بودجه:</strong> {{ project.budget }} | <strong>هزینه‌ی مصرف‌شده:</strong> {{ project.cost_spent }}</p>
+<div class="page-header">
+    <h1>{{ project.title }}</h1>
+    <p class="subtitle">کد پروژه: {{ project.code }}</p>
 </div>
 
-<div class="card">
-    <h2 style="font-size:16px;">نیروهای تخصیص‌یافته</h2>
-    <table>
-        <tr><th>نیرو</th><th>نوع</th><th>سهم زمانی</th><th>نقش</th></tr>
-        {% for a in assignments %}
-        <tr>
-            <td>{{ a.person }}</td>
-            <td>{{ a.person_content_type.name }}</td>
-            <td>{{ a.allocation_percent }}%</td>
-            <td>{{ a.role_description|default:"-" }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="4">نیرویی تخصیص نیافته است.</td></tr>
-        {% endfor %}
-    </table>
-</div>
+<div class="two-col">
+    <div class="card">
+        <h2>اطلاعات کلی</h2>
+        <dl class="kv">
+            <dt>پژوهشکده</dt><dd>{{ project.research_institute }}</dd>
+            <dt>نوع پروژه</dt><dd>{{ project.get_project_type_display }}</dd>
+            <dt>کارفرما / منبع تأمین</dt><dd>{{ project.client_or_funder|default:"-" }}</dd>
+            <dt>وضعیت</dt>
+            <dd>
+                {% if project.status == "in_progress" %}<span class="badge badge-info">{{ project.get_status_display }}</span>
+                {% elif project.status == "finished" %}<span class="badge badge-success">{{ project.get_status_display }}</span>
+                {% elif project.status == "stopped" %}<span class="badge badge-warning">{{ project.get_status_display }}</span>
+                {% else %}<span class="badge badge-muted">{{ project.get_status_display }}</span>{% endif %}
+            </dd>
+            <dt>مجری</dt><dd>{{ project.executor|default:"-" }}{% if project.executor_assigned_date %} &middot; انتصاب در {{ project.executor_assigned_date }}{% endif %}</dd>
+            <dt>بازه‌ی برنامه‌ریزی‌شده</dt><dd>{{ project.planned_start_date }} تا {{ project.planned_end_date }}</dd>
+            <dt>بازه‌ی واقعی</dt><dd>{{ project.actual_start_date|default:"-" }} تا {{ project.actual_end_date|default:"-" }}</dd>
+            <dt>پیشرفت</dt>
+            <dd>
+                <div class="progress-bar" style="max-width:220px;">
+                    <div class="track"><div class="fill{% if project.is_delayed %} tone-bad{% else %} tone-good{% endif %}" style="width:{{ project.progress_percent }}%;"></div></div>
+                    <span class="pct">{{ project.progress_percent }}%</span>
+                </div>
+                <span style="font-size:12px; color:var(--text-tertiary);">برنامه‌ای: {{ project.expected_progress_percent }}%{% if project.is_delayed %} &middot; <span class="badge badge-danger">{{ project.delay_percent }}% تأخیر</span>{% endif %}</span>
+            </dd>
+            <dt>بودجه</dt><dd>{{ project.budget }} ریال &middot; هزینه‌ی مصرف‌شده: {{ project.cost_spent }} ریال</dd>
+        </dl>
+    </div>
 
-{% if decisions %}
-<div class="card">
-    <h2 style="font-size:16px;">سابقه‌ی تصمیم‌های پروپوزال</h2>
-    <table>
-        <tr><th>شورا</th><th>تصمیم</th><th>نظر</th><th>تاریخ</th></tr>
-        {% for d in decisions %}
-        <tr>
-            <td>{{ d.get_council_display }}</td>
-            <td>{{ d.get_decision_display }}</td>
-            <td>{{ d.comments|default:"-" }}</td>
-            <td>{{ d.decided_at }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="stack">
+        <div class="card">
+            <h2>نیروهای تخصیص‌یافته</h2>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>نیرو</th><th>نوع</th><th>سهم</th><th>نقش</th></tr>
+                    {% for a in assignments %}
+                    <tr>
+                        <td>{{ a.person }}</td>
+                        <td>{{ a.person_content_type.name }}</td>
+                        <td>{{ a.allocation_percent }}%</td>
+                        <td>{{ a.role_description|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="empty-state">نیرویی تخصیص نیافته است.</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+        {% if decisions %}
+        <div class="card">
+            <h2>سابقه‌ی تصمیم‌های پروپوزال</h2>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>شورا</th><th>تصمیم</th><th>تاریخ</th></tr>
+                    {% for d in decisions %}
+                    <tr>
+                        <td>{{ d.get_council_display }}</td>
+                        <td>
+                            {% if d.decision == "approved" %}<span class="badge badge-success">{{ d.get_decision_display }}</span>
+                            {% elif d.decision == "needs_revision" %}<span class="badge badge-warning">{{ d.get_decision_display }}</span>
+                            {% else %}<span class="badge badge-danger">{{ d.get_decision_display }}</span>{% endif %}
+                        </td>
+                        <td>{{ d.decided_at|date:"Y/m/d H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </div>
-{% endif %}
 {% endblock %}

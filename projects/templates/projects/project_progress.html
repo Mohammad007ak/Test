@@ -8,7 +8,12 @@
         <tr>
             <td><a href="{% url 'project_profile' row.project.pk %}">{{ row.project.code }} - {{ row.project.title }}</a></td>
             <td>{{ row.expected }}%</td>
-            <td>{{ row.actual }}%</td>
+            <td>
+                <div class="progress-bar">
+                    <div class="track"><div class="fill{% if row.delay > 0 %} tone-bad{% else %} tone-good{% endif %}" style="width:{{ row.actual }}%;"></div></div>
+                    <span class="pct">{{ row.actual }}%</span>
+                </div>
+            </td>
             <td>
                 {% if row.delay > 0 %}
                 <span class="badge badge-danger">{{ row.delay }}%</span>

@@ -40,9 +40,95 @@ def _executor_persons_for_user(user):
     return persons
 
 
+def _average_approval_days():
+    finished = Proposal.objects.filter(order_issued_at__isnull=False)
+    duration_expr = ExpressionWrapper(F("order_issued_at") - F("submitted_at"), output_field=DurationField())
+    avg_duration = finished.annotate(duration=duration_expr).aggregate(avg=Avg("duration"))["avg"]
+    return avg_duration.days if avg_duration else None
+
+
+def _global_kpis(include_admin_only):
+    projects = Project.objects.all()
+    in_progress_qs = projects.filter(status=Project.Status.IN_PROGRESS)
+    delayed = sum(1 for p in in_progress_qs if p.delay_percent > 0)
+
+    active_proposal_statuses = [
+        Proposal.Status.SUBMITTED,
+        Proposal.Status.INSTITUTE_REVIEW,
+        Proposal.Status.ACADEMY_REVIEW,
+        Proposal.Status.NEEDS_REVISION,
+    ]
+    proposals_in_progress = Proposal.objects.filter(status__in=active_proposal_statuses).count()
+
+    avg_days = _average_approval_days()
+
+    workforce_total = sum(model.objects.count() for model, _ in PERSON_MODELS)
+    overloaded = sum(
+        1
+        for model, _ in PERSON_MODELS
+        for person in model.objects.all()
+        if person.active_allocation_percent() > 100
+    )
+
+    cutoff = timezone.localdate() + timedelta(days=90)
+    soldiers_ending = Soldier.objects.filter(
+        service_end_date__lte=cutoff, service_end_date__gte=timezone.localdate()
+    ).count()
+
+    kpis = [
+        {"label": "کل پروژه‌ها", "value": projects.count(), "url": "project_status_overview"},
+        {"label": "در حال اجرا", "value": in_progress_qs.count(), "tone": "accent", "url": "project_status_overview"},
+        {"label": "پروژه‌های دارای تأخیر", "value": delayed, "tone": "bad" if delayed else "good", "url": "delayed_projects"},
+        {"label": "پروپوزال در جریان", "value": proposals_in_progress, "url": "proposals_in_progress"},
+        {"label": "میانگین زمان تصویب", "value": f"{avg_days} روز" if avg_days is not None else "—", "url": "average_approval_time"},
+        {"label": "نیروی انسانی فعال", "value": workforce_total, "url": "workforce_composition"},
+        {"label": "بیش‌ازحد درگیر", "value": overloaded, "tone": "warn" if overloaded else "good", "url": "workload_report"},
+        {"label": "پایان خدمت نزدیک", "value": soldiers_ending, "url": "soldier_service_end"},
+    ]
+    if include_admin_only:
+        contracts_ending = ExternalCollaborator.objects.filter(
+            contract_end_date__lte=cutoff, contract_end_date__gte=timezone.localdate()
+        ).count()
+        kpis.append({
+            "label": "قرارداد نزدیک به پایان",
+            "value": contracts_ending,
+            "tone": "warn" if contracts_ending else "good",
+            "url": "external_contracts",
+        })
+    return kpis
+
+
+def _executor_kpis(user):
+    from django.contrib.contenttypes.models import ContentType
+
+    persons = _executor_persons_for_user(user)
+    pks = [p.pk for p in persons]
+    types = [type(p)._meta.model_name for p in persons]
+    cts = ContentType.objects.filter(model__in=set(types)) if types else ContentType.objects.none()
+    projects = Project.objects.filter(executor_content_type__in=cts, executor_object_id__in=pks)
+    delayed = sum(1 for p in projects if p.is_delayed)
+    return [
+        {"label": "پروژه‌های شما", "value": projects.count(), "url": "executor_dashboard"},
+        {"label": "در حال اجرا", "value": projects.filter(status=Project.Status.IN_PROGRESS).count(), "tone": "accent", "url": "executor_dashboard"},
+        {"label": "دارای تأخیر", "value": delayed, "tone": "bad" if delayed else "good", "url": "executor_dashboard"},
+    ]
+
+
 @login_required
 def report_home(request):
-    return render(request, "projects/report_home.html", {"nav_groups": visible_nav_groups(request.user)})
+    roles = user_roles(request.user)
+    is_admin_like = request.user.is_superuser or bool(roles & {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL})
+    if is_admin_like:
+        kpis = _global_kpis(include_admin_only=request.user.is_superuser or ROLE_SUPER_ADMIN in roles)
+    elif ROLE_EXECUTOR in roles:
+        kpis = _executor_kpis(request.user)
+    else:
+        kpis = []
+    return render(
+        request,
+        "projects/report_home.html",
+        {"nav_groups": visible_nav_groups(request.user), "kpis": kpis},
+    )
 
 
 @role_required(ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL)
@@ -158,14 +244,12 @@ def approval_rate(request):
 
 @role_required(ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL)
 def average_approval_time(request):
-    finished = Proposal.objects.filter(order_issued_at__isnull=False)
-    duration_expr = ExpressionWrapper(F("order_issued_at") - F("submitted_at"), output_field=DurationField())
-    avg_duration = finished.annotate(duration=duration_expr).aggregate(avg=Avg("duration"))["avg"]
-    avg_days = avg_duration.days if avg_duration else None
+    avg_days = _average_approval_days()
+    sample_size = Proposal.objects.filter(order_issued_at__isnull=False).count()
     return render(
         request,
         "projects/average_approval_time.html",
-        {"avg_days": avg_days, "sample_size": finished.count()},
+        {"avg_days": avg_days, "sample_size": sample_size},
     )
 
 

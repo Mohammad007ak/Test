@@ -41,3 +41,21 @@ def visible_nav_groups(user):
         if visible:
             groups.append((title, visible))
     return groups
+
+
+# صفحاتی که در NAV_GROUPS نیستند (چون به یک شناسه‌ی پروژه نیاز دارند) ولی
+# باید برای مسیر نان (breadcrumb) به یک گروه نسبت داده شوند.
+_EXTRA_PAGE_INFO = {
+    "project_profile": ("گزارش‌های پروژه", "شناسنامه‌ی پروژه"),
+}
+
+
+def find_page_info(url_name):
+    """گروه و عنوان فارسی یک صفحه را برای نمایش در مسیر ناوبری برمی‌گرداند."""
+    if url_name in _EXTRA_PAGE_INFO:
+        return _EXTRA_PAGE_INFO[url_name]
+    for group_title, items in NAV_GROUPS:
+        for name, label, _allowed in items:
+            if name == url_name:
+                return group_title, label
+    return None, None

@@ -5,6 +5,17 @@
     <p class="subtitle">بر اساس نقش کاربری‌تان، گزارش‌های زیر برایتان فعال شده است.</p>
 </div>
 
+{% if kpis %}
+<div class="kpi-grid">
+    {% for kpi in kpis %}
+    <a class="kpi-tile{% if kpi.tone %} tone-{{ kpi.tone }}{% endif %}" href="{% url kpi.url %}">
+        <div class="kpi-label">{{ kpi.label }}</div>
+        <div class="kpi-value">{{ kpi.value }}</div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
 {% for group_title, items in nav_groups %}
 <div class="card">
     <h2>{{ group_title }}</h2>
