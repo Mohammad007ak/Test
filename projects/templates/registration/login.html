@@ -1,11 +1,14 @@
 {% extends "projects/base.html" %}
 {% block content %}
-<div class="card" style="max-width:360px;margin:60px auto;">
-    <h1>ورود به سامانه</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">ورود</button>
-    </form>
+<div style="max-width:380px;margin:9vh auto 0;">
+    <div class="card">
+        <h1>ورود به سامانه</h1>
+        <p class="card-note" style="margin-top:-10px;">برای دسترسی به گزارش‌ها و پنل مدیریت وارد شوید</p>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" style="width:100%; margin-top:6px;">ورود</button>
+        </form>
+    </div>
 </div>
 {% endblock %}
