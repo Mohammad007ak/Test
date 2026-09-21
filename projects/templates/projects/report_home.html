@@ -1,13 +1,25 @@
 {% extends "projects/base.html" %}
 {% block content %}
-<h1>گزارش‌های در دسترس شما</h1>
-<div class="card">
-    <ul>
-    {% for url, label in reports %}
-        <li><a href="{% url url %}">{{ label }}</a></li>
-    {% empty %}
-        <li>گزارشی برای نقش شما تعریف نشده است.</li>
-    {% endfor %}
-    </ul>
+<div class="page-header">
+    <h1>گزارش‌های در دسترس شما</h1>
+    <p class="subtitle">بر اساس نقش کاربری‌تان، گزارش‌های زیر برایتان فعال شده است.</p>
 </div>
+
+{% for group_title, items in nav_groups %}
+<div class="card">
+    <h2>{{ group_title }}</h2>
+    <div class="report-grid">
+        {% for url_name, label in items %}
+        <a class="report-tile" href="{% url url_name %}">
+            <div class="eyebrow">{{ group_title }}</div>
+            <div class="name">{{ label }}</div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% empty %}
+<div class="card">
+    <p class="empty-state">گزارشی برای نقش شما تعریف نشده است. با ادمین سامانه تماس بگیرید تا نقش مناسب به شما اختصاص داده شود.</p>
+</div>
+{% endfor %}
 {% endblock %}

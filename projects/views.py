@@ -15,6 +15,7 @@ from .models import (
     ProposalDecision,
     Soldier,
 )
+from .nav import visible_nav_groups
 from .permissions import (
     ROLE_DATA_ENTRY,
     ROLE_EXECUTOR,
@@ -41,24 +42,7 @@ def _executor_persons_for_user(user):
 
 @login_required
 def report_home(request):
-    roles = user_roles(request.user)
-    reports = [
-        ("project_status_overview", "وضعیت کلی پروژه‌ها", {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL}),
-        ("project_progress", "پیشرفت پروژه‌ها", {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL, ROLE_EXECUTOR}),
-        ("delayed_projects", "پروژه‌های دارای تأخیر", {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL}),
-        ("proposals_in_progress", "پروپوزال‌های در جریان", {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL}),
-        ("approval_rate", "نرخ تصویب", {ROLE_SUPER_ADMIN}),
-        ("average_approval_time", "میانگین زمان تصویب", {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL}),
-        ("workforce_composition", "ترکیب نیروها", {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL}),
-        ("workload_report", "بار کاری افراد", {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL}),
-        ("free_capacity", "ظرفیت آزاد", {ROLE_SUPER_ADMIN, ROLE_EXECUTOR}),
-        ("soldier_service_end", "پایان خدمت سربازان", {ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL, ROLE_EXECUTOR}),
-        ("external_contracts", "قراردادهای همکاران خارجی", {ROLE_SUPER_ADMIN}),
-        ("executor_performance", "عملکرد مجریان", {ROLE_SUPER_ADMIN}),
-        ("executor_dashboard", "داشبورد مجری", {ROLE_EXECUTOR, ROLE_SUPER_ADMIN}),
-    ]
-    visible = [(url, label) for url, label, allowed in reports if request.user.is_superuser or roles & allowed]
-    return render(request, "projects/report_home.html", {"reports": visible})
+    return render(request, "projects/report_home.html", {"nav_groups": visible_nav_groups(request.user)})
 
 
 @role_required(ROLE_SUPER_ADMIN, ROLE_PROJECT_CONTROL)
