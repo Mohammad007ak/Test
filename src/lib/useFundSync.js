@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
+import { useToast } from "../ui/feedback.jsx";
 
 // Keeps a fund's ledger in sync with the server. Edits apply locally right
 // away and are saved one at a time in the background; if the fund changed
@@ -12,6 +13,7 @@ export function useFundSync(fundId) {
   const version = useRef(0);
   const dirty = useRef(false);
   const chain = useRef(Promise.resolve());
+  const toast = useToast();
 
   const applyServer = useCallback((data, serverVersion) => {
     current.current = data;
@@ -46,13 +48,16 @@ export function useFundSync(fundId) {
       if (e.status === 409) {
         applyServer(e.body.data, e.body.version);
         setStatus("saved");
-        alert("این صندوق در دستگاه دیگری تغییر کرده بود. آخرین نسخه بارگذاری شد؛ لطفاً تغییر آخر را دوباره انجام دهید.");
+        toast("صندوق در دستگاه دیگری تغییر کرده بود؛ آخرین نسخه بارگذاری شد. تغییر آخر را دوباره انجام دهید.", {
+          tone: "error",
+          duration: 6000,
+        });
       } else {
         dirty.current = true;
         setStatus("error");
       }
     }
-  }, [fundId, applyServer]);
+  }, [fundId, applyServer, toast]);
 
   const flush = useCallback(() => {
     chain.current = chain.current.then(saveIfDirty);

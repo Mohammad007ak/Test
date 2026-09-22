@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { ArrowRightLeft, CalendarCheck, Dices, Eye, House, LogOut, RefreshCw, Settings as SettingsIcon, Users, WalletCards } from "lucide-react";
 import Dashboard from "./components/Dashboard.jsx";
-import Members from "./components/Members.jsx";
+import Members, { MemberForm, MemberSheet, blankMember, useMemberActions } from "./components/Members.jsx";
 import Payments from "./components/Payments.jsx";
 import Lottery from "./components/Lottery.jsx";
 import Loans from "./components/Loans.jsx";
@@ -8,106 +9,205 @@ import Settings from "./components/Settings.jsx";
 import Login from "./components/Login.jsx";
 import FundList from "./components/FundList.jsx";
 import MemberView from "./components/MemberView.jsx";
+import { Logo, LogoMark } from "./ui/Logo.jsx";
+import { PageSkeleton } from "./ui/bits.jsx";
+import { FeedbackProvider } from "./ui/feedback.jsx";
 import { api } from "./lib/api.js";
+import { overdueDues } from "./lib/fund.js";
 import { useFundSync } from "./lib/useFundSync.js";
-import { currentMonthKey, formatDate } from "./lib/jalali.js";
+import { currentMonthKey, toPersianDigits } from "./lib/jalali.js";
 
 const TABS = [
-  { id: "dashboard", label: "داشبورد", icon: "🏠", Component: Dashboard },
-  { id: "payments", label: "پرداخت‌ها", icon: "💳", Component: Payments },
-  { id: "lottery", label: "قرعه‌کشی", icon: "🎲", Component: Lottery },
-  { id: "loans", label: "وام‌ها", icon: "📄", Component: Loans },
-  { id: "members", label: "اعضا", icon: "👥", Component: Members },
-  { id: "settings", label: "تنظیمات", icon: "⚙️", Component: Settings },
+  { id: "dashboard", label: "خانه", icon: House, Component: Dashboard },
+  { id: "payments", label: "پرداخت‌ها", icon: CalendarCheck, Component: Payments },
+  { id: "lottery", label: "قرعه‌کشی", icon: Dices, Component: Lottery },
+  { id: "members", label: "اعضا", icon: Users, Component: Members },
+  { id: "loans", label: "وام‌ها", icon: WalletCards, Component: Loans },
+  { id: "settings", label: "تنظیمات", icon: SettingsIcon, Component: Settings },
 ];
+const MOBILE_TABS = TABS.filter((t) => t.id !== "settings");
 
-const SAVE_STATUS = {
-  saving: "در حال ذخیره…",
-  saved: "ذخیره شد ✓",
-  error: "ذخیره نشد",
-};
+const SAVE_LABEL = { loading: "", saving: "در حال ذخیره…", saved: "ذخیره شد", error: "ذخیره نشد" };
 
-// Routes live in the URL hash (#/manage/<id>, #/view/<id>) so a refresh
-// or a shared link lands on the same screen.
+// Routes live in the URL hash (#/manage/<id>/<tab>, #/view/<id>) so a
+// refresh or a shared link lands on the same screen.
 function parseRoute() {
-  const [, page, id] = window.location.hash.split("/");
-  return page === "manage" || page === "view" ? { page, id } : { page: "home" };
+  const [, page, id, tab] = window.location.hash.split("/");
+  return page === "manage" || page === "view" ? { page, id, tab } : { page: "home" };
 }
 
 function useRoute() {
   const [route, setRoute] = useState(parseRoute);
   useEffect(() => {
-    const onChange = () => setRoute(parseRoute());
+    const onChange = () => {
+      setRoute(parseRoute());
+      window.scrollTo({ top: 0 });
+    };
     window.addEventListener("hashchange", onChange);
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
-  const go = (page, id) => {
-    window.location.hash = page === "home" ? "" : `/${page}/${id}`;
+  const go = (page, id, tab) => {
+    window.location.hash = page === "home" ? "" : `/${page}/${id}${tab ? `/${tab}` : ""}`;
   };
   return [route, go];
 }
 
-function ManageFund({ fundId, go }) {
+function ManageFund({ fundId, tab: routeTab, go, phone, onLogout }) {
   const { state, status, error, update, flush, applyServer } = useFundSync(fundId);
-  const [tab, setTab] = useState("dashboard");
+  const [memberId, setMemberId] = useState(null);
+  const [editing, setEditing] = useState(null);
   const currentMonth = currentMonthKey();
+  const tab = TABS.some((t) => t.id === routeTab) ? routeTab : "dashboard";
+  const setTab = (id) => go("manage", fundId, id === "dashboard" ? undefined : id);
+  const actions = useMemberActions({ state: state ?? { members: [], payments: [], loans: [] }, update });
 
   if (error) {
     return (
-      <div className="stack">
-        <p className="danger">{error.message}</p>
-        <button className="btn ghost" onClick={() => go("home")}>
-          بازگشت به صندوق‌ها
-        </button>
+      <div className="home">
+        <div className="card" style={{ marginTop: 40 }}>
+          <p className="error-text">{error.message}</p>
+          <button className="btn outline" style={{ marginTop: 12 }} onClick={() => go("home")}>
+            بازگشت به صندوق‌ها
+          </button>
+        </div>
       </div>
     );
   }
-  if (!state) return <p className="empty">در حال بارگذاری…</p>;
 
   const { Component } = TABS.find((t) => t.id === tab);
+  const lateCount = state ? new Set(overdueDues(state, currentMonth).map((d) => d.memberId)).size : 0;
+  const goTo = (id, opts) => (id === "members" && opts?.add ? setEditing(blankMember(state.fund, currentMonth)) : setTab(id));
 
   return (
-    <>
-      <header className="topbar">
-        <div>
-          <h1>{state.fund.name}</h1>
-          <span className="muted">
-            {formatDate(new Date().toISOString())}،{" "}
-            <span className={status === "error" ? "danger" : ""}>{SAVE_STATUS[status]}</span>
-            {status === "error" && (
-              <button className="link" onClick={flush}>
-                تلاش دوباره
+    <div className="shell">
+      <aside className="sidebar">
+        <Logo />
+        <button className="fund-switch" onClick={() => flush().then(() => go("home"))} title="تغییر صندوق">
+          <LogoMark size={30} />
+          <div>
+            <strong>{state?.fund.name ?? "…"}</strong>
+            <span>تغییر صندوق</span>
+          </div>
+          <ArrowRightLeft size={16} className="muted" />
+        </button>
+        <nav aria-label="بخش‌های صندوق">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                className={`side-link ${t.id === tab ? "active" : ""}`}
+                onClick={() => setTab(t.id)}
+                aria-current={t.id === tab ? "page" : undefined}
+              >
+                <Icon size={19} />
+                {t.label}
+                {t.id === "payments" && lateCount > 0 && <span className="count">{toPersianDigits(lateCount)}</span>}
               </button>
-            )}
-          </span>
+            );
+          })}
+        </nav>
+        <div className="sidebar-foot">
+          <button className="side-link" onClick={() => go("view", fundId)}>
+            <Eye size={19} /> نمای اعضا
+          </button>
+          <button className="side-link" onClick={onLogout}>
+            <LogOut size={19} /> خروج
+            <span className="muted small" style={{ marginInlineStart: "auto" }} dir="ltr">
+              {toPersianDigits(phone)}
+            </span>
+          </button>
         </div>
-        <div className="row-actions">
-          <button className="btn ghost small" onClick={() => go("view", fundId)}>
-            👁 نمای اعضا
+      </aside>
+
+      <div className="main">
+        <header className="appbar">
+          <button className="icon-btn mobile-only" onClick={() => flush().then(() => go("home"))} aria-label="صندوق‌ها">
+            <LogoMark size={30} />
           </button>
-          <button className="btn ghost small" onClick={() => flush().then(() => go("home"))}>
-            صندوق‌ها
+          <div className="appbar-title">
+            <h1>{state?.fund.name ?? ""}</h1>
+            <div className="sub">
+              <span className={`save-dot ${status}`} />
+              {SAVE_LABEL[status]}
+              {status === "error" && (
+                <button className="link-btn" onClick={flush}>
+                  <RefreshCw size={12} /> دوباره
+                </button>
+              )}
+            </div>
+          </div>
+          <button className="icon-btn mobile-only" onClick={() => go("view", fundId)} aria-label="نمای اعضا" title="نمای اعضا">
+            <Eye size={20} />
           </button>
-        </div>
-      </header>
-      <nav className="tabs">
-        {TABS.map((t) => (
-          <button key={t.id} className={t.id === tab ? "active" : ""} onClick={() => setTab(t.id)}>
-            <span aria-hidden>{t.icon}</span>
-            {t.label}
+          <button
+            className={`icon-btn mobile-only ${tab === "settings" ? "soft" : ""}`}
+            onClick={() => setTab("settings")}
+            aria-label="تنظیمات"
+          >
+            <SettingsIcon size={20} />
           </button>
-        ))}
+        </header>
+
+        {state ? (
+          <Component
+            key={tab}
+            state={state}
+            update={update}
+            currentMonth={currentMonth}
+            goTo={goTo}
+            goHome={() => go("home")}
+            openMember={setMemberId}
+            editMember={setEditing}
+            server={{ fundId, flush, applyServer }}
+          />
+        ) : (
+          <PageSkeleton />
+        )}
+      </div>
+
+      <nav className="bottom-nav" aria-label="بخش‌های صندوق">
+        {MOBILE_TABS.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button key={t.id} className={t.id === tab ? "active" : ""} onClick={() => setTab(t.id)}>
+              <span className="nav-icon">
+                <Icon size={21} strokeWidth={t.id === tab ? 2.2 : 1.8} />
+              </span>
+              {t.label}
+              {t.id === "payments" && lateCount > 0 && <span className="dot-count">{toPersianDigits(lateCount)}</span>}
+            </button>
+          );
+        })}
       </nav>
-      <Component
-        key={tab}
-        state={state}
-        update={update}
-        currentMonth={currentMonth}
-        goTo={setTab}
-        goHome={() => go("home")}
-        server={{ fundId, flush, applyServer }}
-      />
-    </>
+
+      {state && (
+        <>
+          <MemberSheet
+            state={state}
+            memberId={memberId}
+            currentMonth={currentMonth}
+            onClose={() => setMemberId(null)}
+            onEdit={(member) => {
+              setMemberId(null);
+              setEditing(member);
+            }}
+            onDelete={async (member) => {
+              if (await actions.remove(member)) setMemberId(null);
+            }}
+          />
+          <MemberForm
+            open={Boolean(editing)}
+            initial={editing}
+            onClose={() => setEditing(null)}
+            onSave={(member) => {
+              actions.save(member);
+              setEditing(null);
+            }}
+          />
+        </>
+      )}
+    </div>
   );
 }
 
@@ -132,11 +232,15 @@ export default function App() {
   };
 
   let content;
-  if (phone === undefined) content = <p className="empty">در حال بارگذاری…</p>;
+  if (phone === undefined) content = <div className="home" />;
   else if (phone === null) content = <Login onLogin={setPhone} />;
-  else if (route.page === "manage") content = <ManageFund key={route.id} fundId={route.id} go={go} />;
-  else if (route.page === "view") content = <MemberView key={route.id} fundId={route.id} back={(isManager) => (isManager ? go("manage", route.id) : go("home"))} />;
+  else if (route.page === "manage")
+    content = <ManageFund key={route.id} fundId={route.id} tab={route.tab} go={go} phone={phone} onLogout={logout} />;
+  else if (route.page === "view")
+    content = (
+      <MemberView key={route.id} fundId={route.id} back={(isManager) => (isManager ? go("manage", route.id) : go("home"))} />
+    );
   else content = <FundList phone={phone} open={go} onLogout={logout} />;
 
-  return <main className="app">{content}</main>;
+  return <FeedbackProvider>{content}</FeedbackProvider>;
 }

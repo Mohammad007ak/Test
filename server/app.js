@@ -11,6 +11,7 @@ import {
   loanProgress,
   lotteryEntries,
   newId,
+  overdueDues,
   pickWinner,
   sum,
 } from "../src/lib/fund.js";
@@ -223,7 +224,14 @@ export function createApp({ db, sendCode = null, production = false, now = Date.
         .all(req.phone)
         .map((row) => {
           const data = JSON.parse(row.data);
-          return { id: row.id, name: data.fund.name, members: data.members.length };
+          const late = new Set(overdueDues(data, currentMonthKey(new Date(now()))).map((d) => d.memberId));
+          return {
+            id: row.id,
+            name: data.fund.name,
+            members: data.members.length,
+            balance: fundBalance(data),
+            lateMembers: late.size,
+          };
         });
       const member = db
         .prepare(
@@ -425,6 +433,8 @@ export function createApp({ db, sendCode = null, production = false, now = Date.
           loanAmount: data.fund.loanAmount,
           installments: data.fund.installments,
           cycle: data.fund.cycle,
+          cardNumber: data.fund.cardNumber ?? "",
+          cardHolder: data.fund.cardHolder ?? "",
         },
         isManager,
         currentMonth: month,

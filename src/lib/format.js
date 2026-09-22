@@ -17,8 +17,29 @@ export function parseAmount(text) {
   return latin ? Number(latin) : 0;
 }
 
-export function reminderText(fundName, memberName, amount) {
-  return `سلام ${memberName} عزیز، یادآوری ${fundName}: مبلغ ${formatMoney(amount)} از پرداخت‌های شما معوق است. لطفاً در اولین فرصت واریز کنید. ممنون 🙏`;
+// "۳۰ میلیون" reads faster than "۳۰٬۰۰۰٬۰۰۰" in cards and captions.
+export function formatCompact(amount) {
+  const units = [
+    [1e9, "میلیارد"],
+    [1e6, "میلیون"],
+    [1e3, "هزار"],
+  ];
+  for (const [size, label] of units) {
+    if (Math.abs(amount) >= size) {
+      const value = Math.round((amount / size) * 10) / 10;
+      return `${value.toLocaleString("fa-IR")} ${label}`;
+    }
+  }
+  return Math.round(amount).toLocaleString("fa-IR");
+}
+
+export function formatCard(number) {
+  return toPersianDigits(String(number).replace(/\D/g, "").replace(/(\d{4})(?=\d)/g, "$1 "));
+}
+
+export function reminderText(fund, memberName, amount) {
+  const card = fund.cardNumber ? `\nشماره کارت: ${formatCard(fund.cardNumber)}${fund.cardHolder ? ` به نام ${fund.cardHolder}` : ""}` : "";
+  return `سلام ${memberName} عزیز\nیادآوری ${fund.name}: مبلغ ${formatMoney(amount)} از پرداخت‌های شما مانده است.${card}\nممنون از همراهی‌تان 🌱`;
 }
 
 export function smsLink(phone, text) {

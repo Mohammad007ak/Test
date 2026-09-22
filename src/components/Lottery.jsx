@@ -1,177 +1,257 @@
-import { useEffect, useRef, useState } from "react";
-import { fundBalance, lotteryEntries } from "../lib/fund.js";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Ban, Dices, RotateCcw, ShieldCheck, Ticket, Trophy } from "lucide-react";
+import Pattern from "../ui/Pattern.jsx";
+import { Avatar, Money, Spinner } from "../ui/bits.jsx";
+import { useDialog, useToast } from "../ui/feedback.jsx";
 import { api } from "../lib/api.js";
-import { formatMoney, formatNumber } from "../lib/format.js";
+import { fundBalance, lotteryEntries, sum } from "../lib/fund.js";
+import { formatCompact, formatNumber } from "../lib/format.js";
 import { monthLabel } from "../lib/jalali.js";
 
-const SPIN_MS = 3000;
+const ITEM = 76;
+const SPIN_MS = 4200;
+const CONFETTI = ["#f0c46a", "#f7d27d", "#3fbf96", "#ffffff", "#e6a92c"];
+
+function Confetti() {
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: 36 }, (_, i) => {
+        const angle = (Math.PI * 2 * i) / 36 + Math.random() * 0.3;
+        const dist = 120 + Math.random() * 140;
+        return {
+          x: `${Math.cos(angle) * dist}px`,
+          y: `${Math.sin(angle) * dist - 40}px`,
+          r: `${Math.random() * 720 - 360}deg`,
+          color: CONFETTI[i % CONFETTI.length],
+          delay: `${Math.random() * 0.15}s`,
+        };
+      }),
+    [],
+  );
+  return (
+    <div className="confetti" aria-hidden="true">
+      {pieces.map((p, i) => (
+        <i key={i} style={{ "--x": p.x, "--y": p.y, "--r": p.r, background: p.color, animationDelay: p.delay }} />
+      ))}
+    </div>
+  );
+}
 
 export default function Lottery({ state, update, currentMonth, server }) {
   const { fund, loans, members } = state;
   const entries = lotteryEntries(state);
   const balance = fundBalance(state);
   const enoughMoney = balance >= fund.loanAmount;
-  const drawnThisMonth = loans.some((l) => l.drawMonth === currentMonth);
   const memberById = new Map(members.map((m) => [m.id, m]));
+  const toast = useToast();
+  const confirm = useDialog();
 
-  const [spinning, setSpinning] = useState(false);
-  const [shown, setShown] = useState(null);
+  const [phase, setPhase] = useState("idle"); // idle | spinning | won
+  const [reel, setReel] = useState([]);
+  const [offset, setOffset] = useState(0);
   const [winner, setWinner] = useState(null);
   const [drawId, setDrawId] = useState(null);
   const [busy, setBusy] = useState(false);
-  const timers = useRef([]);
+  const timer = useRef(null);
 
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(() => () => clearTimeout(timer.current), []);
 
-  const reset = () => {
-    setWinner(null);
-    setShown(null);
-    setDrawId(null);
-  };
-
-  // The server picks the winner; the animation only reveals it.
   const draw = async () => {
-    if (drawnThisMonth && !confirm("این ماه قبلاً قرعه‌کشی شده. قرعه‌ی دیگری انجام شود؟")) return;
+    if (loans.some((l) => l.drawMonth === currentMonth)) {
+      const ok = await confirm({
+        title: "قرعه‌ی دوم در این ماه؟",
+        body: "این ماه یک وام با قرعه داده شده. اگر موجودی کافی است می‌توانید قرعه‌ی دیگری بکشید.",
+        confirmLabel: "قرعه‌ی بعدی",
+        tone: "gold",
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     let result;
     try {
       await server.flush();
       result = await api("POST", `/api/funds/${server.fundId}/draws`);
     } catch (e) {
-      alert(e.message);
-      return;
-    } finally {
+      toast(e.message, { tone: "error" });
       setBusy(false);
+      return;
     }
-    const chosen = memberById.get(result.draw.winnerId) ?? { id: result.draw.winnerId, name: result.draw.winnerName };
-    setDrawId(result.draw.id);
-    setWinner(null);
-    setSpinning(true);
+    setBusy(false);
 
-    // Flash names with a slowing rhythm before landing on the winner.
-    let elapsed = 0;
-    let delay = 60;
+    // The server has already chosen; the reel only reveals it.
+    const chosen = memberById.get(result.draw.winnerId) ?? { id: result.draw.winnerId, name: result.draw.winnerName };
     const names = entries.map((e) => e.member);
-    let i = 0;
-    while (elapsed < SPIN_MS) {
-      const member = names[i++ % names.length];
-      timers.current.push(setTimeout(() => setShown(member), elapsed));
-      elapsed += delay;
-      delay *= 1.08;
-    }
-    timers.current.push(
-      setTimeout(() => {
-        setShown(chosen);
-        setWinner(chosen);
-        setSpinning(false);
-      }, elapsed),
-    );
+    const strip = [];
+    for (let i = 0; i < 28; i++) strip.push(names[(i * 7 + 3) % names.length]);
+    strip.push(chosen, names[0]);
+    setReel(strip);
+    setOffset(0);
+    setWinner(null);
+    setDrawId(result.draw.id);
+    setPhase("spinning");
+    requestAnimationFrame(() => requestAnimationFrame(() => setOffset((strip.length - 2) * ITEM)));
+    timer.current = setTimeout(() => {
+      setWinner(chosen);
+      setPhase("won");
+    }, SPIN_MS);
+  };
+
+  const reset = () => {
+    setPhase("idle");
+    setWinner(null);
+    setDrawId(null);
+    setReel([]);
   };
 
   const resolve = async (action) => {
-    if (action === "cancel" && !confirm("قرعه لغو شود؟ لغو قرعه در سابقه ثبت می‌شود و اعضا آن را می‌بینند.")) return;
+    if (action === "cancel") {
+      const ok = await confirm({
+        title: "لغو این قرعه؟",
+        body: "لغو قرعه در سابقه ثبت می‌شود و همه‌ی اعضا آن را می‌بینند.",
+        confirmLabel: "لغو قرعه",
+        tone: "danger",
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     try {
       const result = await api("POST", `/api/funds/${server.fundId}/draws/${drawId}/${action}`);
-      if (action === "confirm") server.applyServer(result.data, result.version);
+      if (action === "confirm") {
+        server.applyServer(result.data, result.version);
+        toast(`وام ${winner.name} ثبت شد`);
+      } else {
+        toast("قرعه لغو شد");
+      }
       reset();
     } catch (e) {
-      alert(e.message);
+      toast(e.message, { tone: "error" });
     } finally {
       setBusy(false);
     }
   };
 
-  const startNewCycle = () => {
-    if (confirm("دور جدید شروع شود؟ همه‌ی اعضا دوباره در قرعه‌کشی شرکت می‌کنند.")) {
-      update((s) => ({ ...s, fund: { ...s.fund, cycle: s.fund.cycle + 1 } }));
-    }
+  const startNewCycle = async () => {
+    const ok = await confirm({
+      title: "شروع دور جدید",
+      body: "همه‌ی اعضا در این دور وام گرفته‌اند. با شروع دور جدید، همه دوباره در قرعه‌کشی شرکت می‌کنند.",
+      confirmLabel: "شروع دور جدید",
+    });
+    if (ok) update((s) => ({ ...s, fund: { ...s.fund, cycle: s.fund.cycle + 1 } }));
   };
 
-  const history = [...loans].sort((a, b) => b.drawMonth.localeCompare(a.drawMonth) || b.createdAt.localeCompare(a.createdAt));
+  const history = [...loans].sort((a, b) => b.drawMonth.localeCompare(a.drawMonth));
+  const totalTickets = sum(entries, (e) => e.tickets);
 
   return (
-    <div className="stack">
-      <section className="card lottery">
-        <div className="card-head">
-          <h2>قرعه‌کشی {monthLabel(currentMonth)}</h2>
-          <span className="tag">دور {formatNumber(fund.cycle)}</span>
+    <div className="page">
+      <section className={`stage ${phase === "won" ? "won" : ""}`}>
+        <Pattern />
+        {phase === "won" && <Confetti key={drawId} />}
+        <div className="stage-kicker">
+          <Dices size={16} /> قرعه‌کشی {monthLabel(currentMonth)}، دور {formatNumber(fund.cycle)}
         </div>
 
-        <div className={`draw-stage ${spinning ? "spinning" : ""} ${winner ? "won" : ""}`}>
-          {shown ? (
-            <>
-              <span className="draw-name">{shown.name}</span>
-              {winner && <span className="draw-sub">برنده‌ی وام {formatMoney(fund.loanAmount)} 🎉</span>}
-            </>
+        <div className="reel-window" aria-live="polite">
+          {phase === "idle" ? (
+            <div className="reel-idle">
+              {entries.length ? `${formatNumber(totalTickets)} شانس از ${formatNumber(entries.length)} نفر` : "همه در این دور وام گرفته‌اند"}
+            </div>
           ) : (
-            <span className="draw-hint">
-              {entries.length ? "آماده‌ی قرعه‌کشی" : "همه‌ی اعضا در این دور وام گرفته‌اند"}
-            </span>
+            <div
+              className="reel"
+              style={{
+                transform: `translateY(-${offset}px)`,
+                transition: phase === "spinning" && offset ? `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.8, 0.14, 1)` : "none",
+              }}
+            >
+              {reel.map((m, i) => (
+                <span key={i}>{m.name}</span>
+              ))}
+            </div>
           )}
         </div>
 
-        {winner ? (
-          <div className="row-actions center">
-            <button className="btn primary" onClick={() => resolve("confirm")} disabled={busy}>
-              ثبت وام برای {winner.name}
+        <p className="stage-caption">
+          {phase === "won"
+            ? `برنده‌ی وام ${formatCompact(fund.loanAmount)} تومانی 🎉`
+            : phase === "spinning"
+              ? "در حال قرعه‌کشی…"
+              : enoughMoney
+                ? `وام این دور: ${formatCompact(fund.loanAmount)} تومان`
+                : `موجودی ${formatCompact(balance)} تومان است؛ برای وام ${formatCompact(fund.loanAmount)} تومانی کافی نیست`}
+        </p>
+
+        {phase === "won" ? (
+          <div className="row-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+            <button className="btn gold lg" onClick={() => resolve("confirm")} disabled={busy}>
+              {busy ? <Spinner /> : <Trophy size={18} />} ثبت وام برای {winner.name}
             </button>
-            <button className="btn ghost" onClick={() => resolve("cancel")} disabled={busy}>
-              لغو قرعه
+            <button className="btn lg" style={{ background: "rgb(255 255 255 / 0.1)", color: "#fff" }} onClick={() => resolve("cancel")} disabled={busy}>
+              <Ban size={18} /> لغو
             </button>
           </div>
         ) : entries.length ? (
-          <>
-            <button className="btn primary big" onClick={draw} disabled={busy || spinning || !enoughMoney}>
-              {spinning ? "در حال قرعه‌کشی…" : "🎲 شروع قرعه‌کشی"}
-            </button>
-            {!enoughMoney && (
-              <p className="danger center">
-                موجودی صندوق ({formatMoney(balance)}) برای یک وام {formatMoney(fund.loanAmount)} کافی نیست.
-              </p>
-            )}
-          </>
-        ) : (
-          <button className="btn primary big" onClick={startNewCycle}>
-            شروع دور جدید
+          <button className="btn gold lg" onClick={draw} disabled={busy || phase === "spinning" || !enoughMoney}>
+            {busy ? <Spinner /> : <Dices size={20} />} شروع قرعه‌کشی
           </button>
-        )}
-
-        {entries.length > 0 && (
-          <div className="entries">
-            <p className="muted">
-              قرعه روی سرور انجام می‌شود و همه‌ی قرعه‌ها، حتی لغوشده‌ها، برای اعضا ثبت می‌شود.
-            </p>
-            <p className="muted">
-              شرکت‌کننده‌ها (هر سهم = یک شانس)، {formatNumber(entries.length)} نفر
-            </p>
-            <div className="chips">
-              {entries.map(({ member, tickets }) => (
-                <span key={member.id} className={`chip ${shown?.id === member.id ? "active" : ""}`}>
-                  {member.name}
-                  {tickets > 1 && <b>×{formatNumber(tickets)}</b>}
-                </span>
-              ))}
-            </div>
-          </div>
+        ) : (
+          <button className="btn gold lg" onClick={startNewCycle}>
+            <RotateCcw size={18} /> شروع دور جدید
+          </button>
         )}
       </section>
 
+      <div className="inline-note">
+        <ShieldCheck size={18} />
+        <span>
+          برنده را سرور با عدد تصادفی امن انتخاب می‌کند. هر قرعه، حتی قرعه‌های لغوشده، ثبت می‌شود و اعضا در صفحه‌ی خودشان می‌بینند.
+        </span>
+      </div>
+
+      {entries.length > 0 && (
+        <section className="card">
+          <div className="section-title">
+            <h2>شرکت‌کننده‌ها</h2>
+            <span className="muted">هر سهم یک شانس</span>
+          </div>
+          <div className="tickets">
+            {entries.map(({ member, tickets }) => (
+              <span key={member.id} className={`ticket ${winner?.id === member.id ? "lit" : ""}`}>
+                <Avatar name={member.name} id={member.id} size="sm" />
+                {member.name}
+                {tickets > 1 && (
+                  <b>
+                    <Ticket size={12} style={{ verticalAlign: "-1px" }} /> ×{formatNumber(tickets)}
+                  </b>
+                )}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="card">
-        <div className="card-head">
-          <h2>سابقه‌ی قرعه‌ها</h2>
+        <div className="section-title">
+          <h2>برنده‌های قبلی</h2>
         </div>
         {history.length === 0 ? (
-          <p className="empty">هنوز قرعه‌کشی نشده.</p>
+          <p className="muted small">هنوز وامی داده نشده.</p>
         ) : (
-          <ul className="list">
+          <ul className="timeline">
             {history.map((loan) => (
               <li key={loan.id}>
-                <div>
-                  <strong>{memberById.get(loan.memberId)?.name ?? "عضو حذف‌شده"}</strong>
-                  <span className="muted">{monthLabel(loan.drawMonth)}</span>
+                <span className={`dot ${loan.drawId ? "" : "manual"}`}>
+                  <Trophy size={15} />
+                </span>
+                <div className="t-body">
+                  <div>
+                    <strong>{memberById.get(loan.memberId)?.name ?? "عضو سابق"}</strong>
+                    <span>
+                      {monthLabel(loan.drawMonth)}، {loan.drawId ? "با قرعه‌کشی آنلاین" : "ثبت دستی"}
+                    </span>
+                  </div>
+                  <Money amount={loan.amount} />
                 </div>
-                <span>{formatMoney(loan.amount)}</span>
               </li>
             ))}
           </ul>
