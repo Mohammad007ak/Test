@@ -12,6 +12,26 @@ export function createEmptyState() {
   return { version: 1, fund: null, members: [], payments: [], loans: [] };
 }
 
+const isPositive = (n) => Number.isFinite(n) && n > 0;
+
+// Shape check for data coming from a backup file or over the network.
+export function isValidState(value) {
+  const fund = value?.fund;
+  return Boolean(
+    value &&
+      Array.isArray(value.members) &&
+      Array.isArray(value.payments) &&
+      Array.isArray(value.loans) &&
+      fund &&
+      typeof fund.name === "string" &&
+      isPositive(fund.contribution) &&
+      isPositive(fund.loanAmount) &&
+      isPositive(fund.installments) &&
+      /^\d{4}-\d{2}$/.test(fund.startMonth) &&
+      value.members.every((m) => m && typeof m.id === "string" && isPositive(m.shares)),
+  );
+}
+
 // Split a loan into equal installments; the last one absorbs the remainder.
 export function installmentAmount(loan, index) {
   const base = Math.floor(loan.amount / loan.installments);

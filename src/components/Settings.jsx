@@ -1,9 +1,9 @@
 import { useRef } from "react";
 import FundForm from "./FundForm.jsx";
-import { createEmptyState } from "../lib/fund.js";
-import { isValidState } from "../lib/storage.js";
+import { api } from "../lib/api.js";
+import { isValidState } from "../lib/fund.js";
 
-export default function Settings({ state, update, replace }) {
+export default function Settings({ state, update, server, goHome }) {
   const fileInput = useRef(null);
 
   const exportData = () => {
@@ -19,9 +19,20 @@ export default function Settings({ state, update, replace }) {
     try {
       const data = JSON.parse(await file.text());
       if (!isValidState(data)) throw new Error("invalid");
-      if (confirm("اطلاعات فعلی با فایل پشتیبان جایگزین شود؟")) replace(data);
+      if (confirm("اطلاعات فعلی با فایل پشتیبان جایگزین شود؟")) update(() => data);
     } catch {
       alert("فایل پشتیبان معتبر نیست.");
+    }
+  };
+
+  const deleteFund = async () => {
+    const typed = prompt(`برای حذف همیشگی، اسم صندوق را بنویسید: ${state.fund.name}`);
+    if (typed?.trim() !== state.fund.name) return;
+    try {
+      await api("DELETE", `/api/funds/${server.fundId}`);
+      goHome();
+    } catch (e) {
+      alert(e.message);
     }
   };
 
@@ -47,7 +58,7 @@ export default function Settings({ state, update, replace }) {
           <h2>پشتیبان‌گیری</h2>
         </div>
         <p className="muted">
-          اطلاعات فقط روی همین مرورگر ذخیره می‌شود. هر چند وقت یک‌بار فایل پشتیبان بگیرید.
+          اطلاعات روی سرور ذخیره می‌شود. برای اطمینان بیشتر، هر چند وقت یک‌بار فایل پشتیبان بگیرید.
         </p>
         <div className="row-actions">
           <button className="btn primary" onClick={exportData}>
@@ -71,13 +82,10 @@ export default function Settings({ state, update, replace }) {
 
       <section className="card">
         <div className="card-head">
-          <h2>پاک کردن همه‌چیز</h2>
+          <h2>حذف صندوق</h2>
         </div>
-        <button
-          className="btn danger-btn"
-          onClick={() => confirm("همه‌ی اطلاعات صندوق پاک شود؟ این کار برگشت‌پذیر نیست.") && replace(createEmptyState())}
-        >
-          پاک کردن اطلاعات
+        <button className="btn danger-btn" onClick={deleteFund}>
+          حذف همیشگی این صندوق
         </button>
       </section>
     </div>

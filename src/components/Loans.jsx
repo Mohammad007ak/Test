@@ -27,7 +27,7 @@ export default function Loans({ state }) {
                     {progress.done ? <span className="tag">تسویه شد ✓</span> : <span className="tag">فعال</span>}
                   </div>
                   <div className="muted">
-                    {formatMoney(loan.amount)} · {formatNumber(loan.installments)} قسط از{" "}
+                    {formatMoney(loan.amount)}، {formatNumber(loan.installments)} قسط از{" "}
                     {monthLabel(loan.firstInstallmentMonth)} تا{" "}
                     {monthLabel(addMonths(loan.firstInstallmentMonth, loan.installments - 1))}
                   </div>
@@ -35,7 +35,7 @@ export default function Loans({ state }) {
                     <div style={{ width: `${percent}%` }} />
                   </div>
                   <div className="muted">
-                    {formatNumber(progress.paidCount)} از {formatNumber(loan.installments)} قسط پرداخت شده ·
+                    {formatNumber(progress.paidCount)} از {formatNumber(loan.installments)} قسط پرداخت شده،
                     مانده: {formatMoney(progress.remaining)}
                   </div>
                 </li>

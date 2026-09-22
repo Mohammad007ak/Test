@@ -62,7 +62,7 @@ export default function Dashboard({ state, currentMonth, goTo }) {
           <div style={{ width: `${percent}%` }} />
         </div>
         <p className="muted">
-          {formatMoney(collected)} از {formatMoney(expected)} ({formatNumber(percent)}٪) ·{" "}
+          {formatMoney(collected)} از {formatMoney(expected)} ({formatNumber(percent)}٪)،{" "}
           {formatNumber(thisMonth.filter((d) => !d.paid).length)} پرداخت مانده
         </p>
       </section>

@@ -41,7 +41,7 @@ export default function Payments({ state, update, currentMonth }) {
           <MonthPicker value={month} onChange={setMonth} />
         </div>
         <p className="muted">
-          وصول‌شده {formatMoney(sum(dues.filter((d) => d.paid)))} از {formatMoney(sum(dues))} · روی هر
+          وصول‌شده {formatMoney(sum(dues.filter((d) => d.paid)))} از {formatMoney(sum(dues))}، روی هر
           مورد بزنید تا پرداخت‌شده یا پرداخت‌نشده شود.
         </p>
 

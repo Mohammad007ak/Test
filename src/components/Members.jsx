@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MonthPicker, NumberInput } from "./inputs.jsx";
 import { memberSummary, newId } from "../lib/fund.js";
 import { formatMoney, formatNumber } from "../lib/format.js";
+import { normalizePhone } from "../lib/phone.js";
 import { monthLabel } from "../lib/jalali.js";
 
 function MemberForm({ initial, onSave, onCancel }) {
@@ -13,7 +14,13 @@ function MemberForm({ initial, onSave, onCancel }) {
       className="form inline"
       onSubmit={(e) => {
         e.preventDefault();
-        if (draft.name.trim()) onSave({ ...draft, name: draft.name.trim(), phone: draft.phone.trim() });
+        if (!draft.name.trim()) return;
+        const phone = draft.phone.trim() ? normalizePhone(draft.phone) : "";
+        if (phone === null) {
+          alert("شماره موبایل معتبر نیست. مثلاً ۰۹۱۲۱۲۳۴۵۶۷");
+          return;
+        }
+        onSave({ ...draft, name: draft.name.trim(), phone });
       }}
     >
       <label>
@@ -21,7 +28,7 @@ function MemberForm({ initial, onSave, onCancel }) {
         <input value={draft.name} onChange={(e) => set("name")(e.target.value)} required autoFocus />
       </label>
       <label>
-        موبایل
+        موبایل (برای ورود عضو)
         <input
           value={draft.phone}
           onChange={(e) => set("phone")(e.target.value)}
@@ -108,7 +115,7 @@ export default function Members({ state, update, currentMonth }) {
                   <div>
                     <strong>{member.name}</strong>
                     <span className="muted">
-                      {formatNumber(member.shares)} سهم · از {monthLabel(member.joinMonth)}
+                      {formatNumber(member.shares)} سهم، از {monthLabel(member.joinMonth)}
                     </span>
                   </div>
                   <div className="member-meta">

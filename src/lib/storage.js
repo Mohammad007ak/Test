@@ -1,31 +1,21 @@
-import { createEmptyState } from "./fund.js";
+// Before the server existed, a fund lived only in this browser's storage.
+// These helpers let a manager move that fund to their account once.
 
-const KEY = "sandogh:v1";
+const LEGACY_KEY = "sandogh:v1";
 
-export function loadState() {
+export function loadLegacyState() {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    const state = JSON.parse(localStorage.getItem(LEGACY_KEY));
+    return state?.fund ? state : null;
   } catch {
-    // Storage can be unavailable (private mode) or hold broken data.
-  }
-  return createEmptyState();
-}
-
-export function saveState(state) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(state));
-  } catch {
-    // Nothing else we can do; the export button still works.
+    return null;
   }
 }
 
-export function isValidState(value) {
-  return (
-    value &&
-    typeof value === "object" &&
-    Array.isArray(value.members) &&
-    Array.isArray(value.payments) &&
-    Array.isArray(value.loans)
-  );
+export function clearLegacyState() {
+  try {
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    // Nothing to clean up.
+  }
 }

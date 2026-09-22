@@ -70,5 +70,7 @@ export function createDemoState() {
     }
   }
 
-  return { version: 1, fund, members, payments, loans };
+  // "demo" keeps these made-up phone numbers out of the member index, so a
+  // real person with one of them never sees this fund.
+  return { version: 1, demo: true, fund, members, payments, loans };
 }

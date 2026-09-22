@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { createLoan, fundBalance, lotteryEntries, pickWinner } from "../lib/fund.js";
+import { fundBalance, lotteryEntries } from "../lib/fund.js";
+import { api } from "../lib/api.js";
 import { formatMoney, formatNumber } from "../lib/format.js";
 import { monthLabel } from "../lib/jalali.js";
 
 const SPIN_MS = 3000;
 
-export default function Lottery({ state, update, currentMonth }) {
+export default function Lottery({ state, update, currentMonth, server }) {
   const { fund, loans, members } = state;
   const entries = lotteryEntries(state);
   const balance = fundBalance(state);
@@ -16,13 +17,34 @@ export default function Lottery({ state, update, currentMonth }) {
   const [spinning, setSpinning] = useState(false);
   const [shown, setShown] = useState(null);
   const [winner, setWinner] = useState(null);
+  const [drawId, setDrawId] = useState(null);
+  const [busy, setBusy] = useState(false);
   const timers = useRef([]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
-  const draw = () => {
+  const reset = () => {
+    setWinner(null);
+    setShown(null);
+    setDrawId(null);
+  };
+
+  // The server picks the winner; the animation only reveals it.
+  const draw = async () => {
     if (drawnThisMonth && !confirm("این ماه قبلاً قرعه‌کشی شده. قرعه‌ی دیگری انجام شود؟")) return;
-    const chosen = pickWinner(entries);
+    setBusy(true);
+    let result;
+    try {
+      await server.flush();
+      result = await api("POST", `/api/funds/${server.fundId}/draws`);
+    } catch (e) {
+      alert(e.message);
+      return;
+    } finally {
+      setBusy(false);
+    }
+    const chosen = memberById.get(result.draw.winnerId) ?? { id: result.draw.winnerId, name: result.draw.winnerName };
+    setDrawId(result.draw.id);
     setWinner(null);
     setSpinning(true);
 
@@ -46,10 +68,18 @@ export default function Lottery({ state, update, currentMonth }) {
     );
   };
 
-  const confirmWinner = () => {
-    update((s) => ({ ...s, loans: [...s.loans, createLoan(s.fund, winner.id, currentMonth)] }));
-    setWinner(null);
-    setShown(null);
+  const resolve = async (action) => {
+    if (action === "cancel" && !confirm("قرعه لغو شود؟ لغو قرعه در سابقه ثبت می‌شود و اعضا آن را می‌بینند.")) return;
+    setBusy(true);
+    try {
+      const result = await api("POST", `/api/funds/${server.fundId}/draws/${drawId}/${action}`);
+      if (action === "confirm") server.applyServer(result.data, result.version);
+      reset();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const startNewCycle = () => {
@@ -83,16 +113,16 @@ export default function Lottery({ state, update, currentMonth }) {
 
         {winner ? (
           <div className="row-actions center">
-            <button className="btn primary" onClick={confirmWinner}>
+            <button className="btn primary" onClick={() => resolve("confirm")} disabled={busy}>
               ثبت وام برای {winner.name}
             </button>
-            <button className="btn ghost" onClick={() => { setWinner(null); setShown(null); }}>
-              لغو
+            <button className="btn ghost" onClick={() => resolve("cancel")} disabled={busy}>
+              لغو قرعه
             </button>
           </div>
         ) : entries.length ? (
           <>
-            <button className="btn primary big" onClick={draw} disabled={spinning || !enoughMoney}>
+            <button className="btn primary big" onClick={draw} disabled={busy || spinning || !enoughMoney}>
               {spinning ? "در حال قرعه‌کشی…" : "🎲 شروع قرعه‌کشی"}
             </button>
             {!enoughMoney && (
@@ -110,7 +140,10 @@ export default function Lottery({ state, update, currentMonth }) {
         {entries.length > 0 && (
           <div className="entries">
             <p className="muted">
-              شرکت‌کننده‌ها (هر سهم = یک شانس) · {formatNumber(entries.length)} نفر
+              قرعه روی سرور انجام می‌شود و همه‌ی قرعه‌ها، حتی لغوشده‌ها، برای اعضا ثبت می‌شود.
+            </p>
+            <p className="muted">
+              شرکت‌کننده‌ها (هر سهم = یک شانس)، {formatNumber(entries.length)} نفر
             </p>
             <div className="chips">
               {entries.map(({ member, tickets }) => (

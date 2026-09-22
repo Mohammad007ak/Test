@@ -6,16 +6,20 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview --host",
-    "test": "node --test src/lib/*.test.js"
+    "start": "NODE_ENV=production node --env-file-if-exists=.env server/index.js",
+    "test": "node --test src/lib/*.test.js server/*.test.js"
   },
   "dependencies": {
     "@fontsource/vazirmatn": "^5.2.0",
+    "express": "^5.2.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.1",
     "vite": "^7.3.1"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

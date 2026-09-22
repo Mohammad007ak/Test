@@ -16,7 +16,11 @@ export const MONTH_NAMES = [
   "اسفند",
 ];
 
+// Pin to Iran time so the server and every browser agree on the current month.
+const TIME_ZONE = "Asia/Tehran";
+
 const partsFormatter = new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn", {
+  timeZone: TIME_ZONE,
   year: "numeric",
   month: "numeric",
   day: "numeric",
@@ -65,6 +69,7 @@ export function monthLabel(key) {
 }
 
 const dateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+  timeZone: TIME_ZONE,
   year: "numeric",
   month: "long",
   day: "numeric",
