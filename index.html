@@ -3,12 +3,538 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>صندوقچه | نرم‌افزار آنلاین مدیریت صندوق قرض‌الحسنه خانوادگی</title>
+    <meta
+      name="description"
+      content="حساب سهم ماهانه، اقساط و قرعه‌کشی وام صندوق قرض‌الحسنه خانوادگی را آنلاین و شفاف نگه دارید. هر عضو وضعیتش را در گوشی می‌بیند. رایگان شروع کنید."
+    />
+    <link rel="canonical" href="__SITE_URL__/" />
     <meta name="theme-color" content="#0d5c4b" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <title>صندوقچه</title>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fa_IR" />
+    <meta property="og:site_name" content="صندوقچه" />
+    <meta property="og:title" content="صندوقچه | مدیریت آنلاین صندوق قرض‌الحسنه خانوادگی" />
+    <meta
+      property="og:description"
+      content="سهم‌ها، اقساط و قرعه‌کشی وام را یک‌جا و شفاف مدیریت کنید؛ هر عضو وضعیت خودش را در گوشی می‌بیند."
+    />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:image" content="__SITE_URL__/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preload" as="image" href="/landing/desktop-dashboard.webp" fetchpriority="high" />
+    <link rel="stylesheet" href="/src/landing/landing.css" />
+
+    <script>
+      // Links from the first version of the app pointed at "/#/…".
+      if (location.hash.startsWith("#/")) location.replace("/app/" + location.hash);
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "__SITE_URL__/#website",
+            "url": "__SITE_URL__/",
+            "name": "صندوقچه",
+            "inLanguage": "fa-IR"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "صندوقچه",
+            "url": "__SITE_URL__/",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web, Android, iOS",
+            "inLanguage": "fa-IR",
+            "description": "نرم‌افزار آنلاین مدیریت صندوق قرض‌الحسنه خانوادگی: ثبت سهم و اقساط، قرعه‌کشی شفاف وام و صفحه‌ی اختصاصی هر عضو.",
+            "image": "__SITE_URL__/og.jpg",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "IRR" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "صندوقچه چه کاری انجام می‌دهد؟",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "صندوقچه دفتر حساب آنلاین صندوق قرض‌الحسنه خانوادگی است: سهم ماهانه و اقساط هر عضو را ثبت می‌کند، بدهکارها را نشان می‌دهد، قرعه‌کشی وام را روی سرور انجام می‌دهد و به هر عضو صفحه‌ی اختصاصی می‌دهد."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "آیا پول از طریق صندوقچه جابه‌جا می‌شود؟",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "خیر. اعضا مثل همیشه به کارت مدیر صندوق واریز می‌کنند و مدیر پرداخت را در صندوقچه ثبت می‌کند. صندوقچه فقط حساب‌وکتاب را نگه می‌دارد و هیچ پولی از آن رد نمی‌شود."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "قرعه‌کشی صندوقچه چطور شفاف است؟",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "برنده را سرور با عدد تصادفی امن انتخاب می‌کند، نه گوشی مدیر. هر قرعه، حتی قرعه‌ای که لغو شده، در دفتر قرعه‌کشی ثبت می‌شود و همه‌ی اعضا آن را می‌بینند؛ پس کسی نمی‌تواند آن‌قدر قرعه بکشد تا نفر دلخواهش برنده شود."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "اعضا چطور وضعیت خودشان را می‌بینند؟",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "مدیر شماره موبایل اعضا را ثبت می‌کند. هر عضو با همان شماره و یک کد پیامکی وارد می‌شود و پرداخت‌ها، وام، موجودی صندوق و سابقه‌ی قرعه‌کشی‌ها را می‌بیند."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "برای استفاده باید برنامه نصب کنم؟",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "نه. صندوقچه در مرورگر گوشی و کامپیوتر باز می‌شود و نصب لازم ندارد."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "استفاده از صندوقچه چقدر هزینه دارد؟",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "در دوره‌ی آزمایشی همه‌ی امکانات رایگان است."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5" /></symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+          <path d="m9 12 2 2 4-4" />
+        </symbol>
+        <symbol id="i-dice" viewBox="0 0 24 24">
+          <rect x="2" y="10" width="12" height="12" rx="2" />
+          <path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6M6 18h.01M10 14h.01M15 6h.01M18 9h.01" />
+        </symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24">
+          <path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0" />
+          <circle cx="12" cy="12" r="3" />
+        </symbol>
+        <symbol id="i-message" viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM13 8H7M17 12H7" />
+        </symbol>
+        <symbol id="i-calendar" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18m-12 6 2 2 4-4" />
+        </symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24">
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </symbol>
+        <symbol id="i-zap" viewBox="0 0 24 24">
+          <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+        </symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5 5 5 5-5" /></symbol>
+        <symbol id="i-home" viewBox="0 0 24 24">
+          <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8M3 10a2 2 0 0 1 .71-1.53l7-6a2 2 0 0 1 2.58 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        </symbol>
+        <symbol id="i-briefcase" viewBox="0 0 24 24">
+          <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          <rect x="2" y="6" width="20" height="14" rx="2" />
+        </symbol>
+        <symbol id="i-users" viewBox="0 0 24 24">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+          <circle cx="9" cy="7" r="4" />
+        </symbol>
+        <symbol id="i-landmark" viewBox="0 0 24 24">
+          <path d="M10 18v-7M14 18v-7M18 18v-7M6 18v-7M3 22h18M11.12 2.2a2 2 0 0 1 1.76 0l7.87 3.85c.47.23.3.95-.22.95H3.47c-.53 0-.7-.72-.22-.95z" />
+        </symbol>
+        <symbol id="i-heart" viewBox="0 0 24 24">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+        </symbol>
+        <symbol id="logo" viewBox="0 0 40 40">
+          <rect width="40" height="40" rx="12" fill="#0d5c4b" />
+          <path d="M9 17h22v13a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3z" fill="#fff" opacity=".95" />
+          <path d="M9 17c0-5 4.5-9 11-9s11 4 11 9z" fill="#fff" opacity=".6" />
+          <path d="M20 19.5l1.2 2.1 2.3-.6-.6 2.3 2.1 1.2-2.1 1.2.6 2.3-2.3-.6-1.2 2.1-1.2-2.1-2.3.6.6-2.3-2.1-1.2 2.1-1.2-.6-2.3 2.3.6z" fill="#e6a92c" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <a class="skip" href="#main">رفتن به محتوای اصلی</a>
+
+    <header class="site-header">
+      <div class="wrap">
+        <a class="logo" href="/" aria-label="صندوقچه، صفحه‌ی اصلی">
+          <svg width="34" height="34" aria-hidden="true"><use href="#logo" /></svg>
+          صندوقچه
+        </a>
+        <nav class="site-nav" aria-label="بخش‌های سایت">
+          <a href="#features">امکانات</a>
+          <a href="#lottery">قرعه‌کشی شفاف</a>
+          <a href="#how">شروع کار</a>
+          <a href="#faq">سؤالات</a>
+          <a href="/guide/family-loan-fund/">راهنما</a>
+        </nav>
+        <div class="header-cta">
+          <a class="btn btn-ghost" href="/app/">ورود</a>
+          <a class="btn btn-primary" href="/app/">شروع رایگان</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="wrap hero-grid">
+          <div>
+            <span class="eyebrow"><b>جدید</b> دفتر حساب آنلاین صندوق‌های خانوادگی</span>
+            <h1 id="hero-title">
+              نرم‌افزار مدیریت <em>صندوق قرض‌الحسنه</em> خانوادگی
+            </h1>
+            <p class="lede">
+              سهم‌های ماهانه، اقساط و قرعه‌کشی وام را بدون دفترچه و اکسل نگه دارید. هر عضو با شماره موبایلش وارد می‌شود و وضعیت
+              خودش را می‌بیند؛ دیگر لازم نیست به تک‌تک پیام بدهید.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="/app/">
+                رایگان شروع کنید
+                <svg class="ic sm" aria-hidden="true"><use href="#i-arrow" /></svg>
+              </a>
+              <a class="btn btn-ghost" href="#features">امکانات را ببینید</a>
+            </div>
+            <ul class="trust">
+              <li><svg class="ic sm" aria-hidden="true"><use href="#i-zap" /></svg> بدون نصب، در مرورگر</li>
+              <li><svg class="ic sm" aria-hidden="true"><use href="#i-lock" /></svg> پول در حساب خودتان می‌ماند</li>
+              <li><svg class="ic sm" aria-hidden="true"><use href="#i-calendar" /></svg> تقویم شمسی</li>
+            </ul>
+          </div>
+
+          <div class="shot">
+            <div class="browser">
+              <div class="browser-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+              <img
+                src="/landing/desktop-dashboard.webp"
+                width="1920"
+                height="1200"
+                alt="داشبورد مدیر صندوق در صندوقچه: موجودی صندوق، وصولی ماه، نمودار روند وصول و فهرست بدهکارها"
+                fetchpriority="high"
+              />
+            </div>
+            <div class="phone">
+              <img
+                src="/landing/phone-dashboard.webp"
+                width="780"
+                height="1688"
+                alt="نمای موبایل داشبورد صندوقچه"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="pain-title">
+        <div class="wrap">
+          <div class="section-head center">
+            <span class="kicker">چرا صندوقچه؟</span>
+            <h2 id="pain-title">دفترچه و گروه واتساپ دیگر جواب نمی‌دهد</h2>
+            <p>مدیریت صندوق فامیلی کار سختی نیست؛ حساب‌وکتابش است که آدم را خسته می‌کند و گاهی دلخوری درست می‌کند.</p>
+          </div>
+          <div class="pains">
+            <div class="pain">
+              <q>این ماه کی قسطش را نداده؟</q>
+              <p>ورق زدن دفترچه و گشتن در پیام‌ها برای پیدا کردن یک واریزی.</p>
+            </div>
+            <div class="pain">
+              <q>قرعه‌کشی واقعاً بی‌طرف بود؟</q>
+              <p>قرعه‌ای که فقط مدیر دیده، همیشه جای سؤال دارد؛ حتی اگر درست باشد.</p>
+            </div>
+            <div class="pain">
+              <q>الان دقیقاً چقدر پول در صندوق است؟</q>
+              <p>با چند وام در جریان و چند سهم عقب‌افتاده، جمع زدن دستی سخت است.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="features" aria-labelledby="features-title" style="padding-top: 0">
+        <div class="wrap">
+          <div class="section-head">
+            <span class="kicker">امکانات</span>
+            <h2 id="features-title">هر چیزی که یک صندوق خانوادگی لازم دارد</h2>
+            <p>ساده برای مدیر، شفاف برای اعضا. همه‌ی محاسبه‌ها خودکار و با تاریخ شمسی.</p>
+          </div>
+          <div class="features">
+            <article class="feature">
+              <span class="f-icon"><svg class="ic" aria-hidden="true"><use href="#i-calendar" /></svg></span>
+              <h3>ثبت سهم و قسط با یک لمس</h3>
+              <p>پرداخت هر عضو را برای هر ماه تیک بزنید. اشتباه کردید؟ با «برگرداندن» درستش کنید.</p>
+            </article>
+            <article class="feature">
+              <span class="f-icon"><svg class="ic" aria-hidden="true"><use href="#i-dice" /></svg></span>
+              <h3>قرعه‌کشی آنلاین و بی‌طرف</h3>
+              <p>برنده را سرور انتخاب می‌کند و هر قرعه، حتی لغوشده‌ها، برای همه‌ی اعضا ثبت می‌شود.</p>
+            </article>
+            <article class="feature">
+              <span class="f-icon"><svg class="ic" aria-hidden="true"><use href="#i-eye" /></svg></span>
+              <h3>صفحه‌ی اختصاصی هر عضو</h3>
+              <p>هر عضو پرداخت‌ها، وام و مانده‌ی خودش را در گوشی می‌بیند؛ نه اطلاعات بقیه را.</p>
+            </article>
+            <article class="feature">
+              <span class="f-icon"><svg class="ic" aria-hidden="true"><use href="#i-message" /></svg></span>
+              <h3>یادآوری به بدهکارها</h3>
+              <p>پیامک یادآوری با مبلغ دقیق و شماره کارت شما با یک لمس آماده می‌شود.</p>
+            </article>
+            <article class="feature">
+              <span class="f-icon"><svg class="ic" aria-hidden="true"><use href="#i-landmark" /></svg></span>
+              <h3>اقساط و موجودی خودکار</h3>
+              <p>قسط‌ها، مانده‌ی هر وام، موجودی صندوق و فاصله تا وام بعدی همیشه به‌روز است.</p>
+            </article>
+            <article class="feature">
+              <span class="f-icon"><svg class="ic" aria-hidden="true"><use href="#i-download" /></svg></span>
+              <h3>امن و قابل پشتیبان‌گیری</h3>
+              <p>ورود با کد یک‌بارمصرف و فایل پشتیبان کامل از همه‌ی اطلاعات صندوق.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="spotlight" id="lottery" aria-labelledby="lottery-title">
+        <div class="wrap spotlight-grid">
+          <div>
+            <span class="kicker">قرعه‌کشی شفاف</span>
+            <h2 id="lottery-title">قرعه‌کشی‌ای که هیچ‌کس نمی‌تواند دستکاری کند</h2>
+            <p>
+              در بیشتر صندوق‌ها قرعه را مدیر می‌کشد و بقیه فقط نتیجه را می‌شنوند. در صندوقچه قرعه روی سرور انجام می‌شود و
+              دفترش برای همه باز است.
+            </p>
+            <ul class="checks">
+              <li>
+                <svg class="ic sm" aria-hidden="true"><use href="#i-check" /></svg>
+                برنده با عدد تصادفی امن روی سرور انتخاب می‌شود، نه روی گوشی مدیر.
+              </li>
+              <li>
+                <svg class="ic sm" aria-hidden="true"><use href="#i-check" /></svg>
+                هر قرعه، حتی قرعه‌ی لغوشده، در دفتر قرعه‌کشی می‌ماند و اعضا آن را می‌بینند.
+              </li>
+              <li>
+                <svg class="ic sm" aria-hidden="true"><use href="#i-check" /></svg>
+                هر سهم یک شانس؛ کسی که وام گرفته تا دور بعد در قرعه نیست.
+              </li>
+            </ul>
+          </div>
+          <figure>
+            <img
+              src="/landing/lottery-stage.webp"
+              width="1224"
+              height="413"
+              loading="lazy"
+              alt="لحظه‌ی اعلام برنده‌ی قرعه‌کشی وام در صندوقچه"
+            />
+            <figcaption>اعلام برنده و ثبت وام، همان لحظه</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="members-title">
+        <div class="wrap split">
+          <div>
+            <span class="kicker">برای اعضا</span>
+            <h2 id="members-title">اعضا دیگر نمی‌پرسند «من چقدر بدهکارم؟»</h2>
+            <p>
+              هر عضو با همان شماره‌ای که ثبت کرده‌اید وارد می‌شود. مبلغی که باید بپردازد، شماره کارت شما با دکمه‌ی کپی، وضعیت
+              وامش و سابقه‌ی همه‌ی قرعه‌کشی‌ها را می‌بیند.
+            </p>
+            <ul class="checks" style="color: var(--ink-2)">
+              <li>
+                <svg class="ic sm" aria-hidden="true" style="color: var(--brand)"><use href="#i-check" /></svg>
+                بدون نصب برنامه، فقط با شماره موبایل و کد پیامکی
+              </li>
+              <li>
+                <svg class="ic sm" aria-hidden="true" style="color: var(--brand)"><use href="#i-check" /></svg>
+                هر عضو فقط اطلاعات پرداخت خودش را می‌بیند
+              </li>
+            </ul>
+          </div>
+          <div class="phones">
+            <div class="phone">
+              <img
+                src="/landing/phone-member.webp"
+                width="780"
+                height="1688"
+                loading="lazy"
+                alt="صفحه‌ی عضو صندوق: مبلغ پرداخت این ماه، کارت واریز و وضعیت وام"
+              />
+            </div>
+            <div class="phone">
+              <img
+                src="/landing/phone-payments.webp"
+                width="780"
+                height="1688"
+                loading="lazy"
+                alt="ثبت پرداخت‌های ماهانه‌ی اعضا توسط مدیر صندوق"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="how" aria-labelledby="how-title" style="padding-top: 24px">
+        <div class="wrap">
+          <div class="section-head center">
+            <span class="kicker">شروع کار</span>
+            <h2 id="how-title">در کمتر از ده دقیقه راه بیفتید</h2>
+          </div>
+          <ol class="steps">
+            <li>
+              <h3>صندوق را تعریف کنید</h3>
+              <p>اسم صندوق، سهم ماهانه، مبلغ وام و تعداد اقساط را وارد کنید.</p>
+            </li>
+            <li>
+              <h3>اعضا را اضافه کنید</h3>
+              <p>نام، شماره موبایل و تعداد سهم هر نفر. همین.</p>
+            </li>
+            <li>
+              <h3>پرداخت‌ها را تیک بزنید</h3>
+              <p>هر ماه واریزی‌ها را ثبت کنید و وقتی موجودی رسید، قرعه بکشید.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="who-title" style="padding-top: 0">
+        <div class="wrap">
+          <div class="section-head center" style="margin-bottom: 28px">
+            <h2 id="who-title">برای هر جمعی که صندوق دارد</h2>
+          </div>
+          <ul class="audience">
+            <li><svg class="ic sm" aria-hidden="true"><use href="#i-home" /></svg> صندوق‌های فامیلی</li>
+            <li><svg class="ic sm" aria-hidden="true"><use href="#i-briefcase" /></svg> صندوق همکاران و ادارات</li>
+            <li><svg class="ic sm" aria-hidden="true"><use href="#i-users" /></svg> دوستان و هم‌دوره‌ای‌ها</li>
+            <li><svg class="ic sm" aria-hidden="true"><use href="#i-heart" /></svg> هیئت‌ها و خیریه‌ها</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="pricing" aria-labelledby="pricing-title" style="padding-top: 0">
+        <div class="wrap">
+          <div class="price-card">
+            <div>
+              <span class="kicker">هزینه</span>
+              <h2 id="pricing-title" class="price-tag">
+                رایگان
+                <small>همه‌ی امکانات در دوره‌ی آزمایشی</small>
+              </h2>
+            </div>
+            <div>
+              <ul class="checks">
+                <li><svg class="ic sm" aria-hidden="true"><use href="#i-check" /></svg> تعداد اعضای نامحدود</li>
+                <li><svg class="ic sm" aria-hidden="true"><use href="#i-check" /></svg> قرعه‌کشی آنلاین و دفتر قرعه</li>
+                <li><svg class="ic sm" aria-hidden="true"><use href="#i-check" /></svg> صفحه‌ی اختصاصی برای هر عضو</li>
+              </ul>
+              <a class="btn btn-primary" href="/app/">ساخت صندوق رایگان</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="faq" aria-labelledby="faq-title" style="padding-top: 0">
+        <div class="wrap">
+          <div class="section-head center">
+            <span class="kicker">سؤالات متداول</span>
+            <h2 id="faq-title">پیش از شروع بدانید</h2>
+          </div>
+          <div class="faq">
+            <details open>
+              <summary>صندوقچه چه کاری انجام می‌دهد؟</summary>
+              <div>
+                صندوقچه دفتر حساب آنلاین صندوق قرض‌الحسنه خانوادگی است: سهم ماهانه و اقساط هر عضو را ثبت می‌کند، بدهکارها را
+                نشان می‌دهد، قرعه‌کشی وام را روی سرور انجام می‌دهد و به هر عضو صفحه‌ی اختصاصی می‌دهد.
+              </div>
+            </details>
+            <details>
+              <summary>آیا پول از طریق صندوقچه جابه‌جا می‌شود؟</summary>
+              <div>
+                خیر. اعضا مثل همیشه به کارت مدیر صندوق واریز می‌کنند و مدیر پرداخت را در صندوقچه ثبت می‌کند. صندوقچه فقط
+                حساب‌وکتاب را نگه می‌دارد و هیچ پولی از آن رد نمی‌شود.
+              </div>
+            </details>
+            <details>
+              <summary>قرعه‌کشی صندوقچه چطور شفاف است؟</summary>
+              <div>
+                برنده را سرور با عدد تصادفی امن انتخاب می‌کند، نه گوشی مدیر. هر قرعه، حتی قرعه‌ای که لغو شده، در دفتر
+                قرعه‌کشی ثبت می‌شود و همه‌ی اعضا آن را می‌بینند؛ پس کسی نمی‌تواند آن‌قدر قرعه بکشد تا نفر دلخواهش برنده
+                شود.
+              </div>
+            </details>
+            <details>
+              <summary>اعضا چطور وضعیت خودشان را می‌بینند؟</summary>
+              <div>
+                مدیر شماره موبایل اعضا را ثبت می‌کند. هر عضو با همان شماره و یک کد پیامکی وارد می‌شود و پرداخت‌ها، وام،
+                موجودی صندوق و سابقه‌ی قرعه‌کشی‌ها را می‌بیند.
+              </div>
+            </details>
+            <details>
+              <summary>برای استفاده باید برنامه نصب کنم؟</summary>
+              <div>نه. صندوقچه در مرورگر گوشی و کامپیوتر باز می‌شود و نصب لازم ندارد.</div>
+            </details>
+            <details>
+              <summary>استفاده از صندوقچه چقدر هزینه دارد؟</summary>
+              <div>در دوره‌ی آزمایشی همه‌ی امکانات رایگان است.</div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap" aria-labelledby="final-title">
+        <div class="final">
+          <h2 id="final-title">صندوقتان را امروز مرتب کنید</h2>
+          <p>چند دقیقه برای تعریف صندوق و اعضا؛ از ماه بعد، حساب‌وکتاب خودش پیش می‌رود.</p>
+          <a class="btn btn-gold" href="/app/">
+            رایگان شروع کنید
+            <svg class="ic sm" aria-hidden="true"><use href="#i-arrow" /></svg>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div>
+          <a class="logo" href="/">
+            <svg width="30" height="30" aria-hidden="true"><use href="#logo" /></svg>
+            صندوقچه
+          </a>
+          <p style="margin-top: 8px">دفتر حساب آنلاین و شفاف برای صندوق‌های قرض‌الحسنه‌ی خانوادگی و دوستانه.</p>
+        </div>
+        <div>
+          <h2>محصول</h2>
+          <ul>
+            <li><a href="#features">امکانات</a></li>
+            <li><a href="#lottery">قرعه‌کشی شفاف</a></li>
+            <li><a href="/app/">ورود به صندوقچه</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>آموزش</h2>
+          <ul>
+            <li><a href="/guide/family-loan-fund/">راهنمای راه‌اندازی صندوق قرض‌الحسنه خانوادگی</a></li>
+            <li><a href="#faq">سؤالات متداول</a></li>
+          </ul>
+        </div>
+        <p class="copyright">© صندوقچه</p>
+      </div>
+    </footer>
   </body>
 </html>
