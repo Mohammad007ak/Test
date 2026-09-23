@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Ban, CheckCircle2, Clock3, Copy, Eye, Hand, ShieldCheck, Trophy, Wallet } from "lucide-react";
+import { Ban, CheckCircle2, Clock3, Copy, Eye, Hand, ShieldCheck, Trophy, Wallet } from "lucide-react";
 import Pattern from "../ui/Pattern.jsx";
-import { Logo } from "../ui/Logo.jsx";
+import AppBar from "../ui/AppBar.jsx";
 import { Money, PageSkeleton, Ring } from "../ui/bits.jsx";
 import { useToast } from "../ui/feedback.jsx";
 import { api } from "../lib/api.js";
@@ -24,18 +24,11 @@ export default function MemberView({ fundId, back }) {
   }, [fundId]);
 
   const header = (
-    <header className="appbar">
-      <button className="icon-btn" onClick={() => back(view?.isManager)} aria-label="بازگشت">
-        <ArrowRight size={20} />
-      </button>
-      <div className="appbar-title">
-        <h1>{view?.fund.name ?? "صندوق"}</h1>
-        <div className="sub">{view?.isManager ? "پیش‌نمایش صفحه‌ی اعضا" : view?.me ? `سلام ${view.me.name}` : ""}</div>
-      </div>
-      <span className="desktop-only">
-        <Logo />
-      </span>
-    </header>
+    <AppBar
+      onBack={() => back(view?.isManager)}
+      title={view?.fund.name ?? "صندوق"}
+      sub={view?.isManager ? "پیش‌نمایش صفحه‌ی اعضا" : view?.me ? `سلام ${view.me.name}` : ""}
+    />
   );
 
   if (error) {
@@ -123,7 +116,8 @@ export default function MemberView({ fundId, back }) {
               <div>
                 <strong>وام شما</strong>
                 <span className="muted small">
-                  <Money amount={loan.amount} />، قسط آخر {monthLabel(addMonths(loan.firstInstallmentMonth, loan.installments - 1))}
+                  <Money amount={loan.amount} />، قسط آخر{" "}
+                  {monthLabel(addMonths(loan.firstInstallmentMonth, loan.installments - 1))}
                 </span>
               </div>
               {loan.done ? <span className="badge success">تسویه شد</span> : <span className="badge gold">فعال</span>}
@@ -237,7 +231,11 @@ export default function MemberView({ fundId, back }) {
                     <span>{monthLabel(loan.drawMonth)}</span>
                   </div>
                   <Money amount={loan.amount} />
-                  {loan.viaDraw ? <span className="badge brand">با قرعه</span> : <span className="badge">ثبت دستی</span>}
+                  {loan.viaDraw ? (
+                    <span className="badge brand">با قرعه</span>
+                  ) : (
+                    <span className="badge">ثبت دستی</span>
+                  )}
                 </li>
               ))}
             </ul>

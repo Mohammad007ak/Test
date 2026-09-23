@@ -11,7 +11,10 @@ export function createAppFromEnv(env = process.env) {
     apiKey: env.KAVENEGAR_API_KEY,
     template: env.KAVENEGAR_TEMPLATE ?? "sandogh-login",
   });
-  const opsPhones = (env.OPS_PHONES ?? "").split(",").map((p) => p.trim()).filter(Boolean);
+  const opsPhones = (env.OPS_PHONES ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
   // How long a circle may wait to fill. The goal is under five minutes; the
   // default gives early launches an hour.
   const formTimeoutMs = Number(env.CIRCLE_FORM_TIMEOUT_MIN ?? 60) * 60 * 1000;

@@ -76,9 +76,7 @@ export default function Payments({ state, update, currentMonth, openMember }) {
           </button>
           <div>
             <strong>{monthLabel(month)}</strong>
-            <span className="muted small">
-              {month === currentMonth ? "ماه جاری" : isPast ? "ماه گذشته" : ""}
-            </span>
+            <span className="muted small">{month === currentMonth ? "ماه جاری" : isPast ? "ماه گذشته" : ""}</span>
           </div>
           <button
             className="icon-btn soft"
@@ -125,7 +123,11 @@ export default function Payments({ state, update, currentMonth, openMember }) {
           <ul className="rows">
             {visible.map(({ member, dues: memberDues }) => (
               <li key={member.id} className="row pay-row">
-                <button className="avatar-btn" onClick={() => openMember(member.id)} aria-label={`پرونده‌ی ${member.name}`}>
+                <button
+                  className="avatar-btn"
+                  onClick={() => openMember(member.id)}
+                  aria-label={`پرونده‌ی ${member.name}`}
+                >
                   <Avatar name={member.name} id={member.id} />
                 </button>
                 <div className="row-main">

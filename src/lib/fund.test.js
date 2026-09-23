@@ -72,10 +72,20 @@ test("loans create installment dues from the month after the draw", () => {
   const loan = createLoan(fund, "a", "1405-02");
   state.loans.push(loan);
   const installments = listDues(state, "1405-12").filter((d) => d.type === "installment");
-  assert.deepEqual(installments.map((d) => d.month), ["1405-03", "1405-04", "1405-05"]);
+  assert.deepEqual(
+    installments.map((d) => d.month),
+    ["1405-03", "1405-04", "1405-05"],
+  );
   assert.equal(fundBalance(state), -10_000_000);
 
-  state.payments.push({ id: "p", memberId: "a", type: "installment", loanId: loan.id, month: "1405-03", amount: 3_333_333 });
+  state.payments.push({
+    id: "p",
+    memberId: "a",
+    type: "installment",
+    loanId: loan.id,
+    month: "1405-03",
+    amount: 3_333_333,
+  });
   assert.deepEqual(loanProgress(state, loan), {
     paidCount: 1,
     paidAmount: 3_333_333,
@@ -86,9 +96,18 @@ test("loans create installment dues from the month after the draw", () => {
 
 test("lottery tickets follow shares and are used up by wins", () => {
   const state = makeState();
-  assert.deepEqual(lotteryEntries(state).map((e) => e.tickets), [1, 2]);
+  assert.deepEqual(
+    lotteryEntries(state).map((e) => e.tickets),
+    [1, 2],
+  );
   state.loans.push(createLoan(fund, "b", "1405-02"));
-  assert.deepEqual(lotteryEntries(state).map((e) => [e.member.id, e.tickets]), [["a", 1], ["b", 1]]);
+  assert.deepEqual(
+    lotteryEntries(state).map((e) => [e.member.id, e.tickets]),
+    [
+      ["a", 1],
+      ["b", 1],
+    ],
+  );
 });
 
 test("pickWinner is weighted by tickets", () => {
@@ -99,5 +118,8 @@ test("pickWinner is weighted by tickets", () => {
   assert.equal(pickWinner(entries, () => 0).id, "a");
   assert.equal(pickWinner(entries, () => 0.4).id, "b");
   assert.equal(pickWinner(entries, () => 0.99).id, "b");
-  assert.equal(pickWinner([], () => 0), null);
+  assert.equal(
+    pickWinner([], () => 0),
+    null,
+  );
 });

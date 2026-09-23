@@ -21,11 +21,7 @@ export default function Checkout({ checkoutId, done }) {
   const finish = async (action) => {
     setBusy(action);
     try {
-      const result = await api(
-        "POST",
-        `/api/checkouts/${checkoutId}/complete`,
-        { action },
-      );
+      const result = await api("POST", `/api/checkouts/${checkoutId}/complete`, { action });
       const message = !result.ok
         ? checkout.kind === "entry"
           ? "پرداخت لغو شد و عضویتی ثبت نشد"
@@ -36,7 +32,7 @@ export default function Checkout({ checkoutId, done }) {
             ? "قسط اول پرداخت شد و به صف گروه پیوستید"
             : "پرداخت با موفقیت انجام شد";
       toast(message, { tone: result.ok ? "success" : "error" });
-      done(result.circleId);
+      done({ kind: checkout.kind, circleId: result.circleId });
     } catch (e) {
       toast(e.message, { tone: "error" });
       setBusy(null);
@@ -59,11 +55,7 @@ export default function Checkout({ checkoutId, done }) {
         </div>
         <div className="checkout-head">
           <CreditCard size={22} />
-          <h1>
-            {checkout.kind === "entry"
-              ? "پرداخت قسط اول و عضویت"
-              : "پرداخت سهم صندوق"}
-          </h1>
+          <h1>{checkout.kind === "entry" ? "پرداخت قسط اول و عضویت" : "پرداخت سهم صندوق"}</h1>
         </div>
         <div className="checkout-amount">
           <span>مبلغ قابل پرداخت</span>
@@ -76,34 +68,23 @@ export default function Checkout({ checkoutId, done }) {
         </div>
         {checkout.status === "pending" ? (
           <div className="stack-sm">
-            <button
-              className="btn primary lg block"
-              onClick={() => finish("pay")}
-              disabled={Boolean(busy)}
-            >
+            <button className="btn primary lg block" onClick={() => finish("pay")} disabled={Boolean(busy)}>
               {busy === "pay" ? <Spinner /> : "پرداخت"}
             </button>
-            <button
-              className="btn ghost block"
-              onClick={() => finish("cancel")}
-              disabled={Boolean(busy)}
-            >
+            <button className="btn ghost block" onClick={() => finish("cancel")} disabled={Boolean(busy)}>
               انصراف
             </button>
           </div>
         ) : (
           <button
             className="btn outline block"
-            onClick={() => done(checkout.circleId)}
+            onClick={() => done({ kind: checkout.kind, circleId: checkout.circleId })}
           >
-            {checkout.status === "cancelled"
-              ? "لغو شده؛ بازگشت"
-              : "پرداخت شده؛ بازگشت"}
+            {checkout.status === "cancelled" ? "لغو شده؛ بازگشت" : "پرداخت شده؛ بازگشت"}
           </button>
         )}
         <p className="fine-print">
-          <ShieldCheck size={13} style={{ verticalAlign: "-2px" }} /> پرداخت امن
-          از طریق دیجی‌پی
+          <ShieldCheck size={13} style={{ verticalAlign: "-2px" }} /> پرداخت امن از طریق دیجی‌پی
         </p>
       </div>
     </div>

@@ -1,4 +1,14 @@
-import { AlertCircle, CalendarCheck, Copy, Dices, MessageSquareText, PartyPopper, UserPlus, Wallet, WalletCards } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarCheck,
+  Copy,
+  Dices,
+  MessageSquareText,
+  PartyPopper,
+  UserPlus,
+  Wallet,
+  WalletCards,
+} from "lucide-react";
 import Pattern from "../ui/Pattern.jsx";
 import CollectionChart from "./CollectionChart.jsx";
 import { AnimatedNumber, Avatar, EmptyState, Money, Ring } from "../ui/bits.jsx";
@@ -109,8 +119,7 @@ export default function Dashboard({ state, currentMonth, goTo, openMember }) {
             <div className="stack-sm">
               <Money amount={collected} />
               <span className="muted small">
-                از {formatCompact(expected)} تومان، {formatNumber(thisMonth.filter((d) => !d.paid).length)} پرداخت
-                مانده
+                از {formatCompact(expected)} تومان، {formatNumber(thisMonth.filter((d) => !d.paid).length)} پرداخت مانده
               </span>
             </div>
             <Ring value={expected ? collected / expected : 0} size={64} done={expected > 0 && collected >= expected} />
@@ -155,7 +164,11 @@ export default function Dashboard({ state, currentMonth, goTo, openMember }) {
           <ul className="rows">
             {late.map(({ member, amount, months }) => (
               <li key={member.id} className="row">
-                <button className="avatar-btn" onClick={() => openMember(member.id)} aria-label={`پرونده‌ی ${member.name}`}>
+                <button
+                  className="avatar-btn"
+                  onClick={() => openMember(member.id)}
+                  aria-label={`پرونده‌ی ${member.name}`}
+                >
                   <Avatar name={member.name} id={member.id} />
                 </button>
                 <div className="row-main">

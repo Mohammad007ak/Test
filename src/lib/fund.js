@@ -19,16 +19,16 @@ export function isValidState(value) {
   const fund = value?.fund;
   return Boolean(
     value &&
-      Array.isArray(value.members) &&
-      Array.isArray(value.payments) &&
-      Array.isArray(value.loans) &&
-      fund &&
-      typeof fund.name === "string" &&
-      isPositive(fund.contribution) &&
-      isPositive(fund.loanAmount) &&
-      isPositive(fund.installments) &&
-      /^\d{4}-\d{2}$/.test(fund.startMonth) &&
-      value.members.every((m) => m && typeof m.id === "string" && isPositive(m.shares)),
+    Array.isArray(value.members) &&
+    Array.isArray(value.payments) &&
+    Array.isArray(value.loans) &&
+    fund &&
+    typeof fund.name === "string" &&
+    isPositive(fund.contribution) &&
+    isPositive(fund.loanAmount) &&
+    isPositive(fund.installments) &&
+    /^\d{4}-\d{2}$/.test(fund.startMonth) &&
+    value.members.every((m) => m && typeof m.id === "string" && isPositive(m.shares)),
   );
 }
 
@@ -161,9 +161,7 @@ export function createLoan(fund, memberId, drawMonth) {
 export function memberSummary(state, memberId, currentMonth) {
   const payments = state.payments.filter((p) => p.memberId === memberId);
   const overdue = overdueDues(state, currentMonth).filter((d) => d.memberId === memberId);
-  const activeLoan = state.loans.find(
-    (l) => l.memberId === memberId && !loanProgress(state, l).done,
-  );
+  const activeLoan = state.loans.find((l) => l.memberId === memberId && !loanProgress(state, l).done);
   return {
     contributed: sum(payments.filter((p) => p.type === "contribution")),
     overdueCount: overdue.length,

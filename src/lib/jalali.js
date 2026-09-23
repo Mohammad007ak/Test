@@ -27,9 +27,7 @@ const partsFormatter = new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn", {
 });
 
 export function toJalali(date = new Date()) {
-  const parts = Object.fromEntries(
-    partsFormatter.formatToParts(date).map((p) => [p.type, p.value]),
-  );
+  const parts = Object.fromEntries(partsFormatter.formatToParts(date).map((p) => [p.type, p.value]));
   return { year: Number(parts.year), month: Number(parts.month), day: Number(parts.day) };
 }
 

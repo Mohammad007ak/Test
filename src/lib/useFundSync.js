@@ -36,14 +36,16 @@ export function useFundSync(fundId) {
     };
   }, [fundId, applyServer]);
 
+  // Resolves to whether everything is saved.
   const saveIfDirty = useCallback(async () => {
-    if (!dirty.current) return;
+    if (!dirty.current) return true;
     dirty.current = false;
     setStatus("saving");
     try {
       const result = await api("PUT", `/api/funds/${fundId}`, { data: current.current, version: version.current });
       version.current = result.version;
       setStatus(dirty.current ? "saving" : "saved");
+      return true;
     } catch (e) {
       if (e.status === 409) {
         applyServer(e.body.data, e.body.version);
@@ -52,10 +54,11 @@ export function useFundSync(fundId) {
           tone: "error",
           duration: 6000,
         });
-      } else {
-        dirty.current = true;
-        setStatus("error");
+        return true;
       }
+      dirty.current = true;
+      setStatus("error");
+      return false;
     }
   }, [fundId, applyServer, toast]);
 

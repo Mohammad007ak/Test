@@ -1,6 +1,7 @@
 import { useRef } from "react";
 
-const toLatin = (s) => s.replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+const toLatin = (s) =>
+  s.replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
 
 // Separate boxes that behave like one field: typing advances, backspace
 // goes back, and pasting or SMS autofill spreads the whole code.

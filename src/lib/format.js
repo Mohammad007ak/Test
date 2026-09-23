@@ -34,11 +34,17 @@ export function formatCompact(amount) {
 }
 
 export function formatCard(number) {
-  return toPersianDigits(String(number).replace(/\D/g, "").replace(/(\d{4})(?=\d)/g, "$1 "));
+  return toPersianDigits(
+    String(number)
+      .replace(/\D/g, "")
+      .replace(/(\d{4})(?=\d)/g, "$1 "),
+  );
 }
 
 export function reminderText(fund, memberName, amount) {
-  const card = fund.cardNumber ? `\nشماره کارت: ${formatCard(fund.cardNumber)}${fund.cardHolder ? ` به نام ${fund.cardHolder}` : ""}` : "";
+  const card = fund.cardNumber
+    ? `\nشماره کارت: ${formatCard(fund.cardNumber)}${fund.cardHolder ? ` به نام ${fund.cardHolder}` : ""}`
+    : "";
   return `سلام ${memberName} عزیز\nیادآوری ${fund.name}: مبلغ ${formatMoney(amount)} از پرداخت‌های شما مانده است.${card}\nممنون از همراهی‌تان 🌱`;
 }
 

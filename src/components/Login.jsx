@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Eye, Lock, MessageSquareText, Phone, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Fingerprint, Landmark, MessageSquareText, Phone, ShieldCheck } from "lucide-react";
 import Pattern from "../ui/Pattern.jsx";
 import OtpInput from "../ui/OtpInput.jsx";
 import { Spinner } from "../ui/bits.jsx";
@@ -72,38 +72,38 @@ export default function Login({ onLogin }) {
         <Logo light />
         <div>
           <h1>
-            صندوق فامیلی‌تان، <em>شفاف</em> و بی‌دردسر
+            قرض بی‌دردسر، <em>شفاف</em> و تضمینی
           </h1>
           <p className="lede">
-            سهم‌های ماهانه، اقساط و قرعه‌کشی وام را یک‌جا مدیریت کنید؛ هر عضو هم وضعیت خودش را در گوشی می‌بیند.
+            در طرح‌های تضمینی دیجی‌پی عضو شوید و یک‌جا وام بگیرید، یا صندوق خانوادگی‌تان را آنلاین مدیریت کنید.
           </p>
         </div>
         <ul className="value-props">
           <li>
             <span className="vp-icon">
-              <Sparkles size={20} />
+              <Fingerprint size={20} />
             </span>
             <div>
-              <strong>قرعه‌کشی بی‌طرف</strong>
-              <span>برنده را سرور انتخاب می‌کند و هر قرعه برای همه ثبت می‌شود.</span>
+              <strong>قرعه‌کشی قابل اثبات</strong>
+              <span>هر قرعه ثبت می‌شود و هر عضو می‌تواند نتیجه را خودش بررسی کند.</span>
             </div>
           </li>
           <li>
             <span className="vp-icon">
-              <Eye size={20} />
+              <ShieldCheck size={20} />
             </span>
             <div>
-              <strong>همه در جریان‌اند</strong>
-              <span>اعضا پرداخت‌ها، وام‌ها و موجودی صندوق را خودشان می‌بینند.</span>
+              <strong>ضمانت دیجی‌پی</strong>
+              <span>در طرح‌های تضمینی، دیجی‌پی مدیر گروه است و اقساط را ضمانت می‌کند.</span>
             </div>
           </li>
           <li>
             <span className="vp-icon">
-              <Lock size={20} />
+              <Landmark size={20} />
             </span>
             <div>
-              <strong>پول دست خودتان است</strong>
-              <span>دیجی قرض فقط حساب‌وکتاب را نگه می‌دارد؛ پولی از اپ رد نمی‌شود.</span>
+              <strong>صندوق خانوادگی رایگان</strong>
+              <span>حساب‌وکتاب صندوق فامیلی؛ پول در حساب مدیر صندوق می‌ماند.</span>
             </div>
           </li>
         </ul>
@@ -182,7 +182,8 @@ export default function Login({ onLogin }) {
             </>
           )}
           <p className="fine-print">
-            <ShieldCheck size={14} style={{ verticalAlign: "-2px" }} /> اطلاعات شما فقط برای اعضای صندوق خودتان قابل مشاهده است.
+            <ShieldCheck size={14} style={{ verticalAlign: "-2px" }} /> اطلاعات شما فقط برای اعضای صندوق خودتان قابل
+            مشاهده است.
           </p>
         </form>
       </main>

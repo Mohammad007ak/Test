@@ -131,7 +131,14 @@ export default function Settings({ state, update, server, goHome }) {
               <CreditCard size={17} className="muted" />
               <input
                 value={formatCard(draft.cardNumber ?? "")}
-                onChange={(e) => set("cardNumber")(e.target.value.replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/\D/g, "").slice(0, 16))}
+                onChange={(e) =>
+                  set("cardNumber")(
+                    e.target.value
+                      .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+                      .replace(/\D/g, "")
+                      .slice(0, 16),
+                  )
+                }
                 inputMode="numeric"
                 placeholder="۶۰۳۷ ۹۹۷۱ ۰۰۰۰ ۰۰۰۰"
                 dir="ltr"
@@ -140,7 +147,11 @@ export default function Settings({ state, update, server, goHome }) {
           </Field>
           <Field label="به نام">
             <div className="input">
-              <input value={draft.cardHolder ?? ""} onChange={(e) => set("cardHolder")(e.target.value)} placeholder="نام صاحب کارت" />
+              <input
+                value={draft.cardHolder ?? ""}
+                onChange={(e) => set("cardHolder")(e.target.value)}
+                placeholder="نام صاحب کارت"
+              />
             </div>
           </Field>
         </div>

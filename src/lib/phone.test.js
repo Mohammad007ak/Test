@@ -3,7 +3,14 @@ import assert from "node:assert/strict";
 import { normalizePhone } from "./phone.js";
 
 test("normalizes the ways people type Iranian mobile numbers", () => {
-  for (const input of ["09121234567", "+989121234567", "00989121234567", "9121234567", "۰۹۱۲ ۱۲۳ ۴۵۶۷", "0912-123-4567"]) {
+  for (const input of [
+    "09121234567",
+    "+989121234567",
+    "00989121234567",
+    "9121234567",
+    "۰۹۱۲ ۱۲۳ ۴۵۶۷",
+    "0912-123-4567",
+  ]) {
     assert.equal(normalizePhone(input), "09121234567", input);
   }
 });

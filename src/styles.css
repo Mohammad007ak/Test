@@ -32,8 +32,7 @@
 
   --focus: 0 0 0 3px color-mix(in srgb, var(--brand) 28%, transparent);
   --shadow-sm: 0 1px 2px rgb(14 16 48 / 0.05);
-  --shadow-md:
-    0 1px 2px rgb(14 16 48 / 0.04), 0 8px 24px -8px rgb(14 16 48 / 0.12);
+  --shadow-md: 0 1px 2px rgb(14 16 48 / 0.04), 0 8px 24px -8px rgb(14 16 48 / 0.12);
   --shadow-lg: 0 24px 64px -16px rgb(14 16 48 / 0.28);
 
   --radius-sm: 10px;
@@ -1064,11 +1063,7 @@ button.row:hover {
   padding: 22px;
   border-radius: 24px;
   background:
-    radial-gradient(
-      120% 140% at 100% 0%,
-      rgb(120 150 255 / 0.45) 0%,
-      transparent 55%
-    ),
+    radial-gradient(120% 140% at 100% 0%, rgb(120 150 255 / 0.45) 0%, transparent 55%),
     linear-gradient(160deg, #1a1aff 0%, #0000e0 55%, #0000a8 100%);
   color: #f4f5ff;
   box-shadow: 0 20px 40px -20px rgb(0 0 180 / 0.6);
@@ -1077,11 +1072,7 @@ button.row:hover {
 
 .hero.warn {
   background:
-    radial-gradient(
-      120% 140% at 100% 0%,
-      rgb(255 190 120 / 0.25) 0%,
-      transparent 55%
-    ),
+    radial-gradient(120% 140% at 100% 0%, rgb(255 190 120 / 0.25) 0%, transparent 55%),
     linear-gradient(160deg, #b5431b 0%, #8e2f10 100%);
   box-shadow: 0 20px 40px -20px rgb(142 47 16 / 0.6);
 }
@@ -1524,11 +1515,7 @@ button.row:hover {
   padding: 28px 20px;
   border-radius: 24px;
   background:
-    radial-gradient(
-      80% 90% at 50% 115%,
-      rgb(255 197 61 / 0.3),
-      transparent 70%
-    ),
+    radial-gradient(80% 90% at 50% 115%, rgb(255 197 61 / 0.3), transparent 70%),
     linear-gradient(180deg, #0000d6 0%, #00008a 100%);
   color: #f4f5ff;
   isolation: isolate;
@@ -1642,8 +1629,7 @@ button.row:hover {
   }
   100% {
     opacity: 0;
-    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)))
-      rotate(var(--r));
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--r));
   }
 }
 
@@ -1887,12 +1873,7 @@ button.row:hover {
 
 .skeleton {
   border-radius: 12px;
-  background: linear-gradient(
-    90deg,
-    var(--surface-2) 25%,
-    var(--surface-3) 50%,
-    var(--surface-2) 75%
-  );
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -2180,11 +2161,7 @@ button.row:hover {
   gap: 28px;
   padding: 24px 24px 72px;
   background:
-    radial-gradient(
-      90% 70% at 85% 10%,
-      rgb(120 150 255 / 0.45),
-      transparent 60%
-    ),
+    radial-gradient(90% 70% at 85% 10%, rgb(120 150 255 / 0.45), transparent 60%),
     linear-gradient(165deg, #1a1aff 0%, #0000c8 70%, #000090 100%);
   color: #f4f5ff;
   isolation: isolate;
@@ -3230,8 +3207,7 @@ button.row:hover {
   border-radius: 50%;
   background: var(--brand);
   color: var(--brand-ink);
-  box-shadow: 0 16px 40px -12px
-    color-mix(in srgb, var(--brand) 60%, transparent);
+  box-shadow: 0 16px 40px -12px color-mix(in srgb, var(--brand) 60%, transparent);
 }
 
 .waiting-orb svg {

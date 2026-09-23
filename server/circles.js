@@ -21,31 +21,18 @@
 import { transaction } from "./db.js";
 import { HttpError } from "./errors.js";
 import { planById, PLANS, potOf } from "../src/lib/plans.js";
-import {
-  buildChain,
-  nonceDigest,
-  pickWinner,
-  randomHex,
-} from "../src/lib/fairness.js";
+import { buildChain, nonceDigest, pickWinner, randomHex } from "../src/lib/fairness.js";
 import { newId } from "../src/lib/fund.js";
 
 const NONCE = /^[0-9a-f]{32,64}$/;
 
 const HOUR = 60 * 60 * 1000;
 
-export function createCircleService({
-  db,
-  digipay,
-  now = Date.now,
-  formTimeoutMs = HOUR,
-}) {
+export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs = HOUR }) {
   const q = (sql) => db.prepare(sql);
 
   const getCircle = (id) => q("SELECT * FROM circles WHERE id = ?").get(id);
-  const membersOf = (circleId) =>
-    q("SELECT * FROM circle_members WHERE circle_id = ? ORDER BY position").all(
-      circleId,
-    );
+  const membersOf = (circleId) => q("SELECT * FROM circle_members WHERE circle_id = ? ORDER BY position").all(circleId);
 
   // ---------- forming ----------
 
@@ -57,17 +44,7 @@ export function createCircleService({
       q(
         `INSERT INTO circles (id, plan_id, status, size, months, share, chain_secret, anchor, created_at, deadline)
          VALUES (?, ?, 'forming', ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(
-        id,
-        plan.id,
-        plan.size,
-        plan.months,
-        plan.share,
-        secret,
-        anchor,
-        now(),
-        now() + formTimeoutMs,
-      );
+      ).run(id, plan.id, plan.size, plan.months, plan.share, secret, anchor, now(), now() + formTimeoutMs);
       q(
         `INSERT INTO circle_members (id, circle_id, position, phone, is_operator, nonce, pay_method, joined_at)
          VALUES (?, ?, 1, NULL, 1, ?, 'operator', ?)`,
@@ -85,13 +62,9 @@ export function createCircleService({
 
   // Release everyone from circles that didn't fill before their deadline.
   async function expireStale() {
-    const stale = q(
-      "SELECT id FROM circles WHERE status = 'forming' AND deadline <= ?",
-    ).all(now());
+    const stale = q("SELECT id FROM circles WHERE status = 'forming' AND deadline <= ?").all(now());
     for (const { id } of stale) {
-      const expired = q(
-        "UPDATE circles SET status = 'expired' WHERE id = ? AND status = 'forming'",
-      ).run(id).changes;
+      const expired = q("UPDATE circles SET status = 'expired' WHERE id = ? AND status = 'forming'").run(id).changes;
       if (!expired) continue;
       for (const m of membersOf(id)) await release(m, getCircle(id));
     }
@@ -99,8 +72,7 @@ export function createCircleService({
 
   // Undo what a seat holds: the wallet mandate and the prepaid first share.
   async function release(member, circle) {
-    if (member.mandate_id)
-      await digipay.payments.revokeMandate({ mandateId: member.mandate_id });
+    if (member.mandate_id) await digipay.payments.revokeMandate({ mandateId: member.mandate_id });
     if (member.entry_ref && !member.is_bot) {
       await digipay.payments.refund({
         paymentRef: member.entry_ref,
@@ -112,11 +84,7 @@ export function createCircleService({
   function openMonth(circleId, month, share) {
     for (const m of membersOf(circleId)) {
       // Month 1 was paid on joining.
-      const method = m.is_operator
-        ? "operator"
-        : month === 1 && m.entry_ref
-          ? "entry"
-          : null;
+      const method = m.is_operator ? "operator" : month === 1 && m.entry_ref ? "entry" : null;
       q(
         `INSERT INTO contributions (circle_id, member_id, month, amount, status, method, ref, paid_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -135,9 +103,7 @@ export function createCircleService({
 
   // Must run inside a transaction, right after the last seat is taken.
   function startCircle(circle) {
-    q(
-      "UPDATE circles SET status = 'active', started_at = ?, current_month = 1 WHERE id = ?",
-    ).run(now(), circle.id);
+    q("UPDATE circles SET status = 'active', started_at = ?, current_month = 1 WHERE id = ?").run(now(), circle.id);
     openMonth(circle.id, 1, circle.share);
   }
 
@@ -145,9 +111,7 @@ export function createCircleService({
     const circle = getCircle(circleId);
     if (circle.status === "forming" || circle.nonce_digest) return;
     const digest = await nonceDigest(membersOf(circleId).map((m) => m.nonce));
-    q(
-      "UPDATE circles SET nonce_digest = ? WHERE id = ? AND nonce_digest IS NULL",
-    ).run(digest, circleId);
+    q("UPDATE circles SET nonce_digest = ? WHERE id = ? AND nonce_digest IS NULL").run(digest, circleId);
   }
 
   function committedMonthly(phone) {
@@ -180,20 +144,12 @@ export function createCircleService({
     const plan = planById(planId);
     if (!plan) throw new HttpError(404, "این طرح پیدا نشد.");
     await expireStale();
-    if (seatIn(phone, plan.id))
-      throw new HttpError(409, "شما در یک دوره‌ی فعال از همین طرح عضو هستید.");
+    if (seatIn(phone, plan.id)) throw new HttpError(409, "شما در یک دوره‌ی فعال از همین طرح عضو هستید.");
 
     const e = await eligibility(phone);
-    if (!e.approved)
-      throw new HttpError(
-        403,
-        "در حال حاضر امکان عضویت در طرح‌ها برای شما فعال نیست.",
-      );
+    if (!e.approved) throw new HttpError(403, "در حال حاضر امکان عضویت در طرح‌ها برای شما فعال نیست.");
     if (e.available < plan.share) {
-      throw new HttpError(
-        403,
-        "سقف اعتبار ماهانه‌ی شما برای این طرح کافی نیست. طرح کوچک‌تری را امتحان کنید.",
-      );
+      throw new HttpError(403, "سقف اعتبار ماهانه‌ی شما برای این طرح کافی نیست. طرح کوچک‌تری را امتحان کنید.");
     }
 
     // A nonce from the member's own device: entropy the server couldn't know
@@ -208,15 +164,7 @@ export function createCircleService({
     q(
       `INSERT INTO checkouts (id, kind, phone, plan_id, nonce, items, amount, status, ref, created_at)
        VALUES (?, 'entry', ?, ?, ?, '[1]', ?, 'pending', ?, ?)`,
-    ).run(
-      id,
-      phone,
-      plan.id,
-      memberNonce,
-      plan.share,
-      checkout.checkoutRef,
-      now(),
-    );
+    ).run(id, phone, plan.id, memberNonce, plan.share, checkout.checkoutRef, now());
     return { checkoutId: id, redirectUrl: checkout.url ?? null };
   }
 
@@ -234,24 +182,13 @@ export function createCircleService({
       const circleId = await openCircleFor(plan);
       const joined = transaction(db, () => {
         const circle = getCircle(circleId);
-        const taken = q(
-          "SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?",
-        ).get(circleId).n;
+        const taken = q("SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?").get(circleId).n;
         if (circle.status !== "forming" || taken >= circle.size) return null;
         const memberId = newId();
         q(
           `INSERT INTO circle_members (id, circle_id, position, phone, nonce, pay_method, mandate_id, entry_ref, joined_at)
            VALUES (?, ?, ?, ?, ?, 'manual', ?, ?, ?)`,
-        ).run(
-          memberId,
-          circleId,
-          taken + 1,
-          phone,
-          nonce,
-          mandate.mandateId,
-          entryRef,
-          now(),
-        );
+        ).run(memberId, circleId, taken + 1, phone, nonce, mandate.mandateId, entryRef, now());
         if (taken + 1 === circle.size) startCircle(circle);
         return { circleId, memberId };
       });
@@ -270,27 +207,24 @@ export function createCircleService({
     const left = transaction(db, () => {
       if (getCircle(circleId).status !== "forming") return false;
       q("DELETE FROM circle_members WHERE id = ?").run(member.id);
-      q(
-        "UPDATE circle_members SET position = -position WHERE circle_id = ? AND position > ?",
-      ).run(circleId, member.position);
-      q(
-        "UPDATE circle_members SET position = -position - 1 WHERE circle_id = ? AND position < 0",
-      ).run(circleId);
+      q("UPDATE circle_members SET position = -position WHERE circle_id = ? AND position > ?").run(
+        circleId,
+        member.position,
+      );
+      q("UPDATE circle_members SET position = -position - 1 WHERE circle_id = ? AND position < 0").run(circleId);
       return true;
     });
-    if (!left)
-      throw new HttpError(400, "گروه شروع شده و دیگر نمی‌شود از آن خارج شد.");
+    if (!left) throw new HttpError(400, "گروه شروع شده و دیگر نمی‌شود از آن خارج شد.");
     await release(member, getCircle(circleId));
   }
 
   // ---------- running ----------
 
   async function closeMonth(circleId) {
-    const claimed = q(
-      "UPDATE circles SET closing = 1 WHERE id = ? AND status = 'active' AND closing = 0",
-    ).run(circleId).changes;
-    if (!claimed)
-      throw new HttpError(409, "این دوره فعال نیست یا در حال پردازش است.");
+    const claimed = q("UPDATE circles SET closing = 1 WHERE id = ? AND status = 'active' AND closing = 0").run(
+      circleId,
+    ).changes;
+    if (!claimed) throw new HttpError(409, "این دوره فعال نیست یا در حال پردازش است.");
 
     try {
       await publishNonceDigest(circleId);
@@ -299,9 +233,10 @@ export function createCircleService({
       const members = membersOf(circleId);
 
       // 1. Debit the wallet of anyone who hasn't paid through the gateway.
-      const due = q(
-        "SELECT * FROM contributions WHERE circle_id = ? AND month = ? AND status = 'due'",
-      ).all(circleId, month);
+      const due = q("SELECT * FROM contributions WHERE circle_id = ? AND month = ? AND status = 'due'").all(
+        circleId,
+        month,
+      );
       for (const d of due) {
         const member = members.find((m) => m.id === d.member_id);
         if (member.is_operator || !member.mandate_id) continue;
@@ -346,9 +281,7 @@ export function createCircleService({
         let eligible = waiting.filter((m) => !owing.has(m.id)).map((m) => m.id);
         if (eligible.length === 0) eligible = waiting.map((m) => m.id);
         const drawNo =
-          q(
-            "SELECT COUNT(*) AS n FROM circle_draws WHERE circle_id = ? AND kind = 'lottery'",
-          ).get(circleId).n + 1;
+          q("SELECT COUNT(*) AS n FROM circle_draws WHERE circle_id = ? AND kind = 'lottery'").get(circleId).n + 1;
         const chain = await buildChain(circle.chain_secret, circle.months);
         const reveal = chain[drawNo];
         const { seed, winner } = await pickWinner({
@@ -382,18 +315,11 @@ export function createCircleService({
           pot,
           now(),
         );
-        q("UPDATE circle_members SET won_month = ? WHERE id = ?").run(
-          month,
-          draw.winner,
-        );
+        q("UPDATE circle_members SET won_month = ? WHERE id = ?").run(month, draw.winner);
         if (month === circle.months) {
-          q(
-            "UPDATE circles SET status = 'completed', closing = 0 WHERE id = ?",
-          ).run(circleId);
+          q("UPDATE circles SET status = 'completed', closing = 0 WHERE id = ?").run(circleId);
         } else {
-          q(
-            "UPDATE circles SET current_month = ?, closing = 0 WHERE id = ?",
-          ).run(month + 1, circleId);
+          q("UPDATE circles SET current_month = ?, closing = 0 WHERE id = ?").run(month + 1, circleId);
           openMonth(circleId, month + 1, circle.share);
         }
       });
@@ -406,9 +332,7 @@ export function createCircleService({
         amount: pot,
         ref: `${circleId}:${month}`,
       });
-      q(
-        "UPDATE circle_draws SET payout_ref = ? WHERE circle_id = ? AND month = ?",
-      ).run(payout.ref, circleId, month);
+      q("UPDATE circle_draws SET payout_ref = ? WHERE circle_id = ? AND month = ?").run(payout.ref, circleId, month);
       return { month, kind: draw.kind, winner: draw.winner, pot };
     } catch (error) {
       q("UPDATE circles SET closing = 0 WHERE id = ?").run(circleId);
@@ -419,9 +343,7 @@ export function createCircleService({
   // ---------- manual payments ----------
 
   function memberFor(phone, circleId) {
-    const member = q(
-      "SELECT * FROM circle_members WHERE circle_id = ? AND phone = ?",
-    ).get(circleId, phone);
+    const member = q("SELECT * FROM circle_members WHERE circle_id = ? AND phone = ?").get(circleId, phone);
     if (!member) throw new HttpError(404, "این دوره پیدا نشد.");
     return member;
   }
@@ -461,9 +383,7 @@ export function createCircleService({
   }
 
   function getCheckout(phone, id) {
-    const checkout = q(
-      "SELECT * FROM checkouts WHERE id = ? AND phone = ?",
-    ).get(id, phone);
+    const checkout = q("SELECT * FROM checkouts WHERE id = ? AND phone = ?").get(id, phone);
     if (!checkout) throw new HttpError(404, "پرداخت پیدا نشد.");
     return {
       id: checkout.id,
@@ -477,12 +397,9 @@ export function createCircleService({
   }
 
   async function completeCheckout({ phone, id, action }) {
-    const checkout = q(
-      "SELECT * FROM checkouts WHERE id = ? AND phone = ?",
-    ).get(id, phone);
+    const checkout = q("SELECT * FROM checkouts WHERE id = ? AND phone = ?").get(id, phone);
     if (!checkout) throw new HttpError(404, "پرداخت پیدا نشد.");
-    if (checkout.status !== "pending")
-      throw new HttpError(400, "این پرداخت قبلاً نهایی شده است.");
+    if (checkout.status !== "pending") throw new HttpError(400, "این پرداخت قبلاً نهایی شده است.");
     const result = await digipay.payments.verifyCheckout({
       checkoutRef: checkout.ref,
       action,
@@ -504,18 +421,13 @@ export function createCircleService({
            WHERE circle_id = ? AND member_id = ? AND month = ? AND status = 'covered' AND settled_at IS NULL`,
         ).run(now(), ...args);
       }
-      q("UPDATE checkouts SET status = 'paid', ref = ? WHERE id = ?").run(
-        result.ref,
-        id,
-      );
+      q("UPDATE checkouts SET status = 'paid', ref = ? WHERE id = ?").run(result.ref, id);
     });
     return { ok: result.ok, circleId: checkout.circle_id };
   }
 
   async function completeEntry(checkout, result) {
-    const claimed = q(
-      "UPDATE checkouts SET status = ?, ref = ? WHERE id = ? AND status = 'pending'",
-    ).run(
+    const claimed = q("UPDATE checkouts SET status = ?, ref = ? WHERE id = ? AND status = 'pending'").run(
       result.ok ? "paid" : "cancelled",
       result.ref ?? checkout.ref,
       checkout.id,
@@ -532,9 +444,7 @@ export function createCircleService({
         paymentRef: result.ref,
         amount: checkout.amount,
       });
-      q("UPDATE checkouts SET status = 'refunded' WHERE id = ?").run(
-        checkout.id,
-      );
+      q("UPDATE checkouts SET status = 'refunded' WHERE id = ?").run(checkout.id);
       return { ok: true, refunded: true, circleId: existing.circleId };
     }
     const { circleId, memberId } = await seat({
@@ -543,11 +453,7 @@ export function createCircleService({
       nonce: checkout.nonce,
       entryRef: result.ref,
     });
-    q("UPDATE checkouts SET circle_id = ?, member_id = ? WHERE id = ?").run(
-      circleId,
-      memberId,
-      checkout.id,
-    );
+    q("UPDATE checkouts SET circle_id = ?, member_id = ? WHERE id = ?").run(circleId, memberId, checkout.id);
     return { ok: true, circleId };
   }
 
@@ -565,17 +471,11 @@ export function createCircleService({
   }
 
   function summarize(circle, member) {
-    const taken = q(
-      "SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?",
-    ).get(circle.id).n;
+    const taken = q("SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?").get(circle.id).n;
     const outstanding = outstandingOf(circle.id, member.id);
     // Debt is only what the guarantee paid for; this month's share isn't late yet.
-    const owed = outstanding
-      .filter((i) => i.status === "covered")
-      .reduce((t, i) => t + i.amount, 0);
-    const dueNow = outstanding
-      .filter((i) => i.status === "due")
-      .reduce((t, i) => t + i.amount, 0);
+    const owed = outstanding.filter((i) => i.status === "covered").reduce((t, i) => t + i.amount, 0);
+    const dueNow = outstanding.filter((i) => i.status === "due").reduce((t, i) => t + i.amount, 0);
     return {
       id: circle.id,
       planId: circle.plan_id,
@@ -602,12 +502,7 @@ export function createCircleService({
        WHERE m.phone = ? AND c.status != 'expired' ORDER BY c.status = 'completed', c.created_at DESC`,
     )
       .all(phone)
-      .map((row) =>
-        summarize(
-          row,
-          q("SELECT * FROM circle_members WHERE id = ?").get(row.member_id),
-        ),
-      );
+      .map((row) => summarize(row, q("SELECT * FROM circle_members WHERE id = ?").get(row.member_id)));
   }
 
   // Members see each other only by seat number; phones never leave the server.
@@ -619,14 +514,8 @@ export function createCircleService({
     const me = members.find((m) => m.phone === phone);
     if (!me && !ops) throw new HttpError(404, "این دوره پیدا نشد.");
 
-    const draws = q(
-      "SELECT * FROM circle_draws WHERE circle_id = ? ORDER BY month",
-    ).all(circleId);
-    const reveals = new Map(
-      draws
-        .filter((d) => d.kind === "lottery")
-        .map((d) => [d.draw_no, d.reveal]),
-    );
+    const draws = q("SELECT * FROM circle_draws WHERE circle_id = ? ORDER BY month").all(circleId);
+    const reveals = new Map(draws.filter((d) => d.kind === "lottery").map((d) => [d.draw_no, d.reveal]));
     const contributions = me
       ? q(
           "SELECT month, amount, status, method, settled_at FROM contributions WHERE circle_id = ? AND member_id = ? ORDER BY month",
@@ -657,12 +546,7 @@ export function createCircleService({
         kind: d.kind,
         drawNo: d.draw_no,
         reveal: d.reveal,
-        previous:
-          d.kind === "lottery"
-            ? d.draw_no === 1
-              ? circle.anchor
-              : reveals.get(d.draw_no - 1)
-            : null,
+        previous: d.kind === "lottery" ? (d.draw_no === 1 ? circle.anchor : reveals.get(d.draw_no - 1)) : null,
         seed: d.seed,
         eligible: JSON.parse(d.eligible),
         winner: d.winner_member_id,
@@ -703,12 +587,9 @@ export function createCircleService({
   // "forgets" to pay, which shows the guarantee at work.
   async function fillWithBots(circleId) {
     const circle = getCircle(circleId);
-    if (!circle || circle.status !== "forming")
-      throw new HttpError(400, "فقط دوره‌ی در حال تکمیل را می‌شود پر کرد.");
+    if (!circle || circle.status !== "forming") throw new HttpError(400, "فقط دوره‌ی در حال تکمیل را می‌شود پر کرد.");
     transaction(db, () => {
-      let taken = q(
-        "SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?",
-      ).get(circleId).n;
+      let taken = q("SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?").get(circleId).n;
       while (taken < circle.size) {
         taken += 1;
         const failing = taken % 4 === 0;

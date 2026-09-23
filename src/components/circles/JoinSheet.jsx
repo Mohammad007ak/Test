@@ -29,16 +29,12 @@ export default function JoinSheet({ plan, onClose, onCheckout }) {
     setBusy(true);
     setError(null);
     try {
-      const { checkoutId, redirectUrl } = await api(
-        "POST",
-        "/api/circles/join",
-        {
-          planId: plan.id,
-          accept: true,
-          // Randomness from this device, mixed into every draw of the circle.
-          nonce: randomHex(16),
-        },
-      );
+      const { checkoutId, redirectUrl } = await api("POST", "/api/circles/join", {
+        planId: plan.id,
+        accept: true,
+        // Randomness from this device, mixed into every draw of the circle.
+        nonce: randomHex(16),
+      });
       if (redirectUrl) window.location.href = redirectUrl;
       else onCheckout(checkoutId);
     } catch (e) {
@@ -53,16 +49,8 @@ export default function JoinSheet({ plan, onClose, onCheckout }) {
       onClose={onClose}
       title={plan.title}
       footer={
-        <button
-          className="btn primary lg"
-          onClick={join}
-          disabled={!accepted || busy}
-        >
-          {busy ? (
-            <Spinner />
-          ) : (
-            `پرداخت قسط اول (${formatCompact(plan.share)} تومان) و پیوستن`
-          )}
+        <button className="btn primary lg" onClick={join} disabled={!accepted || busy}>
+          {busy ? <Spinner /> : `پرداخت قسط اول (${formatCompact(plan.share)} تومان) و پیوستن`}
         </button>
       }
     >
@@ -87,36 +75,23 @@ export default function JoinSheet({ plan, onClose, onCheckout }) {
         <ul className="how-list">
           <li>
             <CreditCard size={18} />
-            <span>
-              برای گرفتن جایگاه، قسط اول ({formatCompact(plan.share)} تومان) را
-              از درگاه پرداخت می‌کنید.
-            </span>
+            <span>برای گرفتن جایگاه، قسط اول ({formatCompact(plan.share)} تومان) را از درگاه پرداخت می‌کنید.</span>
           </li>
           <li>
             <Timer size={18} />
-            <span>
-              بعد از پرداخت، چند دقیقه صبر کنید تا گروه{" "}
-              {formatNumber(plan.size)} نفره تکمیل شود.
-            </span>
+            <span>بعد از پرداخت، چند دقیقه صبر کنید تا گروه {formatNumber(plan.size)} نفره تکمیل شود.</span>
           </li>
           <li>
             <Repeat size={18} />
-            <span>
-              هر ماه همه سهمشان را می‌دهند و یک نفر کل {formatCompact(pot)}{" "}
-              تومان را می‌گیرد.
-            </span>
+            <span>هر ماه همه سهمشان را می‌دهند و یک نفر کل {formatCompact(pot)} تومان را می‌گیرد.</span>
           </li>
           <li>
             <ShieldCheck size={18} />
-            <span>
-              دیجی‌پی مدیر و ضامن گروه است و پات ماه اول را برمی‌دارد.
-            </span>
+            <span>دیجی‌پی مدیر و ضامن گروه است و پات ماه اول را برمی‌دارد.</span>
           </li>
           <li>
             <Hand size={18} />
-            <span>
-              از ماه دوم، دریافت‌کننده با قرعه‌ی قابل‌اثبات انتخاب می‌شود.
-            </span>
+            <span>از ماه دوم، دریافت‌کننده با قرعه‌ی قابل‌اثبات انتخاب می‌شود.</span>
           </li>
         </ul>
 
@@ -124,35 +99,23 @@ export default function JoinSheet({ plan, onClose, onCheckout }) {
           <strong>شرایط و قوانین</strong>
           <ul>
             <li>
-              تا پایان دوره ({formatNumber(plan.months)} ماه) هر ماه{" "}
-              {formatCompact(plan.share)} تومان سهم پرداخت می‌کنید؛ حتی بعد از
-              دریافت پات.
+              تا پایان دوره ({formatNumber(plan.months)} ماه) هر ماه {formatCompact(plan.share)} تومان سهم پرداخت
+              می‌کنید؛ حتی بعد از دریافت پات.
             </li>
+            <li>قسط اول هنگام عضویت پرداخت می‌شود و سهم ماه‌های بعد را هر ماه از درگاه پرداخت می‌کنید.</li>
             <li>
-              قسط اول هنگام عضویت پرداخت می‌شود و سهم ماه‌های بعد را هر ماه از
-              درگاه پرداخت می‌کنید.
+              اگر تا سررسید پرداخت نکنید، سهم همان ماه <b>به‌طور خودکار از کیف پول دیجی‌پی شما کسر می‌شود</b>.
             </li>
-            <li>
-              اگر تا سررسید پرداخت نکنید، سهم همان ماه{" "}
-              <b>به‌طور خودکار از کیف پول دیجی‌پی شما کسر می‌شود</b>.
-            </li>
-            <li>
-              اگر موجودی کیف پول کافی نباشد، دیجی‌پی سهم را ضمانت می‌کند و تا
-              تسویه در قرعه شرکت داده نمی‌شوید.
-            </li>
+            <li>اگر موجودی کیف پول کافی نباشد، دیجی‌پی سهم را ضمانت می‌کند و تا تسویه در قرعه شرکت داده نمی‌شوید.</li>
             <li>پات ماه اول به دیجی‌پی به‌عنوان مدیر و ضامن گروه می‌رسد.</li>
             <li>
-              اگر گروه در زمان مقرر تکمیل نشود یا پیش از شروع از صف خارج شوید،
-              عضویت لغو و قسط اول <b>کامل به شما برگردانده می‌شود</b>.
+              اگر گروه در زمان مقرر تکمیل نشود یا پیش از شروع از صف خارج شوید، عضویت لغو و قسط اول{" "}
+              <b>کامل به شما برگردانده می‌شود</b>.
             </li>
           </ul>
         </div>
         <label className="check-row">
-          <input
-            type="checkbox"
-            checked={accepted}
-            onChange={(e) => setAccepted(e.target.checked)}
-          />
+          <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
           <span>شرایط و قوانین را خواندم و می‌پذیرم.</span>
         </label>
         {error && <p className="error-text">{error}</p>}

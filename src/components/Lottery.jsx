@@ -154,14 +154,17 @@ export default function Lottery({ state, update, currentMonth, server }) {
         <div className="reel-window" aria-live="polite">
           {phase === "idle" ? (
             <div className="reel-idle">
-              {entries.length ? `${formatNumber(totalTickets)} شانس از ${formatNumber(entries.length)} نفر` : "همه در این دور وام گرفته‌اند"}
+              {entries.length
+                ? `${formatNumber(totalTickets)} شانس از ${formatNumber(entries.length)} نفر`
+                : "همه در این دور وام گرفته‌اند"}
             </div>
           ) : (
             <div
               className="reel"
               style={{
                 transform: `translateY(-${offset}px)`,
-                transition: phase === "spinning" && offset ? `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.8, 0.14, 1)` : "none",
+                transition:
+                  phase === "spinning" && offset ? `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.8, 0.14, 1)` : "none",
               }}
             >
               {reel.map((m, i) => (
@@ -186,7 +189,12 @@ export default function Lottery({ state, update, currentMonth, server }) {
             <button className="btn gold lg" onClick={() => resolve("confirm")} disabled={busy}>
               {busy ? <Spinner /> : <Trophy size={18} />} ثبت وام برای {winner.name}
             </button>
-            <button className="btn lg" style={{ background: "rgb(255 255 255 / 0.1)", color: "#fff" }} onClick={() => resolve("cancel")} disabled={busy}>
+            <button
+              className="btn lg"
+              style={{ background: "rgb(255 255 255 / 0.1)", color: "#fff" }}
+              onClick={() => resolve("cancel")}
+              disabled={busy}
+            >
               <Ban size={18} /> لغو
             </button>
           </div>
@@ -204,7 +212,8 @@ export default function Lottery({ state, update, currentMonth, server }) {
       <div className="inline-note">
         <ShieldCheck size={18} />
         <span>
-          برنده را سرور با عدد تصادفی امن انتخاب می‌کند. هر قرعه، حتی قرعه‌های لغوشده، ثبت می‌شود و اعضا در صفحه‌ی خودشان می‌بینند.
+          برنده را سرور با عدد تصادفی امن انتخاب می‌کند. هر قرعه، حتی قرعه‌های لغوشده، ثبت می‌شود و اعضا در صفحه‌ی
+          خودشان می‌بینند.
         </span>
       </div>
 

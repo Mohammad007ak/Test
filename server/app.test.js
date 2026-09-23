@@ -115,26 +115,11 @@ test("login requires the code that was sent", async () => {
 
 test("rejects invalid phones and rapid resends", async () => {
   const call = client();
-  assert.equal(
-    (await call("POST", "/api/auth/request-code", { phone: "12345" })).status,
-    400,
-  );
-  assert.equal(
-    (await call("POST", "/api/auth/request-code", { phone: "09120000010" }))
-      .status,
-    200,
-  );
-  assert.equal(
-    (await call("POST", "/api/auth/request-code", { phone: "09120000010" }))
-      .status,
-    429,
-  );
+  assert.equal((await call("POST", "/api/auth/request-code", { phone: "12345" })).status, 400);
+  assert.equal((await call("POST", "/api/auth/request-code", { phone: "09120000010" })).status, 200);
+  assert.equal((await call("POST", "/api/auth/request-code", { phone: "09120000010" })).status, 429);
   clock += 61 * 1000;
-  assert.equal(
-    (await call("POST", "/api/auth/request-code", { phone: "09120000010" }))
-      .status,
-    200,
-  );
+  assert.equal((await call("POST", "/api/auth/request-code", { phone: "09120000010" })).status, 200);
 });
 
 test("locks a code after too many wrong guesses", async () => {
@@ -163,9 +148,7 @@ test("manager owns the fund; members get a read-only view; strangers get nothing
   assert.equal(created.status, 201);
   const { id } = created.body;
 
-  assert.deepEqual((await member("GET", "/api/funds")).body.member, [
-    { id, name: "صندوق تست" },
-  ]);
+  assert.deepEqual((await member("GET", "/api/funds")).body.member, [{ id, name: "صندوق تست" }]);
   assert.equal((await member("GET", `/api/funds/${id}`)).status, 404);
   assert.equal(
     (
@@ -187,8 +170,7 @@ test("manager owns the fund; members get a read-only view; strangers get nothing
 
 test("saving with a stale version is rejected", async () => {
   const manager = await login(MANAGER);
-  const { id } = (await manager("POST", "/api/funds", { data: sampleData() }))
-    .body;
+  const { id } = (await manager("POST", "/api/funds", { data: sampleData() })).body;
 
   const first = await manager("PUT", `/api/funds/${id}`, {
     data: sampleData(),
@@ -213,8 +195,7 @@ test("saving with a stale version is rejected", async () => {
 test("draws are chosen on the server and every re-roll is visible to members", async () => {
   const manager = await login(MANAGER);
   const member = await login(MEMBER);
-  const { id } = (await manager("POST", "/api/funds", { data: sampleData() }))
-    .body;
+  const { id } = (await manager("POST", "/api/funds", { data: sampleData() })).body;
 
   const first = await manager("POST", `/api/funds/${id}/draws`);
   assert.equal(first.status, 201);
@@ -222,18 +203,12 @@ test("draws are chosen on the server and every re-roll is visible to members", a
 
   // Drawing again silently cancels the pending draw, but it stays on record.
   const second = await manager("POST", `/api/funds/${id}/draws`);
-  const confirmed = await manager(
-    "POST",
-    `/api/funds/${id}/draws/${second.body.draw.id}/confirm`,
-  );
+  const confirmed = await manager("POST", `/api/funds/${id}/draws/${second.body.draw.id}/confirm`);
   assert.equal(confirmed.status, 200);
   assert.equal(confirmed.body.data.loans.length, 1);
   assert.equal(confirmed.body.data.loans[0].drawId, second.body.draw.id);
 
-  const again = await manager(
-    "POST",
-    `/api/funds/${id}/draws/${first.body.draw.id}/confirm`,
-  );
+  const again = await manager("POST", `/api/funds/${id}/draws/${first.body.draw.id}/confirm`);
   assert.equal(again.status, 400);
 
   const view = (await member("GET", `/api/funds/${id}/view`)).body;
@@ -258,10 +233,7 @@ test("mutating requests must be JSON", async () => {
 
 test("inside the Digipay mini-app, a launch token signs the user in without SMS", async () => {
   const call = client();
-  assert.equal(
-    (await call("POST", "/api/auth/digipay", { token: "bogus" })).status,
-    401,
-  );
+  assert.equal((await call("POST", "/api/auth/digipay", { token: "bogus" })).status, 401);
   const ok = await call("POST", "/api/auth/digipay", {
     token: "sim-09120000055",
   });
@@ -285,19 +257,12 @@ test("joining a guaranteed plan needs explicit acceptance and the first share, t
     accept: true,
   });
   assert.equal(started.status, 201);
-  const checkout = await call(
-    "GET",
-    `/api/checkouts/${started.body.checkoutId}`,
-  );
+  const checkout = await call("GET", `/api/checkouts/${started.body.checkoutId}`);
   assert.equal(checkout.body.kind, "entry");
   assert.equal(checkout.body.amount, 5_000_000);
   assert.equal((await call("GET", "/api/circles")).body.circles.length, 0);
 
-  const paid = await call(
-    "POST",
-    `/api/checkouts/${started.body.checkoutId}/complete`,
-    { action: "pay" },
-  );
+  const paid = await call("POST", `/api/checkouts/${started.body.checkoutId}/complete`, { action: "pay" });
   assert.equal(paid.body.ok, true);
   const mine = await call("GET", "/api/circles");
   assert.equal(mine.body.circles[0].id, paid.body.circleId);

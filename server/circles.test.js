@@ -45,27 +45,17 @@ async function join(service, { phone, planId }) {
 
 async function fillPlan(service, planId, members) {
   let circleId;
-  for (let i = 1; i <= members; i++)
-    ({ circleId } = await join(service, { phone: phone(i), planId }));
+  for (let i = 1; i <= members; i++) ({ circleId } = await join(service, { phone: phone(i), planId }));
   return circleId;
 }
 
 test("scoring gates who can join and how much they can commit", async () => {
   const { service } = setup();
-  await assert.rejects(
-    service.join({ phone: "09120000000", planId: "p12-5" }),
-    { status: 403 },
-  );
+  await assert.rejects(service.join({ phone: "09120000000", planId: "p12-5" }), { status: 403 });
   // Limit 5M: the 5M plan fits, the 10M plan doesn't, and a second 5M plan doesn't either.
   await join(service, { phone: "09120000001", planId: "p12-5" });
-  await assert.rejects(
-    service.join({ phone: "09120000001", planId: "p12-10" }),
-    { status: 403 },
-  );
-  await assert.rejects(
-    service.join({ phone: "09120000001", planId: "p12-5" }),
-    { status: 409 },
-  );
+  await assert.rejects(service.join({ phone: "09120000001", planId: "p12-10" }), { status: 403 });
+  await assert.rejects(service.join({ phone: "09120000001", planId: "p12-5" }), { status: 409 });
 });
 
 test("a circle starts when full, the operator takes month 1, and everyone receives exactly once", async () => {
@@ -159,13 +149,9 @@ test("the first share is paid on joining and nothing is seated until it is", asy
   });
   assert.equal(second.refunded, true);
   assert.equal(second.circleId, first.circleId);
-  assert.equal(
-    (await service.circleView(phone(1), first.circleId)).members.length,
-    2,
-  );
+  assert.equal((await service.circleView(phone(1), first.circleId)).members.length, 2);
 
-  for (let i = 2; i <= 11; i++)
-    await join(service, { phone: phone(i), planId: "p12-5" });
+  for (let i = 2; i <= 11; i++) await join(service, { phone: phone(i), planId: "p12-5" });
   const view = await service.circleView(phone(3), first.circleId);
   assert.equal(view.circle.status, "active");
   assert.deepEqual(view.contributions[0], {
@@ -196,10 +182,7 @@ test("unpaid shares come from the wallet; if that fails, the guarantee covers th
   await service.closeMonth(circleId); // month 3: still unpaid
   view = await service.circleView(debtor, circleId);
   const me = view.members.find((m) => m.isMe);
-  assert.ok(
-    !view.draws[2].eligible.includes(me.id),
-    "a member who owes is left out of the draw",
-  );
+  assert.ok(!view.draws[2].eligible.includes(me.id), "a member who owes is left out of the draw");
 
   const { checkoutId } = await service.startCheckout({
     phone: debtor,
@@ -232,15 +215,9 @@ test("members only see seats, never each other's phones, and strangers see nothi
 test("a month can't be closed twice at once", async () => {
   const { service } = setup();
   const circleId = await fillPlan(service, "p12-5", 11);
-  const results = await Promise.allSettled([
-    service.closeMonth(circleId),
-    service.closeMonth(circleId),
-  ]);
+  const results = await Promise.allSettled([service.closeMonth(circleId), service.closeMonth(circleId)]);
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
-  assert.equal(
-    (await service.circleView(phone(1), circleId)).circle.currentMonth,
-    2,
-  );
+  assert.equal((await service.circleView(phone(1), circleId)).circle.currentMonth, 2);
 });
 
 test("ops can fill a forming circle with simulated members to start it", async () => {
@@ -257,10 +234,7 @@ test("ops can fill a forming circle with simulated members to start it", async (
   await service.closeMonth(circleId);
   await service.closeMonth(circleId);
   // Failing bots' month-2 shares were covered by the guarantee.
-  assert.equal(
-    (await service.circleView(phone(1), circleId)).draws[2].pot,
-    240_000_000,
-  );
+  assert.equal((await service.circleView(phone(1), circleId)).draws[2].pot, 240_000_000);
 });
 
 test("a circle that doesn't fill before its deadline expires, releasing and refunding its members", async () => {
@@ -274,10 +248,7 @@ test("a circle that doesn't fill before its deadline expires, releasing and refu
   assert.equal((await service.myCircles(phone(1))).length, 1);
 
   clock.t += 61 * 60 * 1000;
-  assert.equal(
-    (await service.circleView(phone(1), circleId)).circle.status,
-    "expired",
-  );
+  assert.equal((await service.circleView(phone(1), circleId)).circle.status, "expired");
   assert.equal((await service.myCircles(phone(1))).length, 0);
   assert.deepEqual(
     refunds.map((r) => r.amount),

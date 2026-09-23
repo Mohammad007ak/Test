@@ -31,8 +31,7 @@ const MAX_FUNDS_PER_OWNER = 20;
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const secureRandom = () => randomInt(0, 2 ** 47) / 2 ** 47;
-const toLatinDigits = (value) =>
-  String(value ?? "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+const toLatinDigits = (value) => String(value ?? "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
 
 function parseCookies(header = "") {
   return Object.fromEntries(

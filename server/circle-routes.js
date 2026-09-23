@@ -52,7 +52,9 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
   app.post(
     "/api/circles/:id/pay",
     requireLogin,
-    route(async (req, res) => res.status(201).json(await service.startCheckout({ phone: req.phone, circleId: req.params.id }))),
+    route(async (req, res) =>
+      res.status(201).json(await service.startCheckout({ phone: req.phone, circleId: req.params.id })),
+    ),
   );
 
   app.get(

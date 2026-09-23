@@ -21,26 +21,11 @@ function greeting() {
   return "عصر بخیر";
 }
 
-export default function FundList({ phone, open, onLogout }) {
+export default function FundList({ phone, tab, setTab, open, onLogout }) {
   const [funds, setFunds] = useState(null);
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
   const [legacy, setLegacy] = useState(loadLegacyState);
-  const [tab, setTabState] = useState(() => {
-    try {
-      return localStorage.getItem("sandogh:home-tab") ?? "plans";
-    } catch {
-      return "plans";
-    }
-  });
-  const setTab = (value) => {
-    setTabState(value);
-    try {
-      localStorage.setItem("sandogh:home-tab", value);
-    } catch {
-      // Only a convenience.
-    }
-  };
   const toast = useToast();
 
   useEffect(() => {
@@ -151,7 +136,7 @@ export default function FundList({ phone, open, onLogout }) {
               <>
                 <section>
                   <div className="section-title">
-                    <h2>مدیریت می‌کنید</h2>
+                    <h2>{funds.managed.length ? "مدیریت می‌کنید" : "صندوق خودتان را بسازید"}</h2>
                   </div>
                   <div className="fund-grid">
                     {funds.managed.map((fund) => (

@@ -58,11 +58,7 @@ export function MonthPicker({ value, onChange }) {
   return (
     <div className="select-row">
       <div className="input">
-        <select
-          value={month}
-          onChange={(e) => onChange(makeMonthKey(year, Number(e.target.value)))}
-          aria-label="ماه"
-        >
+        <select value={month} onChange={(e) => onChange(makeMonthKey(year, Number(e.target.value)))} aria-label="ماه">
           {MONTH_NAMES.map((name, i) => (
             <option key={name} value={i + 1}>
               {name}

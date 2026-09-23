@@ -29,9 +29,7 @@ export default function Loans({ state, currentMonth, openMember }) {
       <div className="page-head">
         <div>
           <h1>وام‌ها</h1>
-          <p>
-            {formatCompact(active.reduce((t, l) => t + l.progress.remaining, 0))} تومان در دست اعضاست
-          </p>
+          <p>{formatCompact(active.reduce((t, l) => t + l.progress.remaining, 0))} تومان در دست اعضاست</p>
         </div>
         <Segmented
           value={filter}
@@ -73,13 +71,19 @@ export default function Loans({ state, currentMonth, openMember }) {
                   value={progress.paidCount / loan.installments}
                   size={58}
                   done={progress.done}
-                  label={<span dir="ltr">{`${formatNumber(progress.paidCount)}/${formatNumber(loan.installments)}`}</span>}
+                  label={
+                    <span dir="ltr">{`${formatNumber(progress.paidCount)}/${formatNumber(loan.installments)}`}</span>
+                  }
                 />
               </div>
 
               <div className="schedule" aria-label="جدول اقساط">
                 {schedule.map((s) => (
-                  <i key={s.month} className={s.status} title={`${monthLabel(s.month)}، ${formatCompact(s.amount)} تومان`} />
+                  <i
+                    key={s.month}
+                    className={s.status}
+                    title={`${monthLabel(s.month)}، ${formatCompact(s.amount)} تومان`}
+                  />
                 ))}
               </div>
 
