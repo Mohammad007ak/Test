@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { openDatabase } from "./db.js";
 
@@ -17,11 +17,31 @@ function mountPoints() {
 }
 
 function onMountedDisk(dbPath, mounts) {
+  const dataDir = dirname(resolve(dbPath));
+  // A folder on a different filesystem than / is a mounted disk, whether or
+  // not the runtime lists it in /proc/mounts.
+  try {
+    if (statSync(dataDir).dev !== statSync("/").dev) return true;
+  } catch {
+    // Fall back to the mount list.
+  }
   if (!mounts) return null;
-  for (let dir = dirname(resolve(dbPath)); dir !== "/"; dir = dirname(dir)) {
+  for (let dir = dataDir; dir !== "/"; dir = dirname(dir)) {
     if (mounts.includes(dir)) return true;
   }
   return false;
+}
+
+// When the data folder was first used. If this stays the same across a
+// redeploy, the data survives it, whatever the mount checks say.
+function dataCreatedAt(dbPath) {
+  const marker = `${dirname(resolve(dbPath))}/.created-at`;
+  try {
+    if (!existsSync(marker)) writeFileSync(marker, new Date().toISOString());
+    return readFileSync(marker, "utf8").trim();
+  } catch {
+    return null;
+  }
 }
 
 // Mounts that could be a data disk (not the system's own), to show where a
@@ -63,6 +83,11 @@ export function createAppFromEnv(env = process.env) {
     opsPhones,
     formTimeoutMs,
     persistentStorage,
-    storageInfo: { dbPath: resolve(dbPath), mounts: dataMounts(mounts) },
+    storageInfo: {
+      dbPath: resolve(dbPath),
+      mounts: dataMounts(mounts),
+      dataCreatedAt: dataCreatedAt(dbPath),
+      startedAt: new Date().toISOString(),
+    },
   });
 }
