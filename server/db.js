@@ -1,3 +1,14 @@
+// The database, behind one small async interface so the same code runs on
+// SQLite (local development, tests, a single server with a disk) and on
+// PostgreSQL (hosting where the app's own disk doesn't survive a deploy).
+//
+//   db.get(sql, ...params)     first row or undefined
+//   db.all(sql, ...params)     all rows
+//   db.run(sql, ...params)     { changes }
+//   db.transaction(async (tx) => { ... })   tx has get/all/run
+//
+// SQL is written once with "?" placeholders; the Postgres side numbers them.
+// Inside a transaction use only `tx`, and await nothing but its queries.
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -6,16 +17,16 @@ const SCHEMA = `
   CREATE TABLE IF NOT EXISTS otp_codes (
     phone TEXT PRIMARY KEY,
     code_hash TEXT NOT NULL,
-    expires_at INTEGER NOT NULL,
-    attempts INTEGER NOT NULL DEFAULT 0,
-    window_start INTEGER NOT NULL,
-    sent_in_window INTEGER NOT NULL DEFAULT 0
+    expires_at BIGINT NOT NULL,
+    attempts BIGINT NOT NULL DEFAULT 0,
+    window_start BIGINT NOT NULL,
+    sent_in_window BIGINT NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS sessions (
     token_hash TEXT PRIMARY KEY,
     phone TEXT NOT NULL,
-    expires_at INTEGER NOT NULL
+    expires_at BIGINT NOT NULL
   );
 
   -- A fund's whole ledger is one JSON document, edited only by its manager.
@@ -24,9 +35,9 @@ const SCHEMA = `
     id TEXT PRIMARY KEY,
     owner_phone TEXT NOT NULL,
     data TEXT NOT NULL,
-    version INTEGER NOT NULL DEFAULT 1,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    version BIGINT NOT NULL DEFAULT 1,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS funds_owner ON funds (owner_phone);
 
@@ -49,8 +60,8 @@ const SCHEMA = `
     winner_name TEXT NOT NULL,
     entries TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'cancelled')),
-    created_at INTEGER NOT NULL,
-    resolved_at INTEGER
+    created_at BIGINT NOT NULL,
+    resolved_at BIGINT
   );
   CREATE INDEX IF NOT EXISTS draws_fund ON draws (fund_id, created_at);
 
@@ -61,36 +72,36 @@ const SCHEMA = `
     id TEXT PRIMARY KEY,
     plan_id TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('forming', 'active', 'completed', 'expired')),
-    size INTEGER NOT NULL,
-    months INTEGER NOT NULL,
-    share INTEGER NOT NULL,
+    size BIGINT NOT NULL,
+    months BIGINT NOT NULL,
+    share BIGINT NOT NULL,
     chain_secret TEXT NOT NULL,
     anchor TEXT NOT NULL,
     nonce_digest TEXT,
-    current_month INTEGER NOT NULL DEFAULT 0,
-    closing INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    deadline INTEGER NOT NULL,
-    started_at INTEGER
+    current_month BIGINT NOT NULL DEFAULT 0,
+    closing BIGINT NOT NULL DEFAULT 0,
+    created_at BIGINT NOT NULL,
+    deadline BIGINT NOT NULL,
+    started_at BIGINT
   );
   CREATE INDEX IF NOT EXISTS circles_plan ON circles (plan_id, status);
 
   CREATE TABLE IF NOT EXISTS circle_members (
     id TEXT PRIMARY KEY,
     circle_id TEXT NOT NULL REFERENCES circles (id),
-    position INTEGER NOT NULL,
+    position BIGINT NOT NULL,
     phone TEXT,
-    is_operator INTEGER NOT NULL DEFAULT 0,
-    is_bot INTEGER NOT NULL DEFAULT 0,
+    is_operator BIGINT NOT NULL DEFAULT 0,
+    is_bot BIGINT NOT NULL DEFAULT 0,
     nonce TEXT NOT NULL,
     pay_method TEXT NOT NULL CHECK (pay_method IN ('operator', 'auto', 'manual')),
     mandate_id TEXT,
     -- Gateway reference of the first share, paid to take the seat.
     entry_ref TEXT,
-    won_month INTEGER,
+    won_month BIGINT,
     -- The latest draw this member has watched (the reveal plays once).
-    seen_month INTEGER NOT NULL DEFAULT 1,
-    joined_at INTEGER NOT NULL,
+    seen_month BIGINT NOT NULL DEFAULT 1,
+    joined_at BIGINT NOT NULL,
     UNIQUE (circle_id, position)
   );
   CREATE INDEX IF NOT EXISTS circle_members_phone ON circle_members (phone);
@@ -100,13 +111,13 @@ const SCHEMA = `
   CREATE TABLE IF NOT EXISTS contributions (
     circle_id TEXT NOT NULL REFERENCES circles (id),
     member_id TEXT NOT NULL REFERENCES circle_members (id),
-    month INTEGER NOT NULL,
-    amount INTEGER NOT NULL,
+    month BIGINT NOT NULL,
+    amount BIGINT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('due', 'paid', 'covered')),
     method TEXT,
     ref TEXT,
-    paid_at INTEGER,
-    settled_at INTEGER,
+    paid_at BIGINT,
+    settled_at BIGINT,
     PRIMARY KEY (circle_id, member_id, month)
   );
 
@@ -114,16 +125,16 @@ const SCHEMA = `
   -- the result: the revealed hash-chain link, the seed and the entrants.
   CREATE TABLE IF NOT EXISTS circle_draws (
     circle_id TEXT NOT NULL REFERENCES circles (id),
-    month INTEGER NOT NULL,
+    month BIGINT NOT NULL,
     kind TEXT NOT NULL CHECK (kind IN ('operator', 'lottery', 'last')),
-    draw_no INTEGER,
+    draw_no BIGINT,
     reveal TEXT,
     seed TEXT,
     eligible TEXT NOT NULL,
     winner_member_id TEXT NOT NULL,
-    pot INTEGER NOT NULL,
+    pot BIGINT NOT NULL,
     payout_ref TEXT,
-    created_at INTEGER NOT NULL,
+    created_at BIGINT NOT NULL,
     PRIMARY KEY (circle_id, month)
   );
 
@@ -138,19 +149,19 @@ const SCHEMA = `
     circle_id TEXT REFERENCES circles (id),
     member_id TEXT,
     items TEXT NOT NULL,
-    amount INTEGER NOT NULL,
+    amount BIGINT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('pending', 'paid', 'cancelled', 'refunded')),
     ref TEXT,
-    created_at INTEGER NOT NULL
+    created_at BIGINT NOT NULL
   );
 `;
 
 // The circle tables changed shape before release. They only ever held
-// simulator data, so an old copy is dropped and rebuilt.
-function dropPreReleaseCircleTables(db) {
-  const columns = db.prepare("PRAGMA table_info(circle_members)").all();
+// simulator data, so an old SQLite copy is dropped and rebuilt.
+function dropPreReleaseCircleTables(sqlite) {
+  const columns = sqlite.prepare("PRAGMA table_info(circle_members)").all();
   if (columns.length === 0 || columns.some((c) => c.name === "seen_month")) return;
-  db.exec(`
+  sqlite.exec(`
     DROP TABLE IF EXISTS checkouts;
     DROP TABLE IF EXISTS circle_draws;
     DROP TABLE IF EXISTS contributions;
@@ -159,23 +170,92 @@ function dropPreReleaseCircleTables(db) {
   `);
 }
 
-export function openDatabase(path) {
+function openSqlite(path) {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
-  const db = new DatabaseSync(path);
-  db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
-  dropPreReleaseCircleTables(db);
-  db.exec(SCHEMA);
-  return db;
+  const sqlite = new DatabaseSync(path);
+  sqlite.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
+  dropPreReleaseCircleTables(sqlite);
+  sqlite.exec(SCHEMA);
+
+  const handle = {
+    kind: "sqlite",
+    get: async (sql, ...params) => sqlite.prepare(sql).get(...params),
+    all: async (sql, ...params) => sqlite.prepare(sql).all(...params),
+    run: async (sql, ...params) => ({ changes: Number(sqlite.prepare(sql).run(...params).changes) }),
+  };
+  // One connection: transactions take turns.
+  let queue = Promise.resolve();
+  return {
+    ...handle,
+    transaction(fn) {
+      const next = queue.then(async () => {
+        sqlite.exec("BEGIN");
+        try {
+          const result = await fn(handle);
+          sqlite.exec("COMMIT");
+          return result;
+        } catch (error) {
+          sqlite.exec("ROLLBACK");
+          throw error;
+        }
+      });
+      queue = next.catch(() => {});
+      return next;
+    },
+    close: async () => sqlite.close(),
+  };
 }
 
-export function transaction(db, fn) {
-  db.exec("BEGIN");
-  try {
-    const result = fn();
-    db.exec("COMMIT");
-    return result;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
+// ---------- PostgreSQL ----------
+
+const numbered = (sql) => {
+  let n = 0;
+  return sql.replace(/\?/g, () => `$${++n}`);
+};
+
+async function openPostgres(url, { schema } = {}) {
+  const { default: pg } = await import("pg");
+  // COUNT/SUM and BIGINT columns come back as strings by default; every
+  // number here (money in toman, timestamps in ms) fits in a JS number.
+  pg.types.setTypeParser(20, (v) => (v === null ? null : Number(v)));
+  pg.types.setTypeParser(1700, (v) => (v === null ? null : Number(v)));
+
+  const pool = new pg.Pool({
+    connectionString: url,
+    max: 10,
+    ...(schema ? { options: `-c search_path=${schema}` } : {}),
+  });
+  if (schema) await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
+  await pool.query(SCHEMA);
+
+  const over = (client) => ({
+    kind: "postgres",
+    get: async (sql, ...params) => (await client.query(numbered(sql), params)).rows[0],
+    all: async (sql, ...params) => (await client.query(numbered(sql), params)).rows,
+    run: async (sql, ...params) => ({ changes: (await client.query(numbered(sql), params)).rowCount }),
+  });
+  return {
+    ...over(pool),
+    async transaction(fn) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const result = await fn(over(client));
+        await client.query("COMMIT");
+        return result;
+      } catch (error) {
+        await client.query("ROLLBACK").catch(() => {});
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+    close: () => pool.end(),
+  };
+}
+
+// A postgres:// URL opens PostgreSQL; anything else is a SQLite file path
+// (or ":memory:").
+export function openDatabase(target, options) {
+  return /^postgres(ql)?:\/\//.test(target) ? openPostgres(target, options) : Promise.resolve(openSqlite(target));
 }

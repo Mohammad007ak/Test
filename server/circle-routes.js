@@ -43,8 +43,8 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
   app.post(
     "/api/circles/:id/seen",
     requireLogin,
-    route((req, res) => {
-      service.markSeen({ phone: req.phone, circleId: req.params.id, month: req.body.month });
+    route(async (req, res) => {
+      await service.markSeen({ phone: req.phone, circleId: req.params.id, month: req.body.month });
       res.json({ ok: true });
     }),
   );
@@ -69,7 +69,7 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
   app.get(
     "/api/checkouts/:id",
     requireLogin,
-    route((req, res) => res.json(service.getCheckout(req.phone, req.params.id))),
+    route(async (req, res) => res.json(await service.getCheckout(req.phone, req.params.id))),
   );
 
   // With the real gateway Digipay confirms the payment server-to-server; the
@@ -84,7 +84,12 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
     }),
   );
 
-  app.get("/api/ops/circles", requireLogin, requireOps, (req, res) => res.json({ circles: service.listCircles() }));
+  app.get(
+    "/api/ops/circles",
+    requireLogin,
+    requireOps,
+    route(async (req, res) => res.json({ circles: await service.listCircles() })),
+  );
 
   app.post(
     "/api/ops/circles/:id/fill",

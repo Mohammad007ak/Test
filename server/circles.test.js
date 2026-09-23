@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { openDatabase } from "./db.js";
+import { testDatabase } from "./test-db.js";
 import { createCircleService } from "./circles.js";
 import { createDigipaySimulator } from "./digipay/simulator.js";
 import { verifyDraw } from "../src/lib/fairness.js";
@@ -10,8 +10,8 @@ import { toJalali } from "../src/lib/jalali.js";
 // Phones ending 4–9 get a 25M monthly limit from the simulator's scoring.
 const phone = (i) => `0912000${String(i).padStart(3, "0")}9`;
 
-function setup({ clock } = {}) {
-  const db = openDatabase(":memory:");
+async function setup({ clock } = {}) {
+  const db = await testDatabase();
   const digipay = createDigipaySimulator();
   const payouts = [];
   const send = digipay.payouts.send;
@@ -52,7 +52,7 @@ async function fillPlan(service, planId, members) {
 }
 
 test("scoring gates who can join and how much they can commit", async () => {
-  const { service } = setup();
+  const { service } = await setup();
   await assert.rejects(service.join({ phone: "09120000000", planId: "p12-5" }), { status: 403 });
   // Limit 5M: the 5M plan fits, the 10M plan doesn't, and a second 5M plan doesn't either.
   await join(service, { phone: "09120000001", planId: "p12-5" });
@@ -61,7 +61,7 @@ test("scoring gates who can join and how much they can commit", async () => {
 });
 
 test("a circle starts when full, the operator takes month 1, and everyone receives exactly once", async () => {
-  const { service, payouts } = setup();
+  const { service, payouts } = await setup();
   const circleId = await fillPlan(service, "p12-5", 11);
 
   let view = await service.circleView(phone(1), circleId);
@@ -91,7 +91,7 @@ test("a circle starts when full, the operator takes month 1, and everyone receiv
 });
 
 test("every lottery can be verified by a member, and tampering is detected", async () => {
-  const { service } = setup();
+  const { service } = await setup();
   const circleId = await fillPlan(service, "p12-5", 11);
   for (let m = 2; m <= 5; m++) await service.closeMonth(circleId);
 
@@ -124,12 +124,12 @@ test("every lottery can be verified by a member, and tampering is detected", asy
 });
 
 test("the first share is paid on joining and nothing is seated until it is", async () => {
-  const { service } = setup();
+  const { service } = await setup();
   const { checkoutId } = await service.join({
     phone: phone(1),
     planId: "p12-5",
   });
-  assert.equal(service.getCheckout(phone(1), checkoutId).amount, 5_000_000);
+  assert.equal((await service.getCheckout(phone(1), checkoutId)).amount, 5_000_000);
   assert.equal((await service.myCircles(phone(1))).length, 0);
 
   const cancelled = await service.completeCheckout({
@@ -170,7 +170,7 @@ test("the first share is paid on joining and nothing is seated until it is", asy
 });
 
 test("unpaid shares come from the wallet; if that fails, the guarantee covers them and debtors sit out draws", async () => {
-  const { service } = setup();
+  const { service } = await setup();
   const debtor = phone(5); // second-to-last digit 5: empty wallet in the simulator
   const circleId = await fillPlan(service, "p12-5", 11);
 
@@ -194,7 +194,7 @@ test("unpaid shares come from the wallet; if that fails, the guarantee covers th
     phone: debtor,
     circleId,
   });
-  assert.equal(service.getCheckout(debtor, checkoutId).amount, 15_000_000);
+  assert.equal((await service.getCheckout(debtor, checkoutId)).amount, 15_000_000);
   await service.completeCheckout({
     phone: debtor,
     id: checkoutId,
@@ -209,7 +209,7 @@ test("unpaid shares come from the wallet; if that fails, the guarantee covers th
 });
 
 test("members only see seats, never each other's phones, and strangers see nothing", async () => {
-  const { service } = setup();
+  const { service } = await setup();
   const circleId = await fillPlan(service, "p12-5", 11);
   const view = await service.circleView(phone(2), circleId);
   assert.ok(!JSON.stringify(view).includes("09120"));
@@ -219,7 +219,7 @@ test("members only see seats, never each other's phones, and strangers see nothi
 });
 
 test("a month can't be closed twice at once", async () => {
-  const { service } = setup();
+  const { service } = await setup();
   const circleId = await fillPlan(service, "p12-5", 11);
   const results = await Promise.allSettled([service.closeMonth(circleId), service.closeMonth(circleId)]);
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
@@ -228,7 +228,7 @@ test("a month can't be closed twice at once", async () => {
 
 test("each draw runs by itself on the sixth day after its due date, and its reveal plays once", async () => {
   const clock = { t: new Date("2026-10-07T14:00:00+03:30").getTime() }; // 15 Mehr 1405
-  const { service, payouts } = setup({ clock });
+  const { service, payouts } = await setup({ clock });
   const circleId = await fillPlan(service, "p12-5", 11);
   assert.equal(payouts.length, 1); // month 1, to Digipay, on the start day
 
@@ -242,8 +242,8 @@ test("each draw runs by itself on the sixth day after its due date, and its reve
   assert.equal(view.draws.length, 2);
   assert.equal(view.draws[1].kind, "lottery");
   assert.equal(view.circle.seenMonth, 1);
-  service.markSeen({ phone: phone(1), circleId, month: 2 });
-  service.markSeen({ phone: phone(1), circleId, month: 9 }); // can't mark a draw that hasn't happened
+  await service.markSeen({ phone: phone(1), circleId, month: 2 });
+  await service.markSeen({ phone: phone(1), circleId, month: 9 }); // can't mark a draw that hasn't happened
   view = await service.circleView(phone(1), circleId);
   assert.equal(view.circle.seenMonth, 2);
 
@@ -256,7 +256,7 @@ test("each draw runs by itself on the sixth day after its due date, and its reve
 });
 
 test("ops can fill a forming circle with simulated members to start it", async () => {
-  const { service } = setup();
+  const { service } = await setup();
   const { circleId } = await join(service, {
     phone: phone(1),
     planId: "p24-10",
@@ -274,7 +274,7 @@ test("ops can fill a forming circle with simulated members to start it", async (
 
 test("a circle that doesn't fill before its deadline expires, releasing and refunding its members", async () => {
   const clock = { t: Date.now() };
-  const { service, refunds } = setup({ clock });
+  const { service, refunds } = await setup({ clock });
   const { circleId } = await join(service, {
     phone: phone(1),
     planId: "p12-5",
@@ -295,7 +295,7 @@ test("a circle that doesn't fill before its deadline expires, releasing and refu
 });
 
 test("members can leave while waiting, get their first share back, and seats behind them move up", async () => {
-  const { service, refunds } = setup();
+  const { service, refunds } = await setup();
   const circleId = await fillPlan(service, "p12-5", 4); // phone(i) sits in seat i + 1
   await service.leave({ phone: phone(2), circleId });
   assert.equal(refunds.length, 1);

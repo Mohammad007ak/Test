@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createAppFromEnv } from "./config.js";
 
-const app = createAppFromEnv();
+const app = await createAppFromEnv();
 const dist = fileURLToPath(new URL("../dist", import.meta.url));
 
 for (const page of ["index.html", "app/index.html", "404.html"]) {

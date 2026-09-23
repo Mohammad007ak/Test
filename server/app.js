@@ -1,7 +1,6 @@
 import express from "express";
 import { readFileSync } from "node:fs";
 import { createHash, randomBytes, randomInt } from "node:crypto";
-import { transaction } from "./db.js";
 import { HttpError } from "./errors.js";
 import { createCircleService } from "./circles.js";
 import { mountCircleRoutes } from "./circle-routes.js";
@@ -96,52 +95,62 @@ export function createApp({
     path: "/",
   };
 
-  function currentPhone(req) {
+  async function currentPhone(req) {
     const token = parseCookies(req.headers.cookie).sid;
     if (!token) return null;
-    const session = db
-      .prepare("SELECT phone FROM sessions WHERE token_hash = ? AND expires_at > ?")
-      .get(sha256(token), now());
+    const session = await db.get(
+      "SELECT phone FROM sessions WHERE token_hash = ? AND expires_at > ?",
+      sha256(token),
+      now(),
+    );
     return session?.phone ?? null;
   }
 
-  function requireLogin(req, res, next) {
-    req.phone = currentPhone(req);
+  async function requireLogin(req, res, next) {
+    try {
+      req.phone = await currentPhone(req);
+    } catch (error) {
+      return next(error);
+    }
     if (!req.phone) return res.status(401).json({ error: "ابتدا وارد شوید." });
     next();
   }
 
-  function loadFund(id) {
-    const row = db.prepare("SELECT * FROM funds WHERE id = ?").get(id);
+  async function loadFund(id) {
+    const row = await db.get("SELECT * FROM funds WHERE id = ?", id);
     if (!row) throw new HttpError(404, "صندوق پیدا نشد.");
     return { ...row, data: JSON.parse(row.data) };
   }
 
   // Report "not found" to non-managers so fund ids can't be probed.
-  function loadManagedFund(req) {
-    const fund = loadFund(req.params.id);
+  async function loadManagedFund(req) {
+    const fund = await loadFund(req.params.id);
     if (fund.owner_phone !== req.phone) throw new HttpError(404, "صندوق پیدا نشد.");
     return fund;
   }
 
-  function syncMembers(fundId, data) {
-    db.prepare("DELETE FROM fund_members WHERE fund_id = ?").run(fundId);
+  async function syncMembers(tx, fundId, data) {
+    await tx.run("DELETE FROM fund_members WHERE fund_id = ?", fundId);
     if (data.demo) return;
-    const insert = db.prepare("INSERT INTO fund_members (fund_id, member_id, phone) VALUES (?, ?, ?)");
     for (const member of data.members) {
       const phone = normalizePhone(member.phone);
-      if (phone) insert.run(fundId, member.id, phone);
+      if (phone)
+        await tx.run("INSERT INTO fund_members (fund_id, member_id, phone) VALUES (?, ?, ?)", fundId, member.id, phone);
     }
   }
 
-  function writeFund(id, data, version) {
-    db.prepare("UPDATE funds SET data = ?, version = ?, updated_at = ? WHERE id = ?").run(
+  // Saves only if nobody else saved since `version` was read.
+  async function writeFund(tx, id, data, version) {
+    const { changes } = await tx.run(
+      "UPDATE funds SET data = ?, version = ?, updated_at = ? WHERE id = ? AND version = ?",
       JSON.stringify(data),
-      version,
+      version + 1,
       now(),
       id,
+      version,
     );
-    syncMembers(id, data);
+    if (!changes) throw new HttpError(409, "این صندوق در جای دیگری تغییر کرده است.");
+    await syncMembers(tx, id, data);
   }
 
   function validData(data) {
@@ -149,11 +158,12 @@ export function createApp({
     return { ...data, fund: { cycle: 1, ...data.fund } };
   }
 
-  function startSession(res, phone) {
+  async function startSession(res, phone) {
     const token = randomBytes(32).toString("base64url");
-    transaction(db, () => {
-      db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(now());
-      db.prepare("INSERT INTO sessions (token_hash, phone, expires_at) VALUES (?, ?, ?)").run(
+    await db.transaction(async (tx) => {
+      await tx.run("DELETE FROM sessions WHERE expires_at <= ?", now());
+      await tx.run(
+        "INSERT INTO sessions (token_hash, phone, expires_at) VALUES (?, ?, ?)",
         sha256(token),
         phone,
         now() + SESSION_TTL,
@@ -179,7 +189,7 @@ export function createApp({
       if (!phone) throw new HttpError(400, "شماره موبایل معتبر نیست.");
 
       const t = now();
-      const previous = db.prepare("SELECT * FROM otp_codes WHERE phone = ?").get(phone);
+      const previous = await db.get("SELECT * FROM otp_codes WHERE phone = ?", phone);
       const sameWindow = previous && t - previous.window_start < SEND_WINDOW;
       const sentInWindow = sameWindow ? previous.sent_in_window : 0;
       if (sentInWindow >= MAX_SENDS_PER_WINDOW) {
@@ -191,12 +201,17 @@ export function createApp({
       if (!sendCode && production && !demo) throw new HttpError(500, "سرویس پیامک تنظیم نشده است.");
 
       const code = String(randomInt(0, 100000)).padStart(5, "0");
-      db.prepare(
+      await db.run(
         `INSERT INTO otp_codes (phone, code_hash, expires_at, attempts, window_start, sent_in_window)
          VALUES (?, ?, ?, 0, ?, ?)
          ON CONFLICT (phone) DO UPDATE SET code_hash = excluded.code_hash, expires_at = excluded.expires_at,
            attempts = 0, window_start = excluded.window_start, sent_in_window = excluded.sent_in_window`,
-      ).run(phone, sha256(code), t + CODE_TTL, sameWindow ? previous.window_start : t, sentInWindow + 1);
+        phone,
+        sha256(code),
+        t + CODE_TTL,
+        sameWindow ? previous.window_start : t,
+        sentInWindow + 1,
+      );
 
       if (sendCode) {
         try {
@@ -219,7 +234,7 @@ export function createApp({
     route(async (req, res) => {
       const phone = normalizePhone(req.body.phone);
       const code = toLatinDigits(req.body.code).trim();
-      const row = phone && db.prepare("SELECT * FROM otp_codes WHERE phone = ?").get(phone);
+      const row = phone && (await db.get("SELECT * FROM otp_codes WHERE phone = ?", phone));
       if (!row || row.expires_at <= now()) {
         throw new HttpError(400, "کد منقضی شده است. دوباره درخواست کنید.");
       }
@@ -227,13 +242,19 @@ export function createApp({
         throw new HttpError(429, "تعداد تلاش‌ها زیاد بود. کد جدید درخواست کنید.");
       }
       if (sha256(code) !== row.code_hash) {
-        db.prepare("UPDATE otp_codes SET attempts = attempts + 1 WHERE phone = ?").run(phone);
+        await db.run("UPDATE otp_codes SET attempts = attempts + 1 WHERE phone = ?", phone);
         throw new HttpError(400, "کد وارد شده اشتباه است.");
       }
 
       // Keep the send counter so verifying doesn't reset the rate limit.
-      db.prepare("UPDATE otp_codes SET code_hash = '', expires_at = 0 WHERE phone = ?").run(phone);
-      startSession(res, phone);
+      // Spend the code in the same step that checks it, so it works only once.
+      const { changes } = await db.run(
+        "UPDATE otp_codes SET code_hash = '', expires_at = 0 WHERE phone = ? AND code_hash = ?",
+        phone,
+        row.code_hash,
+      );
+      if (!changes) throw new HttpError(400, "کد منقضی شده است. دوباره درخواست کنید.");
+      await startSession(res, phone);
       res.json({ phone });
     }),
   );
@@ -246,17 +267,20 @@ export function createApp({
       const identity = await digipay.identity.verifyLaunchToken(req.body.token);
       const phone = identity && normalizePhone(identity.phone);
       if (!phone) throw new HttpError(401, "ورود از طریق دیجی‌پی تأیید نشد.");
-      startSession(res, phone);
+      await startSession(res, phone);
       res.json({ phone });
     }),
   );
 
-  app.post("/api/auth/logout", (req, res) => {
-    const token = parseCookies(req.headers.cookie).sid;
-    if (token) db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(sha256(token));
-    res.clearCookie("sid", cookieOptions);
-    res.json({ ok: true });
-  });
+  app.post(
+    "/api/auth/logout",
+    route(async (req, res) => {
+      const token = parseCookies(req.headers.cookie).sid;
+      if (token) await db.run("DELETE FROM sessions WHERE token_hash = ?", sha256(token));
+      res.clearCookie("sid", cookieOptions);
+      res.json({ ok: true });
+    }),
+  );
 
   app.get("/api/me", requireLogin, (req, res) => res.json({ phone: req.phone }));
 
@@ -267,38 +291,47 @@ export function createApp({
   } catch {
     // Not a Docker build.
   }
-  app.get("/api/health", (req, res) => {
-    db.prepare("SELECT 1").get();
-    res.json({ ok: true, demo, builtAt, persistentStorage, ...(demo || !production ? { storage: storageInfo } : {}) });
-  });
+  app.get(
+    "/api/health",
+    route(async (req, res) => {
+      await db.get("SELECT 1 AS ok");
+      res.json({
+        ok: true,
+        demo,
+        builtAt,
+        persistentStorage,
+        ...(demo || !production ? { storage: storageInfo } : {}),
+      });
+    }),
+  );
 
   // ---------- funds (manager) ----------
 
   app.get(
     "/api/funds",
     requireLogin,
-    route((req, res) => {
-      const managed = db
-        .prepare("SELECT id, data FROM funds WHERE owner_phone = ? ORDER BY created_at")
-        .all(req.phone)
-        .map((row) => {
-          const data = JSON.parse(row.data);
-          const late = new Set(overdueDues(data, currentMonthKey(new Date(now()))).map((d) => d.memberId));
-          return {
-            id: row.id,
-            name: data.fund.name,
-            members: data.members.length,
-            balance: fundBalance(data),
-            lateMembers: late.size,
-          };
-        });
-      const member = db
-        .prepare(
-          `SELECT DISTINCT f.id, f.data FROM fund_members m JOIN funds f ON f.id = m.fund_id
+    route(async (req, res) => {
+      const managed = (
+        await db.all("SELECT id, data FROM funds WHERE owner_phone = ? ORDER BY created_at", req.phone)
+      ).map((row) => {
+        const data = JSON.parse(row.data);
+        const late = new Set(overdueDues(data, currentMonthKey(new Date(now()))).map((d) => d.memberId));
+        return {
+          id: row.id,
+          name: data.fund.name,
+          members: data.members.length,
+          balance: fundBalance(data),
+          lateMembers: late.size,
+        };
+      });
+      const member = (
+        await db.all(
+          `SELECT DISTINCT f.id, f.data, f.created_at FROM fund_members m JOIN funds f ON f.id = m.fund_id
            WHERE m.phone = ? AND f.owner_phone != ? ORDER BY f.created_at`,
+          req.phone,
+          req.phone,
         )
-        .all(req.phone, req.phone)
-        .map((row) => ({ id: row.id, name: JSON.parse(row.data).fund.name }));
+      ).map((row) => ({ id: row.id, name: JSON.parse(row.data).fund.name }));
       res.json({ managed, member });
     }),
   );
@@ -306,17 +339,22 @@ export function createApp({
   app.post(
     "/api/funds",
     requireLogin,
-    route((req, res) => {
+    route(async (req, res) => {
       const data = validData(req.body.data);
-      const { count } = db.prepare("SELECT COUNT(*) AS count FROM funds WHERE owner_phone = ?").get(req.phone);
+      const { count } = await db.get("SELECT COUNT(*) AS count FROM funds WHERE owner_phone = ?", req.phone);
       if (count >= MAX_FUNDS_PER_OWNER) throw new HttpError(400, "به سقف تعداد صندوق رسیده‌اید.");
 
       const id = newId();
-      transaction(db, () => {
-        db.prepare(
+      await db.transaction(async (tx) => {
+        await tx.run(
           "INSERT INTO funds (id, owner_phone, data, version, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)",
-        ).run(id, req.phone, JSON.stringify(data), now(), now());
-        syncMembers(id, data);
+          id,
+          req.phone,
+          JSON.stringify(data),
+          now(),
+          now(),
+        );
+        await syncMembers(tx, id, data);
       });
       res.status(201).json({ id, data, version: 1 });
     }),
@@ -325,8 +363,8 @@ export function createApp({
   app.get(
     "/api/funds/:id",
     requireLogin,
-    route((req, res) => {
-      const fund = loadManagedFund(req);
+    route(async (req, res) => {
+      const fund = await loadManagedFund(req);
       res.json({ id: fund.id, data: fund.data, version: fund.version });
     }),
   );
@@ -334,8 +372,8 @@ export function createApp({
   app.put(
     "/api/funds/:id",
     requireLogin,
-    route((req, res) => {
-      const fund = loadManagedFund(req);
+    route(async (req, res) => {
+      const fund = await loadManagedFund(req);
       if (req.body.version !== fund.version) {
         throw new HttpError(409, "این صندوق در جای دیگری تغییر کرده است.", {
           data: fund.data,
@@ -343,7 +381,13 @@ export function createApp({
         });
       }
       const data = validData(req.body.data);
-      transaction(db, () => writeFund(fund.id, data, fund.version + 1));
+      try {
+        await db.transaction((tx) => writeFund(tx, fund.id, data, fund.version));
+      } catch (error) {
+        if (error.status !== 409) throw error;
+        const latest = await loadFund(fund.id);
+        throw new HttpError(409, error.message, { data: latest.data, version: latest.version });
+      }
       res.json({ version: fund.version + 1 });
     }),
   );
@@ -351,9 +395,13 @@ export function createApp({
   app.delete(
     "/api/funds/:id",
     requireLogin,
-    route((req, res) => {
-      const fund = loadManagedFund(req);
-      db.prepare("DELETE FROM funds WHERE id = ?").run(fund.id);
+    route(async (req, res) => {
+      const fund = await loadManagedFund(req);
+      await db.transaction(async (tx) => {
+        await tx.run("DELETE FROM draws WHERE fund_id = ?", fund.id);
+        await tx.run("DELETE FROM fund_members WHERE fund_id = ?", fund.id);
+        await tx.run("DELETE FROM funds WHERE id = ?", fund.id);
+      });
       res.json({ ok: true });
     }),
   );
@@ -365,8 +413,8 @@ export function createApp({
   app.post(
     "/api/funds/:id/draws",
     requireLogin,
-    route((req, res) => {
-      const fund = loadManagedFund(req);
+    route(async (req, res) => {
+      const fund = await loadManagedFund(req);
       const entries = lotteryEntries(fund.data);
       if (!entries.length) throw new HttpError(400, "همه‌ی اعضا در این دور وام گرفته‌اند.");
       if (fundBalance(fund.data) < fund.data.fund.loanAmount) {
@@ -380,14 +428,15 @@ export function createApp({
         winnerId: winner.id,
         winnerName: winner.name,
       };
-      transaction(db, () => {
-        db.prepare(
+      await db.transaction(async (tx) => {
+        await tx.run(
           "UPDATE draws SET status = 'cancelled', resolved_at = ? WHERE fund_id = ? AND status = 'pending'",
-        ).run(now(), fund.id);
-        db.prepare(
+          now(),
+          fund.id,
+        );
+        await tx.run(
           `INSERT INTO draws (id, fund_id, month, winner_member_id, winner_name, entries, status, created_at)
            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
-        ).run(
           draw.id,
           fund.id,
           draw.month,
@@ -401,8 +450,8 @@ export function createApp({
     }),
   );
 
-  function loadPendingDraw(fundId, drawId) {
-    const draw = db.prepare("SELECT * FROM draws WHERE id = ? AND fund_id = ?").get(drawId, fundId);
+  async function loadPendingDraw(fundId, drawId) {
+    const draw = await db.get("SELECT * FROM draws WHERE id = ? AND fund_id = ?", drawId, fundId);
     if (!draw) throw new HttpError(404, "قرعه پیدا نشد.");
     if (draw.status !== "pending") throw new HttpError(400, "این قرعه قبلاً نهایی شده است.");
     return draw;
@@ -411,17 +460,22 @@ export function createApp({
   app.post(
     "/api/funds/:id/draws/:drawId/confirm",
     requireLogin,
-    route((req, res) => {
-      const fund = loadManagedFund(req);
-      const draw = loadPendingDraw(fund.id, req.params.drawId);
+    route(async (req, res) => {
+      const fund = await loadManagedFund(req);
+      const draw = await loadPendingDraw(fund.id, req.params.drawId);
       if (!fund.data.members.some((m) => m.id === draw.winner_member_id)) {
         throw new HttpError(400, "برنده دیگر عضو صندوق نیست.");
       }
       const loan = { ...createLoan(fund.data.fund, draw.winner_member_id, draw.month), drawId: draw.id };
       const data = { ...fund.data, loans: [...fund.data.loans, loan] };
-      transaction(db, () => {
-        writeFund(fund.id, data, fund.version + 1);
-        db.prepare("UPDATE draws SET status = 'confirmed', resolved_at = ? WHERE id = ?").run(now(), draw.id);
+      await db.transaction(async (tx) => {
+        await writeFund(tx, fund.id, data, fund.version);
+        const { changes } = await tx.run(
+          "UPDATE draws SET status = 'confirmed', resolved_at = ? WHERE id = ? AND status = 'pending'",
+          now(),
+          draw.id,
+        );
+        if (!changes) throw new HttpError(400, "این قرعه قبلاً نهایی شده است.");
       });
       res.json({ data, version: fund.version + 1 });
     }),
@@ -430,10 +484,14 @@ export function createApp({
   app.post(
     "/api/funds/:id/draws/:drawId/cancel",
     requireLogin,
-    route((req, res) => {
-      const fund = loadManagedFund(req);
-      const draw = loadPendingDraw(fund.id, req.params.drawId);
-      db.prepare("UPDATE draws SET status = 'cancelled', resolved_at = ? WHERE id = ?").run(now(), draw.id);
+    route(async (req, res) => {
+      const fund = await loadManagedFund(req);
+      const draw = await loadPendingDraw(fund.id, req.params.drawId);
+      await db.run(
+        "UPDATE draws SET status = 'cancelled', resolved_at = ? WHERE id = ? AND status = 'pending'",
+        now(),
+        draw.id,
+      );
       res.json({ ok: true });
     }),
   );
@@ -445,12 +503,14 @@ export function createApp({
   app.get(
     "/api/funds/:id/view",
     requireLogin,
-    route((req, res) => {
-      const fund = loadFund(req.params.id);
+    route(async (req, res) => {
+      const fund = await loadFund(req.params.id);
       const isManager = fund.owner_phone === req.phone;
-      const membership = db
-        .prepare("SELECT member_id FROM fund_members WHERE fund_id = ? AND phone = ?")
-        .get(fund.id, req.phone);
+      const membership = await db.get(
+        "SELECT member_id FROM fund_members WHERE fund_id = ? AND phone = ?",
+        fund.id,
+        req.phone,
+      );
       if (!isManager && !membership) throw new HttpError(404, "صندوق پیدا نشد.");
 
       const { data } = fund;
@@ -480,10 +540,12 @@ export function createApp({
         };
       }
 
-      const draws = db
-        .prepare("SELECT month, winner_name, status, created_at FROM draws WHERE fund_id = ? ORDER BY created_at DESC")
-        .all(fund.id)
-        .map((d) => ({ month: d.month, winnerName: d.winner_name, status: d.status, createdAt: d.created_at }));
+      const draws = (
+        await db.all(
+          "SELECT month, winner_name, status, created_at FROM draws WHERE fund_id = ? ORDER BY created_at DESC",
+          fund.id,
+        )
+      ).map((d) => ({ month: d.month, winnerName: d.winner_name, status: d.status, createdAt: d.created_at }));
 
       res.json({
         fund: {

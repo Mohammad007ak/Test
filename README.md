@@ -84,7 +84,7 @@ npm run dev
 | دستور | کار |
 |---|---|
 | `npm run dev` | اجرای نسخه‌ی توسعه (سایت و API روی یک پورت) |
-| `npm test` | اجرای تست‌ها |
+| `npm test` | اجرای تست‌ها (روی SQLite؛ با `TEST_DATABASE_URL=postgres://…` روی PostgreSQL) |
 | `npm run build` | ساخت نسخه‌ی نهایی در پوشه‌ی `dist` |
 | `npm start` | اجرای نسخه‌ی نهایی روی سرور |
 
@@ -101,7 +101,7 @@ npm start
 
 - برای ارسال کد ورود، کلید API و شناسه‌ی قالب ارسال سریع [SMS.ir](https://sms.ir) (`SMSIR_API_KEY`، `SMSIR_TEMPLATE_ID`) یا کلید [کاوه‌نگار](https://kavenegar.com) با قالب verify lookup لازم است. جزئیات در `.env.example`.
 - پشت یک reverse proxy با **HTTPS** اجرا کنید (مثلاً Nginx یا Caddy). کوکی ورود در حالت production فقط روی HTTPS فرستاده می‌شود.
-- اطلاعات در فایل `data/sandogh.db` ذخیره می‌شود. از آن به‌طور منظم پشتیبان بگیرید.
+- اطلاعات به‌طور پیش‌فرض در فایل SQLite `data/sandogh.db` ذخیره می‌شود. با تنظیم `DATABASE_URL` (آدرس PostgreSQL) اطلاعات در PostgreSQL نگه‌داری می‌شود؛ روی میزبان‌هایی که دیسک اپ با دیپلوی پاک می‌شود همین را استفاده کنید. از دیتابیس به‌طور منظم پشتیبان بگیرید.
 
 ## ساختار کد
 

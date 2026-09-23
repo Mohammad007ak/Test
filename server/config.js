@@ -53,12 +53,18 @@ import { createApp } from "./app.js";
 import { createDigipay } from "./digipay/index.js";
 
 // Shared by the production server and the Vite dev middleware.
-export function createAppFromEnv(env = process.env) {
+//
+// DATABASE_URL (postgres://...) puts the data in PostgreSQL, which lives
+// outside the app's container and survives every deploy. Without it the
+// data is a SQLite file at DB_PATH, which only survives a deploy on a
+// mounted disk.
+export async function createAppFromEnv(env = process.env) {
   const production = env.NODE_ENV === "production";
+  const postgres = Boolean(env.DATABASE_URL);
   const dbPath = env.DB_PATH ?? "data/sandogh.db";
-  const db = openDatabase(dbPath);
-  const mounts = mountPoints();
-  const persistentStorage = production ? onMountedDisk(dbPath, mounts) : null;
+  const db = await openDatabase(postgres ? env.DATABASE_URL : dbPath);
+  const mounts = postgres ? null : mountPoints();
+  const persistentStorage = postgres ? true : production ? onMountedDisk(dbPath, mounts) : null;
   if (persistentStorage === false) {
     console.warn(
       `⚠ The database (${resolve(dbPath)}) is not on a mounted disk: all data will be lost on the next deploy. ` +
@@ -83,11 +89,14 @@ export function createAppFromEnv(env = process.env) {
     opsPhones,
     formTimeoutMs,
     persistentStorage,
-    storageInfo: {
-      dbPath: resolve(dbPath),
-      mounts: dataMounts(mounts),
-      dataCreatedAt: dataCreatedAt(dbPath),
-      startedAt: new Date().toISOString(),
-    },
+    storageInfo: postgres
+      ? { database: "postgres", startedAt: new Date().toISOString() }
+      : {
+          database: "sqlite",
+          dbPath: resolve(dbPath),
+          mounts: dataMounts(mounts),
+          dataCreatedAt: dataCreatedAt(dbPath),
+          startedAt: new Date().toISOString(),
+        },
   });
 }

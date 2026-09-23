@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { openDatabase } from "./db.js";
+import { testDatabase } from "./test-db.js";
 import { createApp } from "./app.js";
 import { currentMonthKey } from "../src/lib/jalali.js";
 
@@ -14,7 +14,7 @@ let clock = Date.now();
 
 before(async () => {
   const app = createApp({
-    db: openDatabase(":memory:"),
+    db: await testDatabase(),
     now: () => clock,
     random: () => 0,
   });
@@ -202,6 +202,7 @@ test("draws are chosen on the server and every re-roll is visible to members", a
   assert.equal(first.body.draw.winnerId, "m1"); // random() => 0 picks the first ticket
 
   // Drawing again silently cancels the pending draw, but it stays on record.
+  clock += 1000;
   const second = await manager("POST", `/api/funds/${id}/draws`);
   const confirmed = await manager("POST", `/api/funds/${id}/draws/${second.body.draw.id}/confirm`);
   assert.equal(confirmed.status, 200);
@@ -243,8 +244,8 @@ test("inside the Digipay mini-app, a launch token signs the user in without SMS"
   });
 });
 
-test("production refuses the simulator unless it's an explicit demo", () => {
-  const db = openDatabase(":memory:");
+test("production refuses the simulator unless it's an explicit demo", async () => {
+  const db = await testDatabase();
   assert.throws(() => createApp({ db, production: true }), /DEMO_MODE/);
   assert.doesNotThrow(() => createApp({ db, production: true, demo: true }));
   const sandbox = Object.assign(async () => {}, { sandbox: true });
@@ -253,7 +254,7 @@ test("production refuses the simulator unless it's an explicit demo", () => {
 });
 
 test("with an SMS sandbox key the code is sent and also shown on screen", async () => {
-  const db = openDatabase(":memory:");
+  const db = await testDatabase();
   const sent = [];
   const sendCode = Object.assign(async (phone, code) => sent.push(code), { sandbox: true });
   const app = createApp({ db, sendCode, demo: true });

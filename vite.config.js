@@ -23,7 +23,7 @@ function apiServer() {
         // No .env: dev defaults (codes shown on screen).
       }
       const { createAppFromEnv } = await server.ssrLoadModule("/server/config.js");
-      const app = createAppFromEnv();
+      const app = await createAppFromEnv();
       setInterval(() => app.locals.runScheduledJobs().catch((e) => console.error(e)), 60 * 1000);
       server.middlewares.use((req, res, next) => (req.url.startsWith("/api/") ? app(req, res, next) : next()));
       // Same URLs as production: the app at the root, the landing page at /welcome/.
