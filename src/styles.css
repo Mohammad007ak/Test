@@ -542,7 +542,7 @@ p {
 
 @media (min-width: 700px) {
   .grid-2 {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -778,12 +778,13 @@ p {
 
 .form-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
 @media (min-width: 600px) {
   .form-grid.two {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -820,41 +821,82 @@ p {
 /* ---------- OTP ---------- */
 
 .otp {
+  position: relative;
   display: flex;
   gap: 10px;
   justify-content: center;
   direction: ltr;
 }
 
-.otp input {
+/* The real input covers the boxes, invisible, so taps focus it and the
+   keyboard, paste and autofill go straight to it. 16px stops iOS zooming. */
+.otp-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  font-size: 16px;
+  letter-spacing: 0;
+  color: transparent;
+  caret-color: transparent;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.otp-box {
+  display: grid;
+  place-items: center;
   width: 52px;
   height: 60px;
   border: 1.5px solid var(--border-strong);
   border-radius: 14px;
   background: var(--surface);
-  text-align: center;
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
-  outline: none;
-  caret-color: var(--brand);
   transition:
     border-color 0.15s,
     box-shadow 0.15s,
     background 0.15s;
 }
 
-.otp input:focus {
+@media (max-width: 360px) {
+  .otp {
+    gap: 6px;
+  }
+  .otp-box {
+    width: 46px;
+    height: 54px;
+  }
+}
+
+.otp-box.active {
   border-color: var(--brand);
   box-shadow: var(--focus);
 }
 
-.otp input.filled {
+.otp-box.active:empty::after {
+  content: "";
+  width: 2px;
+  height: 26px;
+  background: var(--brand);
+  animation: caret 1s steps(1) infinite;
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.otp-box.filled {
   border-color: var(--brand);
   background: var(--brand-soft);
 }
 
-.otp.error input {
+.otp.error .otp-box {
   border-color: var(--danger);
   background: var(--danger-soft);
   animation: shake 0.4s;
@@ -1203,7 +1245,7 @@ button.row:hover {
 
 .kpis {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -2356,7 +2398,7 @@ button.row:hover {
 
 @media (min-width: 640px) {
   .fund-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -3126,7 +3168,7 @@ button.row:hover {
 
 @media (min-width: 600px) {
   .fingerprints {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -3563,4 +3605,44 @@ button.row:hover {
 .btn.reveal-ghost {
   background: rgb(255 255 255 / 0.12);
   color: #fff;
+}
+
+/* iOS zooms into any field under 16px when it's focused. */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* Grid columns default to fitting their widest content, which lets a long
+   label or a row of fields push a page past the screen edge on phones.
+   Let them shrink to the screen instead. */
+.page,
+.overlay,
+.auth-panel,
+.stack-sm,
+.field,
+.card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 959px) {
+  .auth {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Never scroll sideways, whatever slips through ("clip" keeps sticky bars working). */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* The field's frame shows focus; the input inside shouldn't draw a second ring. */
+.input input:focus-visible,
+.input select:focus-visible,
+.input textarea:focus-visible {
+  box-shadow: none;
 }

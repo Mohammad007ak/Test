@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Fingerprint, Landmark, MessageSquareText, Phone, ShieldCheck } from "lucide-react";
 import Pattern from "../ui/Pattern.jsx";
 import OtpInput from "../ui/OtpInput.jsx";
@@ -22,6 +22,9 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  // SMS autofill and the Enter key can both submit the same code; only the
+  // first may go out, or the second fails because the code is already used.
+  const verifying = useRef(false);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -52,7 +55,8 @@ export default function Login({ onLogin }) {
   };
 
   const verify = async (value = code) => {
-    if (value.length < 5 || busy) return;
+    if (value.length < 5 || verifying.current) return;
+    verifying.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -62,6 +66,7 @@ export default function Login({ onLogin }) {
       setError(e.message);
       setCode("");
       setBusy(false);
+      verifying.current = false;
     }
   };
 
@@ -165,7 +170,16 @@ export default function Login({ onLogin }) {
                   <b dir="ltr">{toPersianDigits(devCode)}</b>
                 </div>
               )}
-              <OtpInput value={code} onChange={setCode} onComplete={verify} error={Boolean(error)} />
+              <OtpInput
+                value={code}
+                onChange={(v) => {
+                  setCode(v);
+                  setError(null);
+                }}
+                onComplete={verify}
+                error={Boolean(error)}
+                disabled={busy}
+              />
               {error && <p className="error-text">{error}</p>}
               <button className="btn primary lg block" type="submit" disabled={busy || code.length < 5}>
                 {busy ? <Spinner /> : "ورود"}

@@ -1,78 +1,50 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { toPersianDigits } from "../lib/jalali.js";
 
 const toLatin = (s) =>
   s.replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
 
-// Separate boxes that behave like one field: typing advances, backspace
-// goes back, and pasting or SMS autofill spreads the whole code.
-export default function OtpInput({ length = 5, value, onChange, onComplete, error }) {
-  const refs = useRef([]);
-  const digits = value.padEnd(length, " ").slice(0, length).split("");
+// One real input drawn as separate boxes. A single field is what phone
+// keyboards, backspace, paste and SMS autofill all handle reliably; the
+// boxes are only its picture.
+export default function OtpInput({ length = 5, value, onChange, onComplete, error, disabled }) {
+  const ref = useRef(null);
+  const [focused, setFocused] = useState(false);
 
-  const set = (next) => {
-    const clean = toLatin(next).replace(/\D/g, "").slice(0, length);
+  const handleChange = (raw) => {
+    const clean = toLatin(raw).replace(/\D/g, "").slice(0, length);
+    if (clean === value) return;
     onChange(clean);
     if (clean.length === length) onComplete?.(clean);
-    return clean;
   };
 
-  const handleInput = (index, raw) => {
-    let typed = toLatin(raw).replace(/\D/g, "");
-    if (!typed) return;
-    // Typing into a filled box without selecting it yields old+new digits.
-    if (typed.length === 2 && value[index]) typed = typed[0] === value[index] ? typed[1] : typed[0];
-    if (typed.length > 1) {
-      const clean = set(typed);
-      refs.current[Math.min(clean.length, length - 1)]?.focus();
-      return;
-    }
-    const chars = value.split("");
-    chars[index] = typed;
-    set(chars.join(""));
-    refs.current[Math.min(index + 1, length - 1)]?.focus();
-  };
-
-  const handleKey = (index, e) => {
-    if (e.key === "Backspace") {
-      e.preventDefault();
-      if (value[index]) {
-        set(value.slice(0, index) + value.slice(index + 1));
-      } else if (index > 0) {
-        set(value.slice(0, index - 1) + value.slice(index));
-        refs.current[index - 1]?.focus();
-      }
-    } else if (e.key === "ArrowLeft") {
-      refs.current[Math.min(index + 1, length - 1)]?.focus();
-    } else if (e.key === "ArrowRight") {
-      refs.current[Math.max(index - 1, 0)]?.focus();
-    }
-  };
+  const active = Math.min(value.length, length - 1);
 
   return (
-    <div className={`otp ${error ? "error" : ""}`} dir="ltr">
-      {digits.map((d, i) => (
-        <input
+    <div className={`otp ${error ? "error" : ""}`} dir="ltr" onClick={() => ref.current?.focus()}>
+      <input
+        ref={ref}
+        className="otp-field"
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        autoComplete="one-time-code"
+        maxLength={length * 2}
+        aria-label={`کد تأیید ${length} رقمی`}
+        disabled={disabled}
+        autoFocus
+      />
+      {Array.from({ length }, (_, i) => (
+        <span
           key={i}
-          ref={(el) => (refs.current[i] = el)}
-          value={d.trim()}
-          inputMode="numeric"
-          autoComplete={i === 0 ? "one-time-code" : "off"}
-          aria-label={`رقم ${i + 1}`}
-          className={d.trim() ? "filled" : ""}
-          onChange={(e) => handleInput(i, e.target.value)}
-          onKeyDown={(e) => handleKey(i, e)}
-          onFocus={(e) => {
-            // Keep the code contiguous: jump to the first empty box.
-            if (i > value.length) refs.current[value.length]?.focus();
-            else e.target.select();
-          }}
-          onPaste={(e) => {
-            e.preventDefault();
-            const clean = set(e.clipboardData.getData("text"));
-            refs.current[Math.min(clean.length, length - 1)]?.focus();
-          }}
-          autoFocus={i === 0}
-        />
+          aria-hidden="true"
+          className={`otp-box ${value[i] ? "filled" : ""} ${focused && i === active ? "active" : ""}`}
+        >
+          {value[i] ? toPersianDigits(value[i]) : ""}
+        </span>
       ))}
     </div>
   );
