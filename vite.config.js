@@ -18,6 +18,7 @@ function apiServer() {
     async configureServer(server) {
       const { createAppFromEnv } = await server.ssrLoadModule("/server/config.js");
       const app = createAppFromEnv();
+      setInterval(() => app.locals.runScheduledJobs().catch((e) => console.error(e)), 60 * 1000);
       server.middlewares.use((req, res, next) => (req.url.startsWith("/api/") ? app(req, res, next) : next()));
     },
   };

@@ -53,8 +53,8 @@ export default function Ops({ back, open }) {
         <div className="inline-note">
           <FlaskConical size={16} />
           <span>
-            در نسخه‌ی واقعی، بستن ماه (برداشت خودکار، ضمانت معوقه‌ها، قرعه و واریز پات) زمان‌بندی‌شده اجرا می‌شود. اینجا
-            با دکمه انجامش می‌دهید. اعضای شبیه‌سازی‌شده‌ی هر چهارم پرداخت نمی‌کنند تا ضمانت را ببینید.
+            قرعه‌ی هر ماه خودکار روز ششم بعد از سررسید اجرا می‌شود (کسر از کیف پول، ضمانت معوقه‌ها، قرعه و واریز). اینجا
+            می‌توانید برای آزمایش آن را زودتر اجرا کنید. هر چهارمین عضو شبیه‌سازی‌شده پرداخت نمی‌کند تا ضمانت را ببینید.
           </span>
         </div>
         {!circles ? (
@@ -97,11 +97,11 @@ export default function Ops({ back, open }) {
                     {c.status === "active" && (
                       <button
                         className="btn sm primary"
-                        onClick={() => run(c.id, "close-month", (r) => `ماه ${formatNumber(r.month)} بسته شد`)}
+                        onClick={() => run(c.id, "close-month", (r) => `قرعه‌ی ماه ${formatNumber(r.month)} انجام شد`)}
                         disabled={Boolean(busy)}
                       >
-                        {busy === c.id + "close-month" ? <Spinner /> : <FastForward size={15} />} بستن ماه{" "}
-                        {formatNumber(c.currentMonth)}
+                        {busy === c.id + "close-month" ? <Spinner /> : <FastForward size={15} />} قرعه‌ی ماه{" "}
+                        {formatNumber(c.currentMonth)} (الان)
                       </button>
                     )}
                   </div>

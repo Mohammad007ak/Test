@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ban, Dices, RotateCcw, ShieldCheck, Ticket, Trophy } from "lucide-react";
+import Confetti from "../ui/Confetti.jsx";
 import Pattern from "../ui/Pattern.jsx";
 import { Avatar, Money, Spinner } from "../ui/bits.jsx";
 import { useDialog, useToast } from "../ui/feedback.jsx";
@@ -10,33 +11,6 @@ import { monthLabel } from "../lib/jalali.js";
 
 const ITEM = 76;
 const SPIN_MS = 4200;
-const CONFETTI = ["#ffc53d", "#ffd66e", "#5c6bff", "#ffffff", "#0000ff"];
-
-function Confetti() {
-  const pieces = useMemo(
-    () =>
-      Array.from({ length: 36 }, (_, i) => {
-        const angle = (Math.PI * 2 * i) / 36 + Math.random() * 0.3;
-        const dist = 120 + Math.random() * 140;
-        return {
-          x: `${Math.cos(angle) * dist}px`,
-          y: `${Math.sin(angle) * dist - 40}px`,
-          r: `${Math.random() * 720 - 360}deg`,
-          color: CONFETTI[i % CONFETTI.length],
-          delay: `${Math.random() * 0.15}s`,
-        };
-      }),
-    [],
-  );
-  return (
-    <div className="confetti" aria-hidden="true">
-      {pieces.map((p, i) => (
-        <i key={i} style={{ "--x": p.x, "--y": p.y, "--r": p.r, background: p.color, animationDelay: p.delay }} />
-      ))}
-    </div>
-  );
-}
-
 export default function Lottery({ state, update, currentMonth, server }) {
   const { fund, loans, members } = state;
   const entries = lotteryEntries(state);

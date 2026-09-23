@@ -4,6 +4,8 @@ import { openDatabase } from "./db.js";
 import { createCircleService } from "./circles.js";
 import { createDigipaySimulator } from "./digipay/simulator.js";
 import { verifyDraw } from "../src/lib/fairness.js";
+import { drawAt } from "../src/lib/schedule.js";
+import { toJalali } from "../src/lib/jalali.js";
 
 // Phones ending 4–9 get a 25M monthly limit from the simulator's scoring.
 const phone = (i) => `0912000${String(i).padStart(3, "0")}9`;
@@ -67,8 +69,12 @@ test("a circle starts when full, the operator takes month 1, and everyone receiv
   assert.equal(view.members.length, 12);
   assert.ok(view.members[0].isOperator);
   assert.match(view.nonceDigest, /^[0-9a-f]{64}$/);
+  // Month 1's pot went to the operator the moment the circle started.
+  assert.equal(view.draws[0].kind, "operator");
+  assert.equal(view.circle.currentMonth, 2);
+  assert.equal(payouts.length, 1);
 
-  for (let m = 1; m <= 12; m++) await service.closeMonth(circleId);
+  for (let m = 2; m <= 12; m++) await service.closeMonth(circleId);
 
   view = await service.circleView(phone(1), circleId);
   assert.equal(view.circle.status, "completed");
@@ -87,7 +93,7 @@ test("a circle starts when full, the operator takes month 1, and everyone receiv
 test("every lottery can be verified by a member, and tampering is detected", async () => {
   const { service } = setup();
   const circleId = await fillPlan(service, "p12-5", 11);
-  for (let m = 1; m <= 5; m++) await service.closeMonth(circleId);
+  for (let m = 2; m <= 5; m++) await service.closeMonth(circleId);
 
   const view = await service.circleView(phone(3), circleId);
   const lotteries = view.draws.filter((d) => d.kind === "lottery");
@@ -160,7 +166,7 @@ test("the first share is paid on joining and nothing is seated until it is", asy
     status: "paid",
     method: "entry",
   });
-  assert.equal(view.circle.dueNow, 0);
+  assert.equal(view.circle.dueNow, 5_000_000); // month 2 is open, due a month from the start
 });
 
 test("unpaid shares come from the wallet; if that fails, the guarantee covers them and debtors sit out draws", async () => {
@@ -168,7 +174,7 @@ test("unpaid shares come from the wallet; if that fails, the guarantee covers th
   const debtor = phone(5); // second-to-last digit 5: empty wallet in the simulator
   const circleId = await fillPlan(service, "p12-5", 11);
 
-  await service.closeMonth(circleId); // month 1: everyone paid on joining
+  // Month 1 (everyone's first share) was paid out when the circle started.
   await service.closeMonth(circleId); // month 2: nobody used the gateway
   const payer = await service.circleView(phone(2), circleId);
   assert.equal(payer.contributions[1].method, "wallet");
@@ -217,7 +223,36 @@ test("a month can't be closed twice at once", async () => {
   const circleId = await fillPlan(service, "p12-5", 11);
   const results = await Promise.allSettled([service.closeMonth(circleId), service.closeMonth(circleId)]);
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
-  assert.equal((await service.circleView(phone(1), circleId)).circle.currentMonth, 2);
+  assert.equal((await service.circleView(phone(1), circleId)).circle.currentMonth, 3);
+});
+
+test("each draw runs by itself on the sixth day after its due date, and its reveal plays once", async () => {
+  const clock = { t: new Date("2026-10-07T14:00:00+03:30").getTime() }; // 15 Mehr 1405
+  const { service, payouts } = setup({ clock });
+  const circleId = await fillPlan(service, "p12-5", 11);
+  assert.equal(payouts.length, 1); // month 1, to Digipay, on the start day
+
+  const drawDay = drawAt(clock.t, 2); // 20 Aban: due 15 Aban, five days to pay
+  assert.deepEqual(toJalali(new Date(drawDay)), { year: 1405, month: 8, day: 20 });
+  clock.t = drawDay - 60 * 1000;
+  assert.equal((await service.circleView(phone(1), circleId)).draws.length, 1);
+
+  clock.t = drawDay;
+  let view = await service.circleView(phone(1), circleId);
+  assert.equal(view.draws.length, 2);
+  assert.equal(view.draws[1].kind, "lottery");
+  assert.equal(view.circle.seenMonth, 1);
+  service.markSeen({ phone: phone(1), circleId, month: 2 });
+  service.markSeen({ phone: phone(1), circleId, month: 9 }); // can't mark a draw that hasn't happened
+  view = await service.circleView(phone(1), circleId);
+  assert.equal(view.circle.seenMonth, 2);
+
+  // If the server was down for months, the missed draws all run, in order.
+  clock.t = drawAt(view.circle.startedAt, 5);
+  assert.deepEqual(
+    (await service.myCircles(phone(1))).map((c) => c.currentMonth),
+    [6],
+  );
 });
 
 test("ops can fill a forming circle with simulated members to start it", async () => {

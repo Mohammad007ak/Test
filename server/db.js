@@ -88,6 +88,8 @@ const SCHEMA = `
     -- Gateway reference of the first share, paid to take the seat.
     entry_ref TEXT,
     won_month INTEGER,
+    -- The latest draw this member has watched (the reveal plays once).
+    seen_month INTEGER NOT NULL DEFAULT 1,
     joined_at INTEGER NOT NULL,
     UNIQUE (circle_id, position)
   );
@@ -143,11 +145,11 @@ const SCHEMA = `
   );
 `;
 
-// The circle tables changed shape before release (paid entry). They only
-// ever held simulator data, so an old copy is dropped and rebuilt.
+// The circle tables changed shape before release. They only ever held
+// simulator data, so an old copy is dropped and rebuilt.
 function dropPreReleaseCircleTables(db) {
-  const columns = db.prepare("PRAGMA table_info(checkouts)").all();
-  if (columns.length === 0 || columns.some((c) => c.name === "kind")) return;
+  const columns = db.prepare("PRAGMA table_info(circle_members)").all();
+  if (columns.length === 0 || columns.some((c) => c.name === "seen_month")) return;
   db.exec(`
     DROP TABLE IF EXISTS checkouts;
     DROP TABLE IF EXISTS circle_draws;

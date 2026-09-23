@@ -41,6 +41,15 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
   );
 
   app.post(
+    "/api/circles/:id/seen",
+    requireLogin,
+    route((req, res) => {
+      service.markSeen({ phone: req.phone, circleId: req.params.id, month: req.body.month });
+      res.json({ ok: true });
+    }),
+  );
+
+  app.post(
     "/api/circles/:id/leave",
     requireLogin,
     route(async (req, res) => {

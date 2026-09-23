@@ -4,8 +4,10 @@ import {
   CalendarClock,
   CheckCircle2,
   CreditCard,
-  Fingerprint,
+  Lock,
+  PlayCircle,
   ShieldCheck,
+  Smartphone,
   Trophy,
   Wallet,
   XCircle,
@@ -14,20 +16,25 @@ import AppBar from "../../ui/AppBar.jsx";
 import Pattern from "../../ui/Pattern.jsx";
 import { LogoMark } from "../../ui/Logo.jsx";
 import WaitingRoom from "./WaitingRoom.jsx";
-import { Money, PageSkeleton, Spinner } from "../../ui/bits.jsx";
+import DrawReveal from "./DrawReveal.jsx";
+import { PageSkeleton, Spinner } from "../../ui/bits.jsx";
 import { useToast } from "../../ui/feedback.jsx";
 import { api } from "../../lib/api.js";
 import { verifyDraw } from "../../lib/fairness.js";
 import { planById } from "../../lib/plans.js";
+import { scheduleOf } from "../../lib/schedule.js";
 import { formatCompact, formatNumber } from "../../lib/format.js";
-import { toPersianDigits } from "../../lib/jalali.js";
+import { formatDay, toPersianDigits } from "../../lib/jalali.js";
+
+const DAY = 24 * 60 * 60 * 1000;
+const daysUntil = (t) => Math.max(0, Math.ceil((t - Date.now()) / DAY));
 
 const METHOD_LABEL = {
-  entry: "پرداخت هنگام عضویت",
-  manual: "درگاه پرداخت",
-  wallet: "کسر از کیف پول",
-  auto: "کسر از کیف پول",
-  guarantee: "ضمانت دیجی‌پی",
+  entry: "هنگام عضویت",
+  manual: "از درگاه",
+  wallet: "از کیف پول",
+  auto: "از کیف پول",
+  guarantee: "با ضمانت دیجی‌پی",
 };
 
 const short = (hex) => (hex ? `${hex.slice(0, 10)}…${hex.slice(-6)}` : "—");
@@ -39,7 +46,15 @@ function seatName(member) {
   return `عضو ${toPersianDigits(member.position)}`;
 }
 
-function DrawRow({ draw, members, digest }) {
+function PaymentBadge({ contribution }) {
+  if (!contribution) return <span className="badge">در انتظار</span>;
+  if (contribution.status === "paid") return <span className="badge success">پرداخت شد</span>;
+  if (contribution.status === "settled") return <span className="badge success">تسویه شد</span>;
+  if (contribution.status === "covered") return <span className="badge danger">بدهکار</span>;
+  return <span className="badge gold">پرداخت نشده</span>;
+}
+
+function DrawRow({ draw, members, digest, onReplay }) {
   const [result, setResult] = useState(null);
   const [checking, setChecking] = useState(false);
   const winner = members.find((m) => m.id === draw.winner);
@@ -62,27 +77,30 @@ function DrawRow({ draw, members, digest }) {
           </strong>
           <span>
             {draw.kind === "operator"
-              ? "سهم مدیر و ضامن صندوق"
+              ? "سهم مدیر و ضامن گروه"
               : draw.kind === "last"
-                ? "آخرین عضو باقی‌مانده"
+                ? "آخرین نفر باقی‌مانده"
                 : `قرعه بین ${formatNumber(draw.eligible.length)} نفر`}
             ، {formatCompact(draw.pot)} تومان
           </span>
           {result && (
             <span className={result.ok ? "verify ok" : "verify bad"}>
               {result.ok ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-              {result.ok
-                ? "درست است: حلقه‌ی زنجیره معتبر است و همین برنده از داده‌ها درمی‌آید."
-                : result.linkOk
-                  ? "نتیجه با داده‌ها نمی‌خواند!"
-                  : "حلقه‌ی زنجیره نامعتبر است!"}
+              {result.ok ? "درست است؛ گوشی شما هم همین برنده را حساب کرد." : "نتیجه با داده‌ها نمی‌خواند!"}
             </span>
           )}
         </div>
-        {draw.kind === "lottery" && (
-          <button className="btn sm outline" onClick={check} disabled={checking}>
-            {checking ? <Spinner /> : <BadgeCheck size={15} />} بررسی
-          </button>
+        {draw.kind !== "operator" && (
+          <div className="row-end">
+            <button className="icon-btn sm soft" onClick={() => onReplay(draw)} aria-label="نمایش دوباره‌ی قرعه">
+              <PlayCircle size={16} />
+            </button>
+            {draw.kind === "lottery" && (
+              <button className="btn sm outline" onClick={check} disabled={checking}>
+                {checking ? <Spinner /> : <BadgeCheck size={15} />} بررسی
+              </button>
+            )}
+          </div>
         )}
       </div>
     </li>
@@ -93,6 +111,7 @@ export default function CircleView({ circleId, back, open }) {
   const [view, setView] = useState(null);
   const [error, setError] = useState(null);
   const [paying, setPaying] = useState(false);
+  const [reveal, setReveal] = useState(null);
   const toast = useToast();
 
   const load = useCallback(() => api("GET", `/api/circles/${circleId}`).then(setView, setError), [circleId]);
@@ -111,11 +130,24 @@ export default function CircleView({ circleId, back, open }) {
     return () => clearInterval(t);
   }, [status, load, toast]);
 
+  // A draw this member hasn't watched yet plays once, the first time they
+  // open the circle after it.
+  const latestDraw = view?.draws.at(-1);
+  useEffect(() => {
+    if (!view || !latestDraw || !view.members.some((m) => m.isMe)) return;
+    if (latestDraw.month <= view.circle.seenMonth) return;
+    if (latestDraw.kind !== "operator") setReveal(latestDraw);
+    api("POST", `/api/circles/${circleId}/seen`, { month: latestDraw.month }).catch(() => {});
+    setView((v) => ({ ...v, circle: { ...v.circle, seenMonth: latestDraw.month } }));
+  }, [view, latestDraw, circleId]);
+
   const header = (
     <AppBar
       onBack={back}
       title={view ? planById(view.circle.planId)?.title : "دوره"}
-      sub={view && `سهم ${formatCompact(view.circle.share)}، پات ${formatCompact(view.circle.pot)} تومان`}
+      sub={
+        view && `سهم ماهانه ${formatCompact(view.circle.share)}، دریافت یک‌جا ${formatCompact(view.circle.pot)} تومان`
+      }
     />
   );
 
@@ -137,10 +169,23 @@ export default function CircleView({ circleId, back, open }) {
   }
 
   const { circle, members, draws, contributions } = view;
+
+  if (circle.status === "forming" || circle.status === "expired") {
+    return (
+      <div className="home">
+        {header}
+        <WaitingRoom view={view} ops={view.ops} reload={load} onLeft={back} onRetry={back} />
+      </div>
+    );
+  }
+
   const me = members.find((m) => m.isMe);
-  const thisMonth = contributions.find((c) => c.month === circle.currentMonth);
-  const payable = circle.owed + circle.dueNow;
+  const schedule = scheduleOf(circle.startedAt, circle.months);
+  const current = circle.status === "active" ? schedule[circle.currentMonth - 1] : null;
+  const paymentOf = new Map(contributions.map((c) => [c.month, c]));
   const recipientOf = new Map(draws.map((d) => [d.month, members.find((m) => m.id === d.winner)]));
+  const payable = circle.owed + circle.dueNow;
+  const thisMonthPaid = paymentOf.get(circle.currentMonth)?.status === "paid";
 
   const pay = async () => {
     setPaying(true);
@@ -154,22 +199,13 @@ export default function CircleView({ circleId, back, open }) {
     }
   };
 
-  if (circle.status === "forming" || circle.status === "expired") {
-    return (
-      <div className="home">
-        {header}
-        <WaitingRoom view={view} ops={view.ops} reload={load} onLeft={back} onRetry={back} />
-      </div>
-    );
-  }
-
   let hero;
   if (circle.wonMonth && me) {
     hero = (
       <section className="hero">
         <Pattern />
         <div className="hero-label">
-          <Trophy size={16} /> پات را در ماه {formatNumber(circle.wonMonth)} دریافت کردید
+          <Trophy size={16} /> در ماه {formatNumber(circle.wonMonth)} برنده شدید
         </div>
         <div className="hero-figure">
           {Math.round(circle.pot).toLocaleString("fa-IR")}
@@ -178,7 +214,7 @@ export default function CircleView({ circleId, back, open }) {
         <p className="hero-sub">
           {circle.status === "completed"
             ? "دوره تمام شد. ممنون از همراهی‌تان."
-            : `تا پایان دوره هر ماه ${formatCompact(circle.share)} تومان سهم می‌پردازید.`}
+            : `تا پایان دوره هر ماه ${formatCompact(circle.share)} تومان قسط می‌پردازید.`}
         </p>
       </section>
     );
@@ -188,22 +224,26 @@ export default function CircleView({ circleId, back, open }) {
         <Pattern />
         <div className="hero-label">
           <CalendarClock size={16} />
-          {circle.status === "completed"
-            ? "دوره تمام شده"
-            : `ماه ${formatNumber(circle.currentMonth)} از ${formatNumber(circle.months)}`}
+          {current ? `قرعه‌کشی بعدی: ${formatDay(current.drawAt)}` : "دوره تمام شده"}
         </div>
         <div className="hero-figure">
           {Math.round(circle.pot).toLocaleString("fa-IR")}
-          <small>تومان پات ماهانه</small>
+          <small>تومان</small>
         </div>
         <p className="hero-sub">
           {circle.owed
             ? `${formatCompact(circle.owed)} تومان بدهی دارید که دیجی‌پی ضمانت کرده؛ تا تسویه در قرعه شرکت داده نمی‌شوید.`
-            : `${formatNumber(members.filter((m) => !m.wonMonth).length)} نفر هنوز دریافت نکرده‌اند؛ شانس همه برابر است.`}
+            : current
+              ? `${formatNumber(daysUntil(current.drawAt))} روز مانده؛ ${formatNumber(
+                  members.filter((m) => !m.wonMonth).length,
+                )} نفر با شانس برابر در قرعه‌اند.`
+              : ""}
         </p>
       </section>
     );
   }
+
+  const stage = current && (Date.now() < current.dueAt ? 0 : Date.now() < current.drawAt ? 1 : 2);
 
   return (
     <div className="home">
@@ -211,61 +251,91 @@ export default function CircleView({ circleId, back, open }) {
       <div className="page">
         {hero}
 
-        {circle.status === "active" && me && (
+        {current && me && (
           <section className="card">
+            <div className="section-title">
+              <h2>
+                <CreditCard size={17} /> قسط ماه {formatNumber(circle.currentMonth)}
+              </h2>
+              <PaymentBadge contribution={paymentOf.get(circle.currentMonth)} />
+            </div>
+            <ol className="due-steps">
+              <li className={stage >= 0 ? "on" : ""}>
+                <b>{formatDay(current.dueAt)}</b>
+                <span>سررسید</span>
+              </li>
+              <li className={stage >= 1 ? "on" : ""}>
+                <b>تا {formatDay(current.lastPayDay)}</b>
+                <span>۵ روز مهلت پرداخت</span>
+              </li>
+              <li className={stage >= 2 ? "on" : ""}>
+                <b>{formatDay(current.drawAt)}</b>
+                <span>قرعه‌کشی</span>
+              </li>
+            </ol>
             <div className="split">
-              <div className="stack-sm">
-                <strong>
-                  <CreditCard size={16} /> سهم ماه {formatNumber(circle.currentMonth)}
-                </strong>
-                <span className="muted small">
-                  {thisMonth?.status === "paid" ? (
-                    "پرداخت شد. ممنون!"
+              <span className="muted small">
+                {thisMonthPaid ? (
+                  circle.wonMonth ? (
+                    "قسط این ماه پرداخت شد. ممنون!"
                   ) : (
-                    <>
-                      <Wallet size={13} style={{ verticalAlign: "-2px" }} /> اگر تا سررسید پرداخت نکنید، از کیف پولتان
-                      کسر می‌شود.
-                    </>
-                  )}
-                </span>
-              </div>
+                    `پرداخت شد؛ در قرعه‌ی ${formatDay(current.drawAt)} شرکت دارید.`
+                  )
+                ) : (
+                  <>
+                    <Wallet size={13} style={{ verticalAlign: "-2px" }} /> اگر تا {formatDay(current.lastPayDay)} پرداخت
+                    نکنید، روز {formatDay(current.drawAt)} از کیف پولتان کسر می‌شود.
+                  </>
+                )}
+              </span>
               {payable > 0 && (
                 <button className="btn primary" onClick={pay} disabled={paying}>
-                  {paying ? <Spinner /> : <CreditCard size={17} />} پرداخت {formatCompact(payable)}
+                  {paying ? <Spinner /> : <CreditCard size={17} />}
+                  {stage === 0 && !circle.owed ? "پرداخت زودتر" : "پرداخت"} {formatCompact(payable)}
                 </button>
               )}
             </div>
           </section>
         )}
 
-        {
-          <section className="card">
-            <div className="section-title">
-              <h2>ماه‌های دوره</h2>
-              <span className="muted">دریافت‌کننده‌ی هر ماه</span>
-            </div>
-            <div className="months">
-              {Array.from({ length: circle.months }, (_, i) => {
-                const month = i + 1;
-                const who = recipientOf.get(month);
-                const state = who ? "done" : month === circle.currentMonth && circle.status === "active" ? "now" : "";
-                return (
-                  <div key={month} className={`month-cell ${state} ${who?.isMe ? "mine" : ""}`}>
-                    <span>ماه {formatNumber(month)}</span>
-                    <b>
-                      {who ? seatName(who) : month === 1 ? "دیجی‌پی" : month === circle.currentMonth ? "این ماه" : "—"}
-                    </b>
+        <section className="card flush">
+          <div className="section-title padded">
+            <h2>تقویم اقساط</h2>
+            <span className="muted small">اول هر ماه قسط، روز ششم قرعه</span>
+          </div>
+          <ul className="installments">
+            {schedule.map((s) => {
+              const who = recipientOf.get(s.month);
+              const now = circle.status === "active" && s.month === circle.currentMonth;
+              return (
+                <li key={s.month} className={`${now ? "now" : ""} ${who?.isMe ? "mine" : ""}`}>
+                  <div className="inst-month">
+                    <strong>ماه {formatNumber(s.month)}</strong>
+                    <span>{s.month === 1 ? `شروع، ${formatDay(s.dueAt)}` : `سررسید ${formatDay(s.dueAt)}`}</span>
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        }
+                  <div className="inst-who">
+                    {who ? (
+                      <>
+                        {who.isMe && <Trophy size={13} />} {seatName(who)}
+                      </>
+                    ) : (
+                      <span className="muted">قرعه {formatDay(s.drawAt)}</span>
+                    )}
+                  </div>
+                  {me && <PaymentBadge contribution={paymentOf.get(s.month)} />}
+                  {paymentOf.get(s.month)?.method && (
+                    <span className="inst-method">{METHOD_LABEL[paymentOf.get(s.month).method]}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
 
         <section className="card">
           <div className="section-title">
             <h2>اعضا</h2>
-            <span className="muted">فقط شماره‌ی جایگاه نمایش داده می‌شود</span>
+            <span className="muted small">فقط شماره‌ی جایگاه نمایش داده می‌شود</span>
           </div>
           <div className="seats">
             {members.map((m) => (
@@ -277,68 +347,73 @@ export default function CircleView({ circleId, back, open }) {
                 {m.wonMonth && <Trophy size={11} className="seat-badge" />}
               </span>
             ))}
-            {Array.from({ length: circle.size - members.length }, (_, i) => (
-              <span key={`empty-${i}`} className="seat empty" aria-label="جای خالی" />
-            ))}
           </div>
         </section>
 
         <section className="card">
           <div className="section-title">
-            <h2>دفتر قرعه‌کشی</h2>
-            <span className="badge brand">
-              <Fingerprint size={13} /> قابل اثبات
-            </span>
+            <h2>قرعه‌کشی شفاف</h2>
           </div>
-          <p className="muted small" style={{ marginBottom: 14 }}>
-            پیش از اولین قرعه، اثر انگشت یک زنجیره‌ی رمزنگاری‌شده منتشر شده است. هر قرعه یک حلقه از این زنجیره را آشکار
-            می‌کند و برنده از همان حلقه، کد تصادفی گوشی اعضا و شماره‌ی ماه محاسبه می‌شود. با دکمه‌ی «بررسی»، گوشی خودتان
-            همین محاسبه را تکرار می‌کند؛ هیچ‌کس، حتی دیجی‌پی، نمی‌تواند نتیجه را عوض کند.
+          <p className="muted small" style={{ marginBottom: 12 }}>
+            هیچ‌کس، حتی دیجی‌پی، نمی‌تواند برنده را انتخاب یا نتیجه را عوض کند:
           </p>
-          <div className="fingerprints">
-            <div>
-              <span>اثر انگشت زنجیره</span>
-              <code dir="ltr">{short(view.anchor)}</code>
-            </div>
-            <div>
-              <span>کد تصادفی اعضا</span>
-              <code dir="ltr">{short(view.nonceDigest)}</code>
-            </div>
-          </div>
+          <ul className="how-list fair-list">
+            <li>
+              <Lock size={18} />
+              <span>
+                <b>قفل از قبل.</b> پیش از شروع دوره، نتیجه‌ی همه‌ی قرعه‌ها با یک کلید قفل شد و اثر انگشت آن برای همه
+                منتشر شد؛ مثل پاکت مهر و موم‌شده‌ای که دیگر نمی‌شود عوضش کرد.
+              </span>
+            </li>
+            <li>
+              <Smartphone size={18} />
+              <span>
+                <b>سهم گوشی شما.</b> گوشی هر عضو هنگام عضویت یک عدد تصادفی ساخت که در قرعه اثر دارد و دیجی‌پی از قبل
+                نمی‌دانستش.
+              </span>
+            </li>
+            <li>
+              <BadgeCheck size={18} />
+              <span>
+                <b>خودتان بررسی کنید.</b> با دکمه‌ی «بررسی»، گوشی خودتان قرعه را از نو حساب می‌کند. اگر حتی یک رقم دست
+                خورده باشد، معلوم می‌شود.
+              </span>
+            </li>
+          </ul>
+
           {draws.length === 0 ? (
             <p className="muted small">هنوز قرعه‌ای انجام نشده.</p>
           ) : (
             <ul className="timeline">
               {[...draws].reverse().map((d) => (
-                <DrawRow key={d.month} draw={d} members={members} digest={view.nonceDigest} />
+                <DrawRow key={d.month} draw={d} members={members} digest={view.nonceDigest} onReplay={setReveal} />
               ))}
             </ul>
           )}
-        </section>
 
-        {contributions.length > 0 && (
-          <section className="card">
-            <div className="section-title">
-              <h2>پرداخت‌های شما</h2>
+          <details className="tech">
+            <summary>جزئیات فنی برای کنجکاوها</summary>
+            <p>
+              کلید قفل یک زنجیره‌ی هش SHA-256 است که فقط سرِ آن («اثر انگشت») از روز اول منتشر شده. هر قرعه حلقه‌ی بعدی
+              زنجیره را آشکار می‌کند و برنده از <code dir="ltr">sha256(حلقه | کد تصادفی اعضا | ماه)</code> درمی‌آید.
+            </p>
+            <div className="fingerprints">
+              <div>
+                <span>اثر انگشت زنجیره</span>
+                <code dir="ltr">{short(view.anchor)}</code>
+              </div>
+              <div>
+                <span>کد تصادفی اعضا</span>
+                <code dir="ltr">{short(view.nonceDigest)}</code>
+              </div>
             </div>
-            <ul className="ledger">
-              {[...contributions].reverse().map((c) => (
-                <li key={c.month}>
-                  <div>
-                    ماه {formatNumber(c.month)}
-                    <span>{METHOD_LABEL[c.method] ?? ""}</span>
-                  </div>
-                  <Money amount={c.amount} />
-                  {c.status === "paid" && <span className="badge success">پرداخت شد</span>}
-                  {c.status === "settled" && <span className="badge success">تسویه شد</span>}
-                  {c.status === "covered" && <span className="badge danger">ضمانت شد، بدهکار</span>}
-                  {c.status === "due" && <span className="badge gold">این ماه</span>}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+          </details>
+        </section>
       </div>
+
+      {reveal && (
+        <DrawReveal draw={reveal} members={members} digest={view.nonceDigest} onClose={() => setReveal(null)} />
+      )}
     </div>
   );
 }

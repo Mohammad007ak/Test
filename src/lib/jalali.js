@@ -76,3 +76,35 @@ const dateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
 export function formatDate(isoString) {
   return dateFormatter.format(new Date(isoString));
 }
+
+const DAY = 24 * 60 * 60 * 1000;
+const monthIndex = ({ year, month }) => year * 12 + month - 1;
+
+// The same moment `count` Jalali months later, on the same day of the month
+// (or the month's last day, when it's shorter). Iran has no daylight saving
+// time, so stepping whole days keeps the time of day.
+export function addJalaliMonths(timestamp, count) {
+  const start = toJalali(new Date(timestamp));
+  const target = monthIndex(start) + count;
+  let t = timestamp + Math.round(count * 30.44) * DAY;
+  for (let i = 0; i < 40; i++) {
+    const current = monthIndex(toJalali(new Date(t)));
+    if (current === target) break;
+    t += (current < target ? 1 : -1) * DAY;
+  }
+  for (let i = 0; i < 40; i++) {
+    const { day } = toJalali(new Date(t));
+    if (day === start.day) break;
+    if (day > start.day) t -= DAY;
+    else if (monthIndex(toJalali(new Date(t + DAY))) !== target)
+      break; // month ended first
+    else t += DAY;
+  }
+  return t;
+}
+
+// "۱۵ مهر"
+export function formatDay(timestamp) {
+  const { month, day } = toJalali(new Date(timestamp));
+  return `${toPersianDigits(day)} ${MONTH_NAMES[month - 1]}`;
+}

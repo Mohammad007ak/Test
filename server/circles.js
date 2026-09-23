@@ -1,4 +1,6 @@
 // Guaranteed circles: the paid product, with Digipay as operator.
+// The calendar (due dates, five payment days, draw on the sixth) lives in
+// src/lib/schedule.js.
 //
 // A circle runs one plan. It fills up while "forming", then runs one month
 // per cycle. Each month every member owes one share and one member receives
@@ -7,8 +9,11 @@
 //   last month   → whoever hasn't received yet;
 //   other months → a provably fair lottery among members who haven't
 //                  received yet and don't owe anything.
-// Members pay each month through the cash gateway. Whatever is still unpaid
-// when the month closes is debited from their Digipay wallet (they agree to
+// Installments are collected at the start of each month and paid straight
+// out to that month's recipient. Month 1 is everyone's first share, paid on
+// joining; it goes to the operator the moment the circle starts. Members
+// pay later months through the cash gateway. Whatever is still unpaid
+// when the month closes (the draw, on the sixth day) is debited from their Digipay wallet (they agree to
 // this in the terms); if the wallet can't cover it, the operator pays in
 // their place ("covered") so the pot is always whole, and the member owes it.
 //
@@ -23,6 +28,7 @@ import { HttpError } from "./errors.js";
 import { planById, PLANS, potOf } from "../src/lib/plans.js";
 import { buildChain, nonceDigest, pickWinner, randomHex } from "../src/lib/fairness.js";
 import { newId } from "../src/lib/fund.js";
+import { drawAt } from "../src/lib/schedule.js";
 
 const NONCE = /^[0-9a-f]{32,64}$/;
 
@@ -194,6 +200,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       });
       if (joined) {
         await publishNonceDigest(joined.circleId);
+        await runDueDraws(joined.circleId); // pays month 1 out if this seat started it
         return joined;
       }
     }
@@ -219,6 +226,30 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
   }
 
   // ---------- running ----------
+
+  // Run every draw whose day has come (month 1's on the start day itself).
+  // Called on a timer and whenever a circle is looked at, so nothing
+  // depends on the timer alone. A failure is logged and retried next time.
+  async function runDueDraws(circleId) {
+    const circles = circleId
+      ? [getCircle(circleId)].filter(Boolean)
+      : q("SELECT * FROM circles WHERE status = 'active' AND closing = 0").all();
+    for (let circle of circles) {
+      while (
+        circle.status === "active" &&
+        !circle.closing &&
+        now() >= drawAt(circle.started_at, circle.current_month)
+      ) {
+        try {
+          await closeMonth(circle.id);
+        } catch (error) {
+          if (error.status !== 409) console.error(`draw for circle ${circle.id} failed:`, error.message);
+          break;
+        }
+        circle = getCircle(circle.id);
+      }
+    }
+  }
 
   async function closeMonth(circleId) {
     const claimed = q("UPDATE circles SET closing = 1 WHERE id = ? AND status = 'active' AND closing = 0").run(
@@ -470,6 +501,14 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     });
   }
 
+  // The reveal animation plays once per draw; this records that it did.
+  function markSeen({ phone, circleId, month }) {
+    const member = memberFor(phone, circleId);
+    const latest = q("SELECT MAX(month) AS m FROM circle_draws WHERE circle_id = ?").get(circleId).m ?? 1;
+    const seen = Math.min(Math.max(Number(month) || 1, member.seen_month), latest);
+    q("UPDATE circle_members SET seen_month = ? WHERE id = ?").run(seen, member.id);
+  }
+
   function summarize(circle, member) {
     const taken = q("SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?").get(circle.id).n;
     const outstanding = outstandingOf(circle.id, member.id);
@@ -486,6 +525,8 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       pot: circle.size * circle.share,
       currentMonth: circle.current_month,
       deadline: circle.deadline,
+      startedAt: circle.started_at,
+      seenMonth: member.seen_month,
       taken,
       position: member.position,
       payMethod: member.pay_method,
@@ -497,6 +538,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
 
   async function myCircles(phone) {
     await expireStale();
+    await runDueDraws();
     return q(
       `SELECT c.*, m.id AS member_id FROM circle_members m JOIN circles c ON c.id = m.circle_id
        WHERE m.phone = ? AND c.status != 'expired' ORDER BY c.status = 'completed', c.created_at DESC`,
@@ -508,6 +550,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
   // Members see each other only by seat number; phones never leave the server.
   async function circleView(phone, circleId, { ops = false } = {}) {
     await expireStale();
+    await runDueDraws(circleId);
     const circle = getCircle(circleId);
     if (!circle) throw new HttpError(404, "این دوره پیدا نشد.");
     const members = membersOf(circleId);
@@ -609,6 +652,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       startCircle(circle);
     });
     await publishNonceDigest(circleId);
+    await runDueDraws(circleId);
   }
 
   return {
@@ -624,5 +668,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     circleView,
     listCircles,
     fillWithBots,
+    runDueDraws,
+    markSeen,
   };
 }

@@ -476,8 +476,13 @@ export function createApp({
     }),
   );
 
+  const circles = createCircleService({ db, digipay, now, formTimeoutMs });
+  // The hosting process calls this on a timer so draws happen on their day
+  // even when nobody opens the app.
+  app.locals.runScheduledJobs = () => circles.runDueDraws();
+
   mountCircleRoutes(app, {
-    service: createCircleService({ db, digipay, now, formTimeoutMs }),
+    service: circles,
     requireLogin,
     route,
     // Ops tools (simulating months, filling circles) are open to everyone

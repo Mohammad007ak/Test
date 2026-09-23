@@ -13,5 +13,8 @@ app.use(express.static(dist, { maxAge: "1h" }));
 app.get("/app/{*path}", (req, res) => res.sendFile("app/index.html", { root: dist }));
 app.use((req, res) => res.status(404).sendFile("404.html", { root: dist }));
 
+// Draws run on their scheduled day (see src/lib/schedule.js).
+setInterval(() => app.locals.runScheduledJobs().catch((e) => console.error(e)), 60 * 1000);
+
 const port = Number(process.env.PORT ?? 3000);
 app.listen(port, () => console.log(`Digi Gharz running on http://localhost:${port}`));
