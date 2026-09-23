@@ -19,14 +19,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// The app lives at the root: opened from the Digipay mini-app or by typing
+// the bare domain. Old /app/ links still work and move to the root. The
+// marketing page is at /welcome/.
+const sendApp = (req, res) => res.sendFile("app/index.html", { root: dist });
+app.get("/", sendApp);
+app.get(["/app", "/app/{*path}"], (req, res) => {
+  const query = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+  res.redirect(301, `/${query}`);
+});
+app.get(["/welcome", "/welcome/"], (req, res) => res.sendFile("index.html", { root: dist }));
+
 // Hashed build assets never change, so browsers may keep them for a year.
 app.use("/assets", express.static(`${dist}/assets`, { immutable: true, maxAge: "1y" }));
 app.use(express.static(dist, { maxAge: "1h" }));
 
-// The landing page and the app, spelled out so they never depend on
-// directory-index handling.
-app.get("/", (req, res) => res.sendFile("index.html", { root: dist }));
-app.get(["/app", "/app/{*path}"], (req, res) => res.sendFile("app/index.html", { root: dist }));
 app.use((req, res) => {
   console.warn(`404 ${req.method} ${req.originalUrl}`);
   res.status(404).sendFile("404.html", { root: dist });

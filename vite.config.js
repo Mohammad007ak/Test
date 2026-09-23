@@ -6,7 +6,7 @@ const page = (path) => fileURLToPath(new URL(path, import.meta.url));
 
 // Public pages that belong in the sitemap, with their relative priority.
 const SITEMAP = [
-  { path: "/", priority: "1.0", changefreq: "weekly" },
+  { path: "/welcome/", priority: "1.0", changefreq: "weekly" },
   { path: "/guide/family-loan-fund/", priority: "0.8", changefreq: "monthly" },
 ];
 
@@ -26,6 +26,13 @@ function apiServer() {
       const app = createAppFromEnv();
       setInterval(() => app.locals.runScheduledJobs().catch((e) => console.error(e)), 60 * 1000);
       server.middlewares.use((req, res, next) => (req.url.startsWith("/api/") ? app(req, res, next) : next()));
+      // Same URLs as production: the app at the root, the landing page at /welcome/.
+      server.middlewares.use((req, res, next) => {
+        const [path, query] = req.url.split("?");
+        if (path === "/") req.url = `/app/${query ? `?${query}` : ""}`;
+        else if (path === "/welcome" || path === "/welcome/") req.url = "/index.html";
+        next();
+      });
     },
   };
 }
