@@ -103,7 +103,7 @@ export default function Login({ onLogin }) {
             </span>
             <div>
               <strong>پول دست خودتان است</strong>
-              <span>صندوقچه فقط حساب‌وکتاب را نگه می‌دارد؛ پولی از اپ رد نمی‌شود.</span>
+              <span>دیجی قرض فقط حساب‌وکتاب را نگه می‌دارد؛ پولی از اپ رد نمی‌شود.</span>
             </div>
           </li>
         </ul>
@@ -120,7 +120,7 @@ export default function Login({ onLogin }) {
           {step === "phone" ? (
             <>
               <header>
-                <h2>ورود به صندوقچه</h2>
+                <h2>ورود به دیجی قرض</h2>
                 <p>شماره موبایلتان را وارد کنید تا کد ورود برایتان پیامک شود.</p>
               </header>
               <label className="field">

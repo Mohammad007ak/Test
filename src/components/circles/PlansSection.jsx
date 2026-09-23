@@ -18,7 +18,11 @@ function CircleStatus({ c }) {
   if (c.status === "completed") return <span className="badge">پایان‌یافته</span>;
   if (c.owed) return <span className="badge danger">{formatCompact(c.owed)} بدهی</span>;
   if (c.wonMonth) return <span className="badge gold">دریافت کرده‌اید</span>;
-  return <span className="badge brand">ماه {formatNumber(c.currentMonth)} از {formatNumber(c.months)}</span>;
+  return (
+    <span className="badge brand">
+      ماه {formatNumber(c.currentMonth)} از {formatNumber(c.months)}
+    </span>
+  );
 }
 
 export default function PlansSection({ open }) {
@@ -71,7 +75,8 @@ export default function PlansSection({ open }) {
           </span>
         </div>
         <p className="muted small" style={{ marginBottom: 14 }}>
-          صندوق با آدم‌های اعتبارسنجی‌شده؛ دیجی‌پی مدیریت و ضمانت اقساط را بر عهده دارد و قرعه‌ها برای همه قابل بررسی است.
+          صندوق با آدم‌های اعتبارسنجی‌شده؛ دیجی‌پی مدیریت و ضمانت اقساط را بر عهده دارد و قرعه‌ها برای همه قابل بررسی
+          است.
         </p>
         {!plans ? (
           <div className="plan-grid">
@@ -113,7 +118,7 @@ export default function PlansSection({ open }) {
                   </span>
                 </div>
                 <button className={`btn ${i === 1 ? "primary" : "outline"} block`} onClick={() => setJoining(p)}>
-                  عضویت در طرح
+                  دریافت
                 </button>
               </article>
             ))}
@@ -132,7 +137,7 @@ export default function PlansSection({ open }) {
         onClose={() => setJoining(null)}
         onJoined={(circleId) => {
           setJoining(null);
-          toast("به طرح پیوستید");
+          toast("به صف گروه پیوستید");
           open("circle", circleId);
         }}
       />

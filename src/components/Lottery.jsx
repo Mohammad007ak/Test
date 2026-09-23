@@ -10,7 +10,7 @@ import { monthLabel } from "../lib/jalali.js";
 
 const ITEM = 76;
 const SPIN_MS = 4200;
-const CONFETTI = ["#f0c46a", "#f7d27d", "#3fbf96", "#ffffff", "#e6a92c"];
+const CONFETTI = ["#ffc53d", "#ffd66e", "#5c6bff", "#ffffff", "#0000ff"];
 
 function Confetti() {
   const pieces = useMemo(

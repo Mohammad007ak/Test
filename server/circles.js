@@ -7,8 +7,13 @@
 //   last month   → whoever hasn't received yet;
 //   other months → a provably fair lottery among members who haven't
 //                  received yet and don't owe anything.
-// If a member doesn't pay by the time the month closes, the operator pays in
-// their place ("covered") so the pot is always whole; the member still owes it.
+// Members pay each month through the cash gateway. Whatever is still unpaid
+// when the month closes is debited from their Digipay wallet (they agree to
+// this in the terms); if the wallet can't cover it, the operator pays in
+// their place ("covered") so the pot is always whole, and the member owes it.
+//
+// A forming circle waits for members until its deadline; if it doesn't fill
+// in time it expires and everyone in it is released.
 
 import { transaction } from "./db.js";
 import { HttpError } from "./errors.js";
@@ -18,7 +23,9 @@ import { newId } from "../src/lib/fund.js";
 
 const NONCE = /^[0-9a-f]{32,64}$/;
 
-export function createCircleService({ db, digipay, now = Date.now }) {
+const HOUR = 60 * 60 * 1000;
+
+export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs = HOUR }) {
   const q = (sql) => db.prepare(sql);
 
   const getCircle = (id) => q("SELECT * FROM circles WHERE id = ?").get(id);
@@ -33,9 +40,9 @@ export function createCircleService({ db, digipay, now = Date.now }) {
     const id = newId();
     transaction(db, () => {
       q(
-        `INSERT INTO circles (id, plan_id, status, size, months, share, chain_secret, anchor, created_at)
-         VALUES (?, ?, 'forming', ?, ?, ?, ?, ?, ?)`,
-      ).run(id, plan.id, plan.size, plan.months, plan.share, secret, anchor, now());
+        `INSERT INTO circles (id, plan_id, status, size, months, share, chain_secret, anchor, created_at, deadline)
+         VALUES (?, ?, 'forming', ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(id, plan.id, plan.size, plan.months, plan.share, secret, anchor, now(), now() + formTimeoutMs);
       q(
         `INSERT INTO circle_members (id, circle_id, position, phone, is_operator, nonce, pay_method, joined_at)
          VALUES (?, ?, 1, NULL, 1, ?, 'operator', ?)`,
@@ -46,9 +53,21 @@ export function createCircleService({ db, digipay, now = Date.now }) {
 
   async function openCircleFor(plan) {
     const open = q(
-      "SELECT id FROM circles WHERE plan_id = ? AND status = 'forming' ORDER BY created_at LIMIT 1",
-    ).get(plan.id);
+      "SELECT id FROM circles WHERE plan_id = ? AND status = 'forming' AND deadline > ? ORDER BY created_at LIMIT 1",
+    ).get(plan.id, now());
     return open?.id ?? createCircle(plan);
+  }
+
+  // Release everyone from circles that didn't fill before their deadline.
+  async function expireStale() {
+    const stale = q("SELECT id FROM circles WHERE status = 'forming' AND deadline <= ?").all(now());
+    for (const { id } of stale) {
+      const expired = q("UPDATE circles SET status = 'expired' WHERE id = ? AND status = 'forming'").run(id).changes;
+      if (!expired) continue;
+      for (const m of membersOf(id)) {
+        if (m.mandate_id) await digipay.payments.revokeMandate({ mandateId: m.mandate_id });
+      }
+    }
   }
 
   function openMonth(circleId, month, share) {
@@ -77,7 +96,7 @@ export function createCircleService({ db, digipay, now = Date.now }) {
   function committedMonthly(phone) {
     return q(
       `SELECT COALESCE(SUM(c.share), 0) AS total FROM circle_members m JOIN circles c ON c.id = m.circle_id
-       WHERE m.phone = ? AND c.status != 'completed'`,
+       WHERE m.phone = ? AND c.status IN ('forming', 'active')`,
     ).get(phone).total;
   }
 
@@ -92,13 +111,13 @@ export function createCircleService({ db, digipay, now = Date.now }) {
     };
   }
 
-  async function join({ phone, planId, payMethod, nonce }) {
+  async function join({ phone, planId, nonce }) {
     const plan = planById(planId);
     if (!plan) throw new HttpError(404, "این طرح پیدا نشد.");
-    if (!["auto", "manual"].includes(payMethod)) throw new HttpError(400, "روش پرداخت را انتخاب کنید.");
+    await expireStale();
     const already = q(
       `SELECT 1 FROM circle_members m JOIN circles c ON c.id = m.circle_id
-       WHERE m.phone = ? AND c.plan_id = ? AND c.status != 'completed'`,
+       WHERE m.phone = ? AND c.plan_id = ? AND c.status IN ('forming', 'active')`,
     ).get(phone, plan.id);
     if (already) throw new HttpError(409, "شما در یک دوره‌ی فعال از همین طرح عضو هستید.");
 
@@ -108,10 +127,8 @@ export function createCircleService({ db, digipay, now = Date.now }) {
       throw new HttpError(403, "سقف اعتبار ماهانه‌ی شما برای این طرح کافی نیست. طرح کوچک‌تری را امتحان کنید.");
     }
 
-    const mandate =
-      payMethod === "auto"
-        ? await digipay.payments.createMandate({ phone, monthlyAmount: plan.share, months: plan.months })
-        : null;
+    // The wallet-debit fallback the member agrees to in the terms.
+    const mandate = await digipay.payments.createMandate({ phone, monthlyAmount: plan.share, months: plan.months });
     // A nonce from the member's own device: entropy the server couldn't know
     // when it committed to the hash chain.
     const memberNonce = NONCE.test(nonce ?? "") ? nonce : randomHex(16);
@@ -125,8 +142,8 @@ export function createCircleService({ db, digipay, now = Date.now }) {
         const memberId = newId();
         q(
           `INSERT INTO circle_members (id, circle_id, position, phone, nonce, pay_method, mandate_id, joined_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        ).run(memberId, circleId, taken + 1, phone, memberNonce, payMethod, mandate?.mandateId ?? null, now());
+           VALUES (?, ?, ?, ?, ?, 'manual', ?, ?)`,
+        ).run(memberId, circleId, taken + 1, phone, memberNonce, mandate.mandateId, now());
         if (taken + 1 === circle.size) startCircle(circle);
         return { circleId, memberId };
       });
@@ -136,6 +153,21 @@ export function createCircleService({ db, digipay, now = Date.now }) {
       }
     }
     throw new HttpError(503, "لطفاً دوباره تلاش کنید.");
+  }
+
+  // Leaving is only possible while waiting for the circle to fill. Seats
+  // behind the leaver move up so positions stay 1..n.
+  async function leave({ phone, circleId }) {
+    const member = memberFor(phone, circleId);
+    const left = transaction(db, () => {
+      if (getCircle(circleId).status !== "forming") return false;
+      q("DELETE FROM circle_members WHERE id = ?").run(member.id);
+      q("UPDATE circle_members SET position = -position WHERE circle_id = ? AND position > ?").run(circleId, member.position);
+      q("UPDATE circle_members SET position = -position - 1 WHERE circle_id = ? AND position < 0").run(circleId);
+      return true;
+    });
+    if (!left) throw new HttpError(400, "گروه شروع شده و دیگر نمی‌شود از آن خارج شد.");
+    if (member.mandate_id) await digipay.payments.revokeMandate({ mandateId: member.mandate_id });
   }
 
   // ---------- running ----------
@@ -152,14 +184,14 @@ export function createCircleService({ db, digipay, now = Date.now }) {
       const month = circle.current_month;
       const members = membersOf(circleId);
 
-      // 1. Collect automatic payments.
+      // 1. Debit the wallet of anyone who hasn't paid through the gateway.
       const due = q("SELECT * FROM contributions WHERE circle_id = ? AND month = ? AND status = 'due'").all(
         circleId,
         month,
       );
       for (const d of due) {
         const member = members.find((m) => m.id === d.member_id);
-        if (member.pay_method !== "auto" || !member.mandate_id) continue;
+        if (member.is_operator || !member.mandate_id) continue;
         const charge = await digipay.payments.charge({
           mandateId: member.mandate_id,
           amount: d.amount,
@@ -167,7 +199,7 @@ export function createCircleService({ db, digipay, now = Date.now }) {
         });
         if (charge.ok) {
           q(
-            `UPDATE contributions SET status = 'paid', method = 'auto', ref = ?, paid_at = ?
+            `UPDATE contributions SET status = 'paid', method = 'wallet', ref = ?, paid_at = ?
              WHERE circle_id = ? AND member_id = ? AND month = ? AND status = 'due'`,
           ).run(charge.ref, now(), circleId, member.id, month);
         }
@@ -316,7 +348,8 @@ export function createCircleService({ db, digipay, now = Date.now }) {
 
   // ---------- views ----------
 
-  function planSummaries() {
+  async function planSummaries() {
+    await expireStale();
     return PLANS.map((plan) => {
       const open = q(
         `SELECT c.id, COUNT(m.id) AS taken FROM circles c JOIN circle_members m ON m.circle_id = c.id
@@ -341,6 +374,7 @@ export function createCircleService({ db, digipay, now = Date.now }) {
       share: circle.share,
       pot: circle.size * circle.share,
       currentMonth: circle.current_month,
+      deadline: circle.deadline,
       taken,
       position: member.position,
       payMethod: member.pay_method,
@@ -350,17 +384,19 @@ export function createCircleService({ db, digipay, now = Date.now }) {
     };
   }
 
-  function myCircles(phone) {
+  async function myCircles(phone) {
+    await expireStale();
     return q(
       `SELECT c.*, m.id AS member_id FROM circle_members m JOIN circles c ON c.id = m.circle_id
-       WHERE m.phone = ? ORDER BY c.status = 'completed', c.created_at DESC`,
+       WHERE m.phone = ? AND c.status != 'expired' ORDER BY c.status = 'completed', c.created_at DESC`,
     )
       .all(phone)
       .map((row) => summarize(row, q("SELECT * FROM circle_members WHERE id = ?").get(row.member_id)));
   }
 
   // Members see each other only by seat number; phones never leave the server.
-  function circleView(phone, circleId, { ops = false } = {}) {
+  async function circleView(phone, circleId, { ops = false } = {}) {
+    await expireStale();
     const circle = getCircle(circleId);
     if (!circle) throw new HttpError(404, "این دوره پیدا نشد.");
     const members = membersOf(circleId);
@@ -453,6 +489,7 @@ export function createCircleService({ db, digipay, now = Date.now }) {
   return {
     eligibility,
     join,
+    leave,
     closeMonth,
     startCheckout,
     getCheckout,
@@ -462,6 +499,5 @@ export function createCircleService({ db, digipay, now = Date.now }) {
     circleView,
     listCircles,
     fillWithBots,
-    ensureOpenCircles: () => Promise.all(PLANS.map(openCircleFor)),
   };
 }

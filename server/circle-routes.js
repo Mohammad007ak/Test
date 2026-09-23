@@ -4,7 +4,10 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
   const requireOps = (req, res, next) =>
     isOps(req.phone) ? next() : res.status(403).json({ error: "دسترسی ندارید." });
 
-  app.get("/api/plans", (req, res) => res.json({ plans: service.planSummaries(), simulator }));
+  app.get(
+    "/api/plans",
+    route(async (req, res) => res.json({ plans: await service.planSummaries(), simulator })),
+  );
 
   app.get(
     "/api/eligibility",
@@ -15,7 +18,7 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
   app.get(
     "/api/circles",
     requireLogin,
-    route((req, res) => res.json({ circles: service.myCircles(req.phone), ops: isOps(req.phone) })),
+    route(async (req, res) => res.json({ circles: await service.myCircles(req.phone), ops: isOps(req.phone) })),
   );
 
   app.post(
@@ -23,12 +26,7 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
     requireLogin,
     route(async (req, res) => {
       if (req.body.accept !== true) throw new HttpError(400, "برای عضویت باید شرایط طرح را بپذیرید.");
-      const joined = await service.join({
-        phone: req.phone,
-        planId: req.body.planId,
-        payMethod: req.body.payMethod,
-        nonce: req.body.nonce,
-      });
+      const joined = await service.join({ phone: req.phone, planId: req.body.planId, nonce: req.body.nonce });
       res.status(201).json(joined);
     }),
   );
@@ -36,7 +34,19 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
   app.get(
     "/api/circles/:id",
     requireLogin,
-    route((req, res) => res.json(service.circleView(req.phone, req.params.id, { ops: isOps(req.phone) }))),
+    route(async (req, res) => {
+      const ops = isOps(req.phone);
+      res.json({ ...(await service.circleView(req.phone, req.params.id, { ops })), ops });
+    }),
+  );
+
+  app.post(
+    "/api/circles/:id/leave",
+    requireLogin,
+    route(async (req, res) => {
+      await service.leave({ phone: req.phone, circleId: req.params.id });
+      res.json({ ok: true });
+    }),
   );
 
   app.post(

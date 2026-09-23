@@ -28,10 +28,16 @@ export function createDigipaySimulator() {
     },
 
     payments: {
+      // For demos, a phone whose second-to-last digit is 5 has an empty
+      // wallet, so wallet debits on it fail and the guarantee kicks in.
       async createMandate({ phone, monthlyAmount, months }) {
-        return { mandateId: ref("mandate"), phone, monthlyAmount, months };
+        const emptyWallet = String(phone).slice(-2, -1) === "5";
+        return { mandateId: ref(emptyWallet ? "mandate-failing" : "mandate"), phone, monthlyAmount, months };
       },
-      // Mandates created with failing: true (used for demo bots) always decline.
+      async revokeMandate() {
+        return { ok: true };
+      },
+      // Mandates with "-failing-" in their id always decline.
       async charge({ mandateId, amount }) {
         if (String(mandateId).includes("-failing-")) return { ok: false, reason: "insufficient_funds" };
         return { ok: true, ref: ref("charge"), amount };

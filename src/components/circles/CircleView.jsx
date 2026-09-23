@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Pattern from "../../ui/Pattern.jsx";
 import { LogoMark } from "../../ui/Logo.jsx";
+import WaitingRoom from "./WaitingRoom.jsx";
 import { Money, PageSkeleton, Spinner } from "../../ui/bits.jsx";
 import { useToast } from "../../ui/feedback.jsx";
 import { api } from "../../lib/api.js";
@@ -21,6 +22,13 @@ import { verifyDraw } from "../../lib/fairness.js";
 import { planById } from "../../lib/plans.js";
 import { formatCompact, formatNumber } from "../../lib/format.js";
 import { toPersianDigits } from "../../lib/jalali.js";
+
+const METHOD_LABEL = {
+  manual: "درگاه پرداخت",
+  wallet: "کسر از کیف پول",
+  auto: "کسر از کیف پول",
+  guarantee: "ضمانت دیجی‌پی",
+};
 
 const short = (hex) => (hex ? `${hex.slice(0, 10)}…${hex.slice(-6)}` : "—");
 
@@ -92,6 +100,17 @@ export default function CircleView({ circleId, back, open }) {
     load();
   }, [load]);
 
+  // While the group is filling, check every few seconds.
+  const status = view?.circle.status;
+  const previous = useRef(status);
+  useEffect(() => {
+    if (previous.current === "forming" && status === "active") toast("گروه شما تکمیل شد و دوره شروع شد 🎉");
+    previous.current = status;
+    if (status !== "forming") return;
+    const t = setInterval(load, 3000);
+    return () => clearInterval(t);
+  }, [status, load, toast]);
+
   const header = (
     <header className="appbar">
       <button className="icon-btn" onClick={back} aria-label="بازگشت">
@@ -99,7 +118,9 @@ export default function CircleView({ circleId, back, open }) {
       </button>
       <div className="appbar-title">
         <h1>{view ? planById(view.circle.planId)?.title : "دوره"}</h1>
-        <div className="sub">{view && `سهم ${formatCompact(view.circle.share)}، پات ${formatCompact(view.circle.pot)} تومان`}</div>
+        <div className="sub">
+          {view && `سهم ${formatCompact(view.circle.share)}، پات ${formatCompact(view.circle.pot)} تومان`}
+        </div>
       </div>
     </header>
   );
@@ -124,7 +145,7 @@ export default function CircleView({ circleId, back, open }) {
   const { circle, members, draws, contributions } = view;
   const me = members.find((m) => m.isMe);
   const thisMonth = contributions.find((c) => c.month === circle.currentMonth);
-  const payable = circle.owed + (circle.payMethod === "manual" ? circle.dueNow : 0);
+  const payable = circle.owed + circle.dueNow;
   const recipientOf = new Map(draws.map((d) => [d.month, members.find((m) => m.id === d.winner)]));
 
   const pay = async () => {
@@ -139,30 +160,17 @@ export default function CircleView({ circleId, back, open }) {
     }
   };
 
-  let hero;
-  if (circle.status === "forming") {
-    hero = (
-      <section className="hero">
-        <Pattern />
-        <div className="hero-label">
-          <Hourglass size={16} /> در انتظار تکمیل ظرفیت
-        </div>
-        <div className="hero-figure">
-          {formatNumber(circle.taken)}
-          <small>از {formatNumber(circle.size)} نفر</small>
-        </div>
-        <div className="hero-meter">
-          <div className="track">
-            <div className="fill" style={{ width: `${(circle.taken / circle.size) * 100}%` }} />
-          </div>
-          <div className="labels">
-            <span>جای شما: عضو {formatNumber(circle.position)}</span>
-            <span>با پر شدن ظرفیت، ماه اول شروع می‌شود</span>
-          </div>
-        </div>
-      </section>
+  if (circle.status === "forming" || circle.status === "expired") {
+    return (
+      <div className="home">
+        {header}
+        <WaitingRoom view={view} ops={view.ops} reload={load} onLeft={back} onRetry={back} />
+      </div>
     );
-  } else if (circle.wonMonth && me) {
+  }
+
+  let hero;
+  if (circle.wonMonth && me) {
     hero = (
       <section className="hero">
         <Pattern />
@@ -186,7 +194,9 @@ export default function CircleView({ circleId, back, open }) {
         <Pattern />
         <div className="hero-label">
           <CalendarClock size={16} />
-          {circle.status === "completed" ? "دوره تمام شده" : `ماه ${formatNumber(circle.currentMonth)} از ${formatNumber(circle.months)}`}
+          {circle.status === "completed"
+            ? "دوره تمام شده"
+            : `ماه ${formatNumber(circle.currentMonth)} از ${formatNumber(circle.months)}`}
         </div>
         <div className="hero-figure">
           {Math.round(circle.pot).toLocaleString("fa-IR")}
@@ -212,28 +222,29 @@ export default function CircleView({ circleId, back, open }) {
             <div className="split">
               <div className="stack-sm">
                 <strong>
-                  {circle.payMethod === "auto" ? <Wallet size={16} /> : <CreditCard size={16} />}{" "}
-                  {circle.payMethod === "auto" ? "برداشت خودکار از کیف پول" : "پرداخت دستی"}
+                  <CreditCard size={16} /> سهم ماه {formatNumber(circle.currentMonth)}
                 </strong>
                 <span className="muted small">
-                  سهم ماه {formatNumber(circle.currentMonth)}:{" "}
-                  {thisMonth?.status === "paid"
-                    ? "پرداخت شد"
-                    : circle.payMethod === "auto"
-                      ? "در سررسید خودکار برداشت می‌شود"
-                      : "هنوز پرداخت نشده"}
+                  {thisMonth?.status === "paid" ? (
+                    "پرداخت شد. ممنون!"
+                  ) : (
+                    <>
+                      <Wallet size={13} style={{ verticalAlign: "-2px" }} /> اگر تا سررسید پرداخت نکنید، از کیف پولتان
+                      کسر می‌شود.
+                    </>
+                  )}
                 </span>
               </div>
               {payable > 0 && (
                 <button className="btn primary" onClick={pay} disabled={paying}>
-                  {paying ? <Spinner /> : <CreditCard size={17} />} پرداخت {formatCompact(circle.owed + circle.dueNow)}
+                  {paying ? <Spinner /> : <CreditCard size={17} />} پرداخت {formatCompact(payable)}
                 </button>
               )}
             </div>
           </section>
         )}
 
-        {circle.status !== "forming" && (
+        {
           <section className="card">
             <div className="section-title">
               <h2>ماه‌های دوره</h2>
@@ -247,13 +258,15 @@ export default function CircleView({ circleId, back, open }) {
                 return (
                   <div key={month} className={`month-cell ${state} ${who?.isMe ? "mine" : ""}`}>
                     <span>ماه {formatNumber(month)}</span>
-                    <b>{who ? seatName(who) : month === 1 ? "دیجی‌پی" : month === circle.currentMonth ? "این ماه" : "—"}</b>
+                    <b>
+                      {who ? seatName(who) : month === 1 ? "دیجی‌پی" : month === circle.currentMonth ? "این ماه" : "—"}
+                    </b>
                   </div>
                 );
               })}
             </div>
           </section>
-        )}
+        }
 
         <section className="card">
           <div className="section-title">
@@ -262,7 +275,10 @@ export default function CircleView({ circleId, back, open }) {
           </div>
           <div className="seats">
             {members.map((m) => (
-              <span key={m.id} className={`seat ${m.isOperator ? "op" : ""} ${m.isMe ? "me" : ""} ${m.wonMonth ? "won" : ""}`}>
+              <span
+                key={m.id}
+                className={`seat ${m.isOperator ? "op" : ""} ${m.isMe ? "me" : ""} ${m.wonMonth ? "won" : ""}`}
+              >
                 {m.isOperator ? <LogoMark size={22} /> : toPersianDigits(m.position)}
                 {m.wonMonth && <Trophy size={11} className="seat-badge" />}
               </span>
@@ -316,7 +332,7 @@ export default function CircleView({ circleId, back, open }) {
                 <li key={c.month}>
                   <div>
                     ماه {formatNumber(c.month)}
-                    <span>{c.method === "auto" ? "برداشت خودکار" : c.method === "manual" ? "پرداخت دستی" : ""}</span>
+                    <span>{METHOD_LABEL[c.method] ?? ""}</span>
                   </div>
                   <Money amount={c.amount} />
                   {c.status === "paid" && <span className="badge success">پرداخت شد</span>}

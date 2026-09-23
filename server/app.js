@@ -52,6 +52,7 @@ export function createApp({
   random = secureRandom,
   digipay = createDigipaySimulator(),
   opsPhones = [],
+  formTimeoutMs,
 }) {
   const app = express();
   app.use(express.json({ limit: "2mb" }));
@@ -477,7 +478,7 @@ export function createApp({
   );
 
   mountCircleRoutes(app, {
-    service: createCircleService({ db, digipay, now }),
+    service: createCircleService({ db, digipay, now, formTimeoutMs }),
     requireLogin,
     route,
     // Ops tools (simulating months, filling circles) are open to everyone

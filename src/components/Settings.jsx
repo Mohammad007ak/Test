@@ -33,7 +33,7 @@ export default function Settings({ state, update, server, goHome }) {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `sandoghche-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `digi-gharz-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
     toast("فایل پشتیبان دانلود شد");

@@ -14,4 +14,4 @@ app.get("/app/{*path}", (req, res) => res.sendFile("app/index.html", { root: dis
 app.use((req, res) => res.status(404).sendFile("404.html", { root: dist }));
 
 const port = Number(process.env.PORT ?? 3000);
-app.listen(port, () => console.log(`Sandoghche running on http://localhost:${port}`));
+app.listen(port, () => console.log(`Digi Gharz running on http://localhost:${port}`));

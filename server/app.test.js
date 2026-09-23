@@ -183,10 +183,10 @@ test("joining a guaranteed plan needs explicit acceptance, then shows up in my c
   const plans = await call("GET", "/api/plans");
   assert.equal(plans.body.plans.length, 3);
 
-  const refused = await call("POST", "/api/circles/join", { planId: "p12-5", payMethod: "auto" });
+  const refused = await call("POST", "/api/circles/join", { planId: "p12-5" });
   assert.equal(refused.status, 400);
 
-  const joined = await call("POST", "/api/circles/join", { planId: "p12-5", payMethod: "auto", accept: true });
+  const joined = await call("POST", "/api/circles/join", { planId: "p12-5", accept: true });
   assert.equal(joined.status, 201);
   const mine = await call("GET", "/api/circles");
   assert.equal(mine.body.circles[0].id, joined.body.circleId);

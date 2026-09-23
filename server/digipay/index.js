@@ -4,6 +4,7 @@ import { createDigipaySimulator } from "./simulator.js";
 //   identity.verifyLaunchToken(token)            → { phone } | null
 //   scoring.check(phone)                         → { approved, monthlyLimit }
 //   payments.createMandate({ phone, monthlyAmount, months }) → { mandateId }
+//   payments.revokeMandate({ mandateId })        → { ok }
 //   payments.charge({ mandateId, amount, ref })  → { ok, ref }
 //   payments.createCheckout({ phone, amount, ref }) → { checkoutRef, url }
 //   payments.verifyCheckout({ checkoutRef, action }) → { ok, ref }

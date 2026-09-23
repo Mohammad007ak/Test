@@ -1,14 +1,22 @@
-// A chest (صندوقچه) whose lid carries an eight-pointed star.
+// Digipay's chevron on its blue tile, with a coin under it for the loan.
 export function LogoMark({ size = 34, light = false }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
-      <rect width="40" height="40" rx="12" fill={light ? "rgb(255 255 255 / 0.12)" : "var(--brand)"} />
-      <path d="M9 17h22v13a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3z" fill={light ? "#fff" : "var(--brand-ink)"} opacity="0.95" />
-      <path d="M9 17c0-5 4.5-9 11-9s11 4 11 9z" fill={light ? "#fff" : "var(--brand-ink)"} opacity="0.6" />
-      <path
-        d="M20 19.5l1.2 2.1 2.3-.6-.6 2.3 2.1 1.2-2.1 1.2.6 2.3-2.3-.6-1.2 2.1-1.2-2.1-2.3.6.6-2.3-2.1-1.2 2.1-1.2-.6-2.3 2.3.6z"
-        fill="#e6a92c"
+      <rect
+        width="40"
+        height="40"
+        rx="12"
+        fill={light ? "rgb(255 255 255 / 0.14)" : "var(--brand)"}
       />
+      <path
+        d="M12 22.5l8-8 8 8"
+        fill="none"
+        stroke={light ? "#fff" : "var(--brand-ink)"}
+        strokeWidth="4.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="20" cy="29" r="2.6" fill="#ffc53d" />
     </svg>
   );
 }
@@ -17,7 +25,7 @@ export function Logo({ light = false }) {
   return (
     <div className="brand">
       <LogoMark light={light} />
-      صندوقچه
+      دیجی قرض
     </div>
   );
 }

@@ -30,7 +30,12 @@ export default function Checkout({ checkoutId, done }) {
   };
 
   if (error) return <p className="error-text home">{error.message}</p>;
-  if (!checkout) return <div className="home"><PageSkeleton /></div>;
+  if (!checkout)
+    return (
+      <div className="home">
+        <PageSkeleton />
+      </div>
+    );
 
   return (
     <div className="checkout-wrap">

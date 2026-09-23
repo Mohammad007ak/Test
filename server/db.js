@@ -60,7 +60,7 @@ const SCHEMA = `
   CREATE TABLE IF NOT EXISTS circles (
     id TEXT PRIMARY KEY,
     plan_id TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('forming', 'active', 'completed')),
+    status TEXT NOT NULL CHECK (status IN ('forming', 'active', 'completed', 'expired')),
     size INTEGER NOT NULL,
     months INTEGER NOT NULL,
     share INTEGER NOT NULL,
@@ -70,6 +70,7 @@ const SCHEMA = `
     current_month INTEGER NOT NULL DEFAULT 0,
     closing INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
+    deadline INTEGER NOT NULL,
     started_at INTEGER
   );
   CREATE INDEX IF NOT EXISTS circles_plan ON circles (plan_id, status);
@@ -135,10 +136,25 @@ const SCHEMA = `
   );
 `;
 
+// The circle tables changed shape before release (queue deadlines). They
+// only ever held simulator data, so an old copy is dropped and rebuilt.
+function dropPreReleaseCircleTables(db) {
+  const columns = db.prepare("PRAGMA table_info(circles)").all();
+  if (columns.length === 0 || columns.some((c) => c.name === "deadline")) return;
+  db.exec(`
+    DROP TABLE IF EXISTS checkouts;
+    DROP TABLE IF EXISTS circle_draws;
+    DROP TABLE IF EXISTS contributions;
+    DROP TABLE IF EXISTS circle_members;
+    DROP TABLE IF EXISTS circles;
+  `);
+}
+
 export function openDatabase(path) {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
+  dropPreReleaseCircleTables(db);
   db.exec(SCHEMA);
   return db;
 }
