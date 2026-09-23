@@ -14,7 +14,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm config set registry "$NPM_REGISTRY" && npm ci
 COPY . .
-RUN SITE_URL="$SITE_URL" npm run build && npm prune --omit=dev
+RUN SITE_URL="$SITE_URL" npm run build && npm prune --omit=dev \
+    && date -u +%Y-%m-%dT%H:%M:%SZ > BUILT_AT
 
 FROM ${NODE_IMAGE}
 # node:sqlite is stable enough for us; hide its "experimental" start-up warning.
@@ -23,7 +24,7 @@ ENV NODE_ENV=production \
     PORT=3000 \
     DB_PATH=/app/data/digi-gharz.db
 WORKDIR /app
-COPY --from=build /app/package.json ./
+COPY --from=build /app/package.json /app/BUILT_AT ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server

@@ -1,4 +1,5 @@
 import express from "express";
+import { readFileSync } from "node:fs";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { transaction } from "./db.js";
 import { HttpError } from "./errors.js";
@@ -255,10 +256,16 @@ export function createApp({
 
   app.get("/api/me", requireLogin, (req, res) => res.json({ phone: req.phone }));
 
-  // For the hosting platform's health checks.
+  // For the hosting platform's health checks, and to see which build is live.
+  let builtAt = null;
+  try {
+    builtAt = readFileSync(new URL("../BUILT_AT", import.meta.url), "utf8").trim();
+  } catch {
+    // Not a Docker build.
+  }
   app.get("/api/health", (req, res) => {
     db.prepare("SELECT 1").get();
-    res.json({ ok: true, demo });
+    res.json({ ok: true, demo, builtAt });
   });
 
   // ---------- funds (manager) ----------
