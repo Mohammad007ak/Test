@@ -16,6 +16,12 @@ function apiServer() {
   return {
     name: "sandogh-api",
     async configureServer(server) {
+      // Server settings (SMS keys, DEMO_MODE, ...) come from .env, as with `npm start`.
+      try {
+        process.loadEnvFile(".env");
+      } catch {
+        // No .env: dev defaults (codes shown on screen).
+      }
       const { createAppFromEnv } = await server.ssrLoadModule("/server/config.js");
       const app = createAppFromEnv();
       setInterval(() => app.locals.runScheduledJobs().catch((e) => console.error(e)), 60 * 1000);

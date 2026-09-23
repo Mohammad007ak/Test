@@ -7,10 +7,7 @@ import { createDigipay } from "./digipay/index.js";
 export function createAppFromEnv(env = process.env) {
   const production = env.NODE_ENV === "production";
   const db = openDatabase(env.DB_PATH ?? "data/sandogh.db");
-  const sendCode = createSmsSender({
-    apiKey: env.KAVENEGAR_API_KEY,
-    template: env.KAVENEGAR_TEMPLATE ?? "sandogh-login",
-  });
+  const sendCode = createSmsSender(env);
   const opsPhones = (env.OPS_PHONES ?? "")
     .split(",")
     .map((p) => p.trim())

@@ -99,7 +99,7 @@ npm run build
 npm start
 ```
 
-- برای ارسال کد ورود یک حساب [کاوه‌نگار](https://kavenegar.com) و یک قالب «اعتبارسنجی» (verify lookup) لازم است که متنش `%token%` داشته باشد.
+- برای ارسال کد ورود، کلید API و شناسه‌ی قالب ارسال سریع [SMS.ir](https://sms.ir) (`SMSIR_API_KEY`، `SMSIR_TEMPLATE_ID`) یا کلید [کاوه‌نگار](https://kavenegar.com) با قالب verify lookup لازم است. جزئیات در `.env.example`.
 - پشت یک reverse proxy با **HTTPS** اجرا کنید (مثلاً Nginx یا Caddy). کوکی ورود در حالت production فقط روی HTTPS فرستاده می‌شود.
 - اطلاعات در فایل `data/sandogh.db` ذخیره می‌شود. از آن به‌طور منظم پشتیبان بگیرید.
 
