@@ -27,8 +27,9 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/server ./server
 # The server shares these modules with the browser (dates, draws, plans).
 COPY --from=build /app/src/lib ./src/lib
-RUN mkdir -p /app/data && chown node:node /app/data
-USER node
+# Runs as root: PaaS disks are usually mounted root-owned, and SQLite must
+# be able to write to them.
+RUN mkdir -p /app/data
 EXPOSE 3000
 # SQLite lives here: mount a persistent disk on this path.
 VOLUME /app/data
