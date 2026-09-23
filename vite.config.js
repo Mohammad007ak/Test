@@ -31,7 +31,7 @@ function apiServer() {
       server.middlewares.use((req, res, next) => {
         const [path, query] = req.url.split("?");
         if (path === "/") req.url = `/app/${query ? `?${query}` : ""}`;
-        else if (path === "/welcome" || path === "/welcome/") req.url = "/index.html";
+        else if (path === "/welcome" || path === "/welcome/") req.url = "/welcome/index.html";
         next();
       });
     },
@@ -76,7 +76,7 @@ export default defineConfig(({ command, mode }) => {
     build: {
       rollupOptions: {
         input: {
-          landing: page("./index.html"),
+          landing: page("./welcome/index.html"),
           app: page("./app/index.html"),
           guide: page("./guide/family-loan-fund/index.html"),
           terms: page("./terms/index.html"),

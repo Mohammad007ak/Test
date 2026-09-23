@@ -14,7 +14,7 @@ try {
 }
 const dist = fileURLToPath(new URL("../dist", import.meta.url));
 
-for (const page of ["index.html", "app/index.html", "404.html"]) {
+for (const page of ["welcome/index.html", "app/index.html", "404.html"]) {
   if (!existsSync(`${dist}/${page}`)) console.error(`Missing ${dist}/${page}: was \`npm run build\` run?`);
 }
 
@@ -51,7 +51,7 @@ function sendPage(file) {
     }
   };
 }
-app.get(["/welcome", "/welcome/"], sendPage("index.html"));
+app.get(["/welcome", "/welcome/"], sendPage("welcome/index.html"));
 
 // The terms page names how to reach the business. The details come from
 // the environment (CONTACT_*), so they can change without a rebuild.
