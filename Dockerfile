@@ -17,7 +17,9 @@ COPY . .
 RUN SITE_URL="$SITE_URL" npm run build && npm prune --omit=dev
 
 FROM ${NODE_IMAGE}
+# node:sqlite is stable enough for us; hide its "experimental" start-up warning.
 ENV NODE_ENV=production \
+    NODE_OPTIONS=--disable-warning=ExperimentalWarning \
     PORT=3000 \
     DB_PATH=/app/data/digi-gharz.db
 WORKDIR /app
