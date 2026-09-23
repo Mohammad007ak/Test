@@ -1,9 +1,17 @@
 import express from "express";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createAppFromEnv } from "./config.js";
 
-const app = await createAppFromEnv();
+// A setting that would make the server unsafe or broken stops it here; say
+// which one in a single line that's easy to spot in the host's logs.
+let app;
+try {
+  app = await createAppFromEnv();
+} catch (error) {
+  console.error(`\n❌ Server did not start / سرور بالا نیامد: ${error.message}\n`);
+  process.exit(1);
+}
 const dist = fileURLToPath(new URL("../dist", import.meta.url));
 
 for (const page of ["index.html", "app/index.html", "404.html"]) {
@@ -29,6 +37,37 @@ app.get(["/app", "/app/{*path}"], (req, res) => {
   res.redirect(301, `/${query}`);
 });
 app.get(["/welcome", "/welcome/"], (req, res) => res.sendFile("index.html", { root: dist }));
+
+// The terms page names how to reach the business. The details come from
+// the environment (CONTACT_*), so they can change without a rebuild.
+const escapeHtml = (s) =>
+  String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+function contactHtml(env = process.env) {
+  const rows = [
+    ["نام کسب‌وکار", env.CONTACT_COMPANY],
+    [
+      "ایمیل پشتیبانی",
+      env.CONTACT_EMAIL &&
+        `<a href="mailto:${escapeHtml(env.CONTACT_EMAIL)}" dir="ltr">${escapeHtml(env.CONTACT_EMAIL)}</a>`,
+    ],
+    [
+      "تلفن پشتیبانی",
+      env.CONTACT_PHONE &&
+        `<a href="tel:${escapeHtml(env.CONTACT_PHONE)}" dir="ltr">${escapeHtml(env.CONTACT_PHONE)}</a>`,
+    ],
+    ["نشانی", env.CONTACT_ADDRESS],
+  ].filter(([, v]) => v);
+  if (!rows.length) return "";
+  const items = rows
+    .map(([k, v]) => `<li><b>${k}:</b> ${k.startsWith("ایمیل") || k.startsWith("تلفن") ? v : escapeHtml(v)}</li>`)
+    .join("\n            ");
+  return `<h2 id="contact">تماس با ما</h2>\n          <ul>\n            ${items}\n          </ul>`;
+}
+let termsPage = null;
+app.get(["/terms", "/terms/"], (req, res) => {
+  termsPage ??= readFileSync(`${dist}/terms/index.html`, "utf8");
+  res.type("html").send(termsPage.replace("<!--contact-->", contactHtml()));
+});
 
 // Hashed build assets never change, so browsers may keep them for a year.
 app.use("/assets", express.static(`${dist}/assets`, { immutable: true, maxAge: "1y" }));

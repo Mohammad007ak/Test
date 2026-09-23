@@ -18,7 +18,13 @@ const SMSIR_SANDBOX_TEMPLATE = 123456;
 function smsIr(env, request) {
   const sandbox = env.SMSIR_SANDBOX === "true";
   const templateId = Number(env.SMSIR_TEMPLATE_ID) || (sandbox ? SMSIR_SANDBOX_TEMPLATE : 0);
-  if (!templateId) throw new Error("SMSIR_TEMPLATE_ID is required with SMSIR_API_KEY.");
+  // No template yet (it's still waiting for SMS.ir's approval): run without
+  // SMS rather than refuse to start; codes are then shown on screen where
+  // that's allowed (development, DEMO_MODE).
+  if (!templateId) {
+    console.warn("⚠ SMSIR_API_KEY is set but SMSIR_TEMPLATE_ID is not: SMS is off until the template id is set.");
+    return null;
+  }
   const parameter = env.SMSIR_TEMPLATE_PARAM || "CODE";
   const sendCode = async (phone, code) => {
     const response = await request("https://api.sms.ir/v1/send/verify", {

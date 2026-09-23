@@ -8,6 +8,7 @@ const page = (path) => fileURLToPath(new URL(path, import.meta.url));
 const SITEMAP = [
   { path: "/welcome/", priority: "1.0", changefreq: "weekly" },
   { path: "/guide/family-loan-fund/", priority: "0.8", changefreq: "monthly" },
+  { path: "/terms/", priority: "0.3", changefreq: "yearly" },
 ];
 
 // In development the API runs inside Vite's own server, so one
@@ -78,6 +79,7 @@ export default defineConfig(({ command, mode }) => {
           landing: page("./index.html"),
           app: page("./app/index.html"),
           guide: page("./guide/family-loan-fund/index.html"),
+          terms: page("./terms/index.html"),
           notFound: page("./404.html"),
         },
       },

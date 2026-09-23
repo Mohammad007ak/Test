@@ -32,7 +32,8 @@ test("SMS.ir failures surface as errors", async () => {
   const { request } = fakeFetch({ body: { status: 0, message: "قالب یافت نشد" } });
   const send = createSmsSender({ SMSIR_API_KEY: "k", SMSIR_TEMPLATE_ID: "1" }, { fetch: request });
   await assert.rejects(send("09121234567", "11111"), /قالب یافت نشد/);
-  assert.throws(() => createSmsSender({ SMSIR_API_KEY: "k" }), /SMSIR_TEMPLATE_ID/);
+  // A key without an approved template yet: SMS stays off instead of the server refusing to start.
+  assert.equal(createSmsSender({ SMSIR_API_KEY: "k" }), null);
 });
 
 test("the SMS.ir sandbox uses its built-in template and flags itself", async () => {

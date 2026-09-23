@@ -199,6 +199,11 @@ export default function Login({ onLogin }) {
             <ShieldCheck size={14} style={{ verticalAlign: "-2px" }} /> اطلاعات شما فقط برای اعضای صندوق خودتان قابل
             مشاهده است.
           </p>
+          <nav className="auth-links" aria-label="درباره‌ی دیجی قرض">
+            <a href="/welcome/">دیجی قرض چیست؟</a>
+            <a href="/welcome/#plans">طرح‌ها</a>
+            <a href="/terms/">قوانین و حریم خصوصی</a>
+          </nav>
         </form>
       </main>
     </div>
