@@ -225,8 +225,19 @@ async function openPostgres(url, { schema } = {}) {
     max: 10,
     ...(schema ? { options: `-c search_path=${schema}` } : {}),
   });
-  if (schema) await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
-  await pool.query(SCHEMA);
+  // The database may still be starting when the app does (a fresh deploy,
+  // a restarted service): keep trying for about a minute before giving up.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      if (schema) await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
+      await pool.query(SCHEMA);
+      break;
+    } catch (error) {
+      if (attempt >= 12) throw new Error(`Can't reach PostgreSQL: ${error.message}`);
+      console.warn(`PostgreSQL not ready (${error.message}); retrying in 5s (${attempt}/12)`);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  }
 
   const over = (client) => ({
     kind: "postgres",
