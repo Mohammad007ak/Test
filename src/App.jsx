@@ -315,6 +315,16 @@ export default function App() {
         }
       />
     );
+  else
+    content = (
+      <FundList
+        phone={phone}
+        tab={route.page === "family" ? "family" : "plans"}
+        setTab={(tab) => go(tab === "family" ? "family" : "home", undefined, undefined, { replace: true })}
+        open={go}
+        onLogout={logout}
+      />
+    );
 
   return <FeedbackProvider>{content}</FeedbackProvider>;
 }
