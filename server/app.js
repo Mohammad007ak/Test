@@ -64,6 +64,12 @@ export function createApp({
     );
   }
 
+  if (production && !demo && sendCode?.sandbox) {
+    throw new Error(
+      "Refusing to start: an SMS sandbox key shows login codes on screen; use it only with DEMO_MODE=true.",
+    );
+  }
+
   const app = express();
   // Behind the hosting platform's HTTPS proxy.
   if (production) app.set("trust proxy", 1);
@@ -194,7 +200,9 @@ export function createApp({
           console.error("SMS send failed:", error.message);
           throw new HttpError(502, "ارسال پیامک ناموفق بود. دوباره تلاش کنید.");
         }
-        return res.json({ ok: true });
+        // SMS.ir's sandbox accepts the request but delivers nothing, so the
+        // code is shown on screen as in dev mode.
+        return res.json(sendCode.sandbox ? { ok: true, devCode: code } : { ok: true });
       }
       console.log(`[dev] login code for ${phone}: ${code}`);
       res.json({ ok: true, devCode: code });

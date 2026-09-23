@@ -247,6 +247,25 @@ test("production refuses the simulator unless it's an explicit demo", () => {
   const db = openDatabase(":memory:");
   assert.throws(() => createApp({ db, production: true }), /DEMO_MODE/);
   assert.doesNotThrow(() => createApp({ db, production: true, demo: true }));
+  const sandbox = Object.assign(async () => {}, { sandbox: true });
+  const live = { name: "live" };
+  assert.throws(() => createApp({ db, production: true, digipay: live, sendCode: sandbox }), /sandbox/);
+});
+
+test("with an SMS sandbox key the code is sent and also shown on screen", async () => {
+  const db = openDatabase(":memory:");
+  const sent = [];
+  const sendCode = Object.assign(async (phone, code) => sent.push(code), { sandbox: true });
+  const app = createApp({ db, sendCode, demo: true });
+  const server = app.listen(0);
+  const res = await fetch(`http://127.0.0.1:${server.address().port}/api/auth/request-code`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ phone: "09121234567" }),
+  });
+  server.close();
+  const body = await res.json();
+  assert.equal(body.devCode, sent[0]);
 });
 
 test("joining a guaranteed plan needs explicit acceptance and the first share, then shows up in my circles", async () => {

@@ -1,6 +1,9 @@
 // Sends login codes by SMS. Two providers are supported; the first one with
 // an API key set wins:
-//   SMS.ir     "verify" API with a template that has one parameter (the code)
+//   SMS.ir     "verify" API with a template that has one parameter (the code).
+//              With SMSIR_SANDBOX=true (a Sandbox key) nothing is delivered,
+//              so the code is also shown on screen; the sandbox's built-in
+//              template is 123456 ("کد تایید شما: #CODE#").
 //   Kavenegar  "verify lookup" API with a template containing %token%
 // With neither, the server runs in dev mode and shows the code on screen.
 
@@ -10,11 +13,14 @@ export function createSmsSender(env = {}, { fetch: request = fetch } = {}) {
   return null;
 }
 
+const SMSIR_SANDBOX_TEMPLATE = 123456;
+
 function smsIr(env, request) {
-  const templateId = Number(env.SMSIR_TEMPLATE_ID);
+  const sandbox = env.SMSIR_SANDBOX === "true";
+  const templateId = Number(env.SMSIR_TEMPLATE_ID) || (sandbox ? SMSIR_SANDBOX_TEMPLATE : 0);
   if (!templateId) throw new Error("SMSIR_TEMPLATE_ID is required with SMSIR_API_KEY.");
-  const parameter = env.SMSIR_TEMPLATE_PARAM ?? "CODE";
-  return async function sendCode(phone, code) {
+  const parameter = env.SMSIR_TEMPLATE_PARAM || "CODE";
+  const sendCode = async (phone, code) => {
     const response = await request("https://api.sms.ir/v1/send/verify", {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", "x-api-key": env.SMSIR_API_KEY },
@@ -26,6 +32,8 @@ function smsIr(env, request) {
       throw new Error(`SMS.ir: ${response.status} ${body.status ?? ""} ${body.message ?? ""}`.trim());
     }
   };
+  sendCode.sandbox = sandbox;
+  return sendCode;
 }
 
 function kavenegar(env, request) {

@@ -35,6 +35,14 @@ test("SMS.ir failures surface as errors", async () => {
   assert.throws(() => createSmsSender({ SMSIR_API_KEY: "k" }), /SMSIR_TEMPLATE_ID/);
 });
 
+test("the SMS.ir sandbox uses its built-in template and flags itself", async () => {
+  const { calls, request } = fakeFetch({ body: { status: 1, message: "موفق", data: { messageId: 1, cost: 1 } } });
+  const send = createSmsSender({ SMSIR_API_KEY: "k", SMSIR_SANDBOX: "true" }, { fetch: request });
+  assert.equal(send.sandbox, true);
+  await send("09121234567", "12345");
+  assert.equal(JSON.parse(calls[0].init.body).templateId, 123456);
+});
+
 test("SMS.ir wins over Kavenegar when both are set", async () => {
   const { calls, request } = fakeFetch({ body: { status: 1 } });
   const send = createSmsSender(
