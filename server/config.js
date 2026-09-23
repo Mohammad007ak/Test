@@ -5,21 +5,29 @@ import { openDatabase } from "./db.js";
 // In a container, only a mounted disk survives a redeploy. Linux lists
 // mounts in /proc/mounts; the database is safe if its folder, or a folder
 // above it (other than /), is one of them. null when we can't tell.
-function onMountedDisk(dbPath) {
-  let mounts;
+function mountPoints() {
   try {
-    mounts = readFileSync("/proc/mounts", "utf8")
+    return readFileSync("/proc/mounts", "utf8")
       .split("\n")
       .map((line) => line.split(" ")[1])
       .filter(Boolean);
   } catch {
     return null;
   }
+}
+
+function onMountedDisk(dbPath, mounts) {
+  if (!mounts) return null;
   for (let dir = dirname(resolve(dbPath)); dir !== "/"; dir = dirname(dir)) {
     if (mounts.includes(dir)) return true;
   }
   return false;
 }
+
+// Mounts that could be a data disk (not the system's own), to show where a
+// disk actually landed when it isn't where the database is.
+const SYSTEM_MOUNTS = /^\/(proc|sys|dev|run|etc|var\/run)(\/|$)|^\/$/;
+const dataMounts = (mounts) => (mounts ?? []).filter((m) => !SYSTEM_MOUNTS.test(m));
 import { createSmsSender } from "./sms.js";
 import { createApp } from "./app.js";
 import { createDigipay } from "./digipay/index.js";
@@ -29,7 +37,8 @@ export function createAppFromEnv(env = process.env) {
   const production = env.NODE_ENV === "production";
   const dbPath = env.DB_PATH ?? "data/sandogh.db";
   const db = openDatabase(dbPath);
-  const persistentStorage = production ? onMountedDisk(dbPath) : null;
+  const mounts = mountPoints();
+  const persistentStorage = production ? onMountedDisk(dbPath, mounts) : null;
   if (persistentStorage === false) {
     console.warn(
       `⚠ The database (${resolve(dbPath)}) is not on a mounted disk: all data will be lost on the next deploy. ` +
@@ -54,5 +63,6 @@ export function createAppFromEnv(env = process.env) {
     opsPhones,
     formTimeoutMs,
     persistentStorage,
+    storageInfo: { dbPath: resolve(dbPath), mounts: dataMounts(mounts) },
   });
 }

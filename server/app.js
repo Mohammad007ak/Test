@@ -58,6 +58,8 @@ export function createApp({
   formTimeoutMs,
   // Whether the database sits on a mounted disk (null when unknown).
   persistentStorage = null,
+  // Where the database is and which disks are mounted (shown in demos only).
+  storageInfo = null,
 }) {
   // The simulator signs anyone in as any phone ("sim-<phone>") and moves no
   // real money, so a production server may only run it as an explicit demo.
@@ -267,7 +269,7 @@ export function createApp({
   }
   app.get("/api/health", (req, res) => {
     db.prepare("SELECT 1").get();
-    res.json({ ok: true, demo, builtAt, persistentStorage });
+    res.json({ ok: true, demo, builtAt, persistentStorage, ...(demo || !production ? { storage: storageInfo } : {}) });
   });
 
   // ---------- funds (manager) ----------
