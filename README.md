@@ -90,6 +90,8 @@ npm run dev
 
 ## اجرا روی سرور
 
+برای دیپلوی با Docker روی هم‌روش یا هر PaaS دیگر، [DEPLOY.md](DEPLOY.md) را ببینید. اجرای مستقیم با Node:
+
 ```bash
 cp .env.example .env   # کلید کاوه‌نگار را وارد کنید
 npm install

@@ -47,13 +47,26 @@ export function createApp({
   db,
   sendCode = null,
   production = false,
+  // A public demo: production hosting, but login codes are shown on screen,
+  // simulator logins work and anyone can use the ops tools. Never for real users.
+  demo = false,
   now = Date.now,
   random = secureRandom,
   digipay = createDigipaySimulator(),
   opsPhones = [],
   formTimeoutMs,
 }) {
+  // The simulator signs anyone in as any phone ("sim-<phone>") and moves no
+  // real money, so a production server may only run it as an explicit demo.
+  if (production && !demo && digipay.name === "simulator") {
+    throw new Error(
+      "Refusing to start: production needs DIGIPAY_MODE=live, or DEMO_MODE=true for a public demo on the simulator.",
+    );
+  }
+
   const app = express();
+  // Behind the hosting platform's HTTPS proxy.
+  if (production) app.set("trust proxy", 1);
   app.use(express.json({ limit: "2mb" }));
 
   // Mutating requests must be JSON: a cross-site form post can't send that
@@ -164,7 +177,7 @@ export function createApp({
       if (previous && previous.expires_at - CODE_TTL + RESEND_GAP > t) {
         throw new HttpError(429, "لطفاً یک دقیقه صبر کنید و دوباره تلاش کنید.");
       }
-      if (!sendCode && production) throw new HttpError(500, "سرویس پیامک تنظیم نشده است.");
+      if (!sendCode && production && !demo) throw new HttpError(500, "سرویس پیامک تنظیم نشده است.");
 
       const code = String(randomInt(0, 100000)).padStart(5, "0");
       db.prepare(
@@ -233,6 +246,12 @@ export function createApp({
   });
 
   app.get("/api/me", requireLogin, (req, res) => res.json({ phone: req.phone }));
+
+  // For the hosting platform's health checks.
+  app.get("/api/health", (req, res) => {
+    db.prepare("SELECT 1").get();
+    res.json({ ok: true, demo });
+  });
 
   // ---------- funds (manager) ----------
 
@@ -487,7 +506,7 @@ export function createApp({
     route,
     // Ops tools (simulating months, filling circles) are open to everyone
     // in development and to OPS_PHONES in production.
-    isOps: (phone) => (production ? opsPhones.includes(phone) : true),
+    isOps: (phone) => (production && !demo ? opsPhones.includes(phone) : true),
     simulator: digipay.name === "simulator",
   });
 

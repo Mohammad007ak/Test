@@ -17,4 +17,7 @@ app.use((req, res) => res.status(404).sendFile("404.html", { root: dist }));
 setInterval(() => app.locals.runScheduledJobs().catch((e) => console.error(e)), 60 * 1000);
 
 const port = Number(process.env.PORT ?? 3000);
-app.listen(port, () => console.log(`Digi Gharz running on http://localhost:${port}`));
+const server = app.listen(port, () => console.log(`Digi Gharz running on http://localhost:${port}`));
+
+// Containers stop with SIGTERM; finish in-flight requests, then exit.
+process.on("SIGTERM", () => server.close(() => process.exit(0)));

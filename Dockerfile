@@ -1,0 +1,36 @@
+# Digi Gharz: one container serving the site, the app and the API.
+#
+# Build args:
+#   SITE_URL      public address, baked into canonical links and the sitemap
+#   NODE_IMAGE    base image; point it at a registry mirror if Docker Hub is
+#                 unreachable from the build server
+#   NPM_REGISTRY  npm registry; point it at a mirror if npmjs is unreachable
+ARG NODE_IMAGE=node:22-alpine
+
+FROM ${NODE_IMAGE} AS build
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+ARG SITE_URL=https://example.com
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm config set registry "$NPM_REGISTRY" && npm ci
+COPY . .
+RUN SITE_URL="$SITE_URL" npm run build && npm prune --omit=dev
+
+FROM ${NODE_IMAGE}
+ENV NODE_ENV=production \
+    PORT=3000 \
+    DB_PATH=/app/data/digi-gharz.db
+WORKDIR /app
+COPY --from=build /app/package.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/server ./server
+# The server shares these modules with the browser (dates, draws, plans).
+COPY --from=build /app/src/lib ./src/lib
+RUN mkdir -p /app/data && chown node:node /app/data
+USER node
+EXPOSE 3000
+# SQLite lives here: mount a persistent disk on this path.
+VOLUME /app/data
+HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
+CMD ["node", "server/index.js"]

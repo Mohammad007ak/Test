@@ -18,5 +18,6 @@ export function createAppFromEnv(env = process.env) {
   // How long a circle may wait to fill. The goal is under five minutes; the
   // default gives early launches an hour.
   const formTimeoutMs = Number(env.CIRCLE_FORM_TIMEOUT_MIN ?? 60) * 60 * 1000;
-  return createApp({ db, sendCode, production, digipay: createDigipay(env), opsPhones, formTimeoutMs });
+  const demo = env.DEMO_MODE === "true";
+  return createApp({ db, sendCode, production, demo, digipay: createDigipay(env), opsPhones, formTimeoutMs });
 }

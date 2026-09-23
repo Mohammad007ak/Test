@@ -243,6 +243,12 @@ test("inside the Digipay mini-app, a launch token signs the user in without SMS"
   });
 });
 
+test("production refuses the simulator unless it's an explicit demo", () => {
+  const db = openDatabase(":memory:");
+  assert.throws(() => createApp({ db, production: true }), /DEMO_MODE/);
+  assert.doesNotThrow(() => createApp({ db, production: true, demo: true }));
+});
+
 test("joining a guaranteed plan needs explicit acceptance and the first share, then shows up in my circles", async () => {
   const call = client();
   await call("POST", "/api/auth/digipay", { token: "sim-09120000066" });
