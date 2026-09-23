@@ -24,6 +24,7 @@ import { formatCompact, formatNumber } from "../../lib/format.js";
 import { toPersianDigits } from "../../lib/jalali.js";
 
 const METHOD_LABEL = {
+  entry: "پرداخت هنگام عضویت",
   manual: "درگاه پرداخت",
   wallet: "کسر از کیف پول",
   auto: "کسر از کیف پول",
@@ -53,7 +54,11 @@ function DrawRow({ draw, members, digest }) {
   return (
     <li>
       <span className={`dot ${draw.kind === "operator" ? "pending" : ""}`}>
-        {draw.kind === "operator" ? <ShieldCheck size={15} /> : <Trophy size={15} />}
+        {draw.kind === "operator" ? (
+          <ShieldCheck size={15} />
+        ) : (
+          <Trophy size={15} />
+        )}
       </span>
       <div className="t-body">
         <div>
@@ -80,7 +85,11 @@ function DrawRow({ draw, members, digest }) {
           )}
         </div>
         {draw.kind === "lottery" && (
-          <button className="btn sm outline" onClick={check} disabled={checking}>
+          <button
+            className="btn sm outline"
+            onClick={check}
+            disabled={checking}
+          >
             {checking ? <Spinner /> : <BadgeCheck size={15} />} بررسی
           </button>
         )}
@@ -95,7 +104,10 @@ export default function CircleView({ circleId, back, open }) {
   const [paying, setPaying] = useState(false);
   const toast = useToast();
 
-  const load = useCallback(() => api("GET", `/api/circles/${circleId}`).then(setView, setError), [circleId]);
+  const load = useCallback(
+    () => api("GET", `/api/circles/${circleId}`).then(setView, setError),
+    [circleId],
+  );
   useEffect(() => {
     load();
   }, [load]);
@@ -104,7 +116,8 @@ export default function CircleView({ circleId, back, open }) {
   const status = view?.circle.status;
   const previous = useRef(status);
   useEffect(() => {
-    if (previous.current === "forming" && status === "active") toast("گروه شما تکمیل شد و دوره شروع شد 🎉");
+    if (previous.current === "forming" && status === "active")
+      toast("گروه شما تکمیل شد و دوره شروع شد 🎉");
     previous.current = status;
     if (status !== "forming") return;
     const t = setInterval(load, 3000);
@@ -119,7 +132,8 @@ export default function CircleView({ circleId, back, open }) {
       <div className="appbar-title">
         <h1>{view ? planById(view.circle.planId)?.title : "دوره"}</h1>
         <div className="sub">
-          {view && `سهم ${formatCompact(view.circle.share)}، پات ${formatCompact(view.circle.pot)} تومان`}
+          {view &&
+            `سهم ${formatCompact(view.circle.share)}، پات ${formatCompact(view.circle.pot)} تومان`}
         </div>
       </div>
     </header>
@@ -146,12 +160,17 @@ export default function CircleView({ circleId, back, open }) {
   const me = members.find((m) => m.isMe);
   const thisMonth = contributions.find((c) => c.month === circle.currentMonth);
   const payable = circle.owed + circle.dueNow;
-  const recipientOf = new Map(draws.map((d) => [d.month, members.find((m) => m.id === d.winner)]));
+  const recipientOf = new Map(
+    draws.map((d) => [d.month, members.find((m) => m.id === d.winner)]),
+  );
 
   const pay = async () => {
     setPaying(true);
     try {
-      const { checkoutId, redirectUrl } = await api("POST", `/api/circles/${circleId}/pay`);
+      const { checkoutId, redirectUrl } = await api(
+        "POST",
+        `/api/circles/${circleId}/pay`,
+      );
       if (redirectUrl) window.location.href = redirectUrl;
       else open("checkout", checkoutId);
     } catch (e) {
@@ -164,7 +183,13 @@ export default function CircleView({ circleId, back, open }) {
     return (
       <div className="home">
         {header}
-        <WaitingRoom view={view} ops={view.ops} reload={load} onLeft={back} onRetry={back} />
+        <WaitingRoom
+          view={view}
+          ops={view.ops}
+          reload={load}
+          onLeft={back}
+          onRetry={back}
+        />
       </div>
     );
   }
@@ -175,7 +200,8 @@ export default function CircleView({ circleId, back, open }) {
       <section className="hero">
         <Pattern />
         <div className="hero-label">
-          <Trophy size={16} /> پات را در ماه {formatNumber(circle.wonMonth)} دریافت کردید
+          <Trophy size={16} /> پات را در ماه {formatNumber(circle.wonMonth)}{" "}
+          دریافت کردید
         </div>
         <div className="hero-figure">
           {Math.round(circle.pot).toLocaleString("fa-IR")}
@@ -222,22 +248,24 @@ export default function CircleView({ circleId, back, open }) {
             <div className="split">
               <div className="stack-sm">
                 <strong>
-                  <CreditCard size={16} /> سهم ماه {formatNumber(circle.currentMonth)}
+                  <CreditCard size={16} /> سهم ماه{" "}
+                  {formatNumber(circle.currentMonth)}
                 </strong>
                 <span className="muted small">
                   {thisMonth?.status === "paid" ? (
                     "پرداخت شد. ممنون!"
                   ) : (
                     <>
-                      <Wallet size={13} style={{ verticalAlign: "-2px" }} /> اگر تا سررسید پرداخت نکنید، از کیف پولتان
-                      کسر می‌شود.
+                      <Wallet size={13} style={{ verticalAlign: "-2px" }} /> اگر
+                      تا سررسید پرداخت نکنید، از کیف پولتان کسر می‌شود.
                     </>
                   )}
                 </span>
               </div>
               {payable > 0 && (
                 <button className="btn primary" onClick={pay} disabled={paying}>
-                  {paying ? <Spinner /> : <CreditCard size={17} />} پرداخت {formatCompact(payable)}
+                  {paying ? <Spinner /> : <CreditCard size={17} />} پرداخت{" "}
+                  {formatCompact(payable)}
                 </button>
               )}
             </div>
@@ -254,12 +282,25 @@ export default function CircleView({ circleId, back, open }) {
               {Array.from({ length: circle.months }, (_, i) => {
                 const month = i + 1;
                 const who = recipientOf.get(month);
-                const state = who ? "done" : month === circle.currentMonth && circle.status === "active" ? "now" : "";
+                const state = who
+                  ? "done"
+                  : month === circle.currentMonth && circle.status === "active"
+                    ? "now"
+                    : "";
                 return (
-                  <div key={month} className={`month-cell ${state} ${who?.isMe ? "mine" : ""}`}>
+                  <div
+                    key={month}
+                    className={`month-cell ${state} ${who?.isMe ? "mine" : ""}`}
+                  >
                     <span>ماه {formatNumber(month)}</span>
                     <b>
-                      {who ? seatName(who) : month === 1 ? "دیجی‌پی" : month === circle.currentMonth ? "این ماه" : "—"}
+                      {who
+                        ? seatName(who)
+                        : month === 1
+                          ? "دیجی‌پی"
+                          : month === circle.currentMonth
+                            ? "این ماه"
+                            : "—"}
                     </b>
                   </div>
                 );
@@ -279,12 +320,20 @@ export default function CircleView({ circleId, back, open }) {
                 key={m.id}
                 className={`seat ${m.isOperator ? "op" : ""} ${m.isMe ? "me" : ""} ${m.wonMonth ? "won" : ""}`}
               >
-                {m.isOperator ? <LogoMark size={22} /> : toPersianDigits(m.position)}
+                {m.isOperator ? (
+                  <LogoMark size={22} />
+                ) : (
+                  toPersianDigits(m.position)
+                )}
                 {m.wonMonth && <Trophy size={11} className="seat-badge" />}
               </span>
             ))}
             {Array.from({ length: circle.size - members.length }, (_, i) => (
-              <span key={`empty-${i}`} className="seat empty" aria-label="جای خالی" />
+              <span
+                key={`empty-${i}`}
+                className="seat empty"
+                aria-label="جای خالی"
+              />
             ))}
           </div>
         </section>
@@ -297,9 +346,11 @@ export default function CircleView({ circleId, back, open }) {
             </span>
           </div>
           <p className="muted small" style={{ marginBottom: 14 }}>
-            پیش از اولین قرعه، اثر انگشت یک زنجیره‌ی رمزنگاری‌شده منتشر شده است. هر قرعه یک حلقه از این زنجیره را آشکار
-            می‌کند و برنده از همان حلقه، کد تصادفی گوشی اعضا و شماره‌ی ماه محاسبه می‌شود. با دکمه‌ی «بررسی»، گوشی خودتان
-            همین محاسبه را تکرار می‌کند؛ هیچ‌کس، حتی دیجی‌پی، نمی‌تواند نتیجه را عوض کند.
+            پیش از اولین قرعه، اثر انگشت یک زنجیره‌ی رمزنگاری‌شده منتشر شده است.
+            هر قرعه یک حلقه از این زنجیره را آشکار می‌کند و برنده از همان حلقه،
+            کد تصادفی گوشی اعضا و شماره‌ی ماه محاسبه می‌شود. با دکمه‌ی «بررسی»،
+            گوشی خودتان همین محاسبه را تکرار می‌کند؛ هیچ‌کس، حتی دیجی‌پی،
+            نمی‌تواند نتیجه را عوض کند.
           </p>
           <div className="fingerprints">
             <div>
@@ -316,7 +367,12 @@ export default function CircleView({ circleId, back, open }) {
           ) : (
             <ul className="timeline">
               {[...draws].reverse().map((d) => (
-                <DrawRow key={d.month} draw={d} members={members} digest={view.nonceDigest} />
+                <DrawRow
+                  key={d.month}
+                  draw={d}
+                  members={members}
+                  digest={view.nonceDigest}
+                />
               ))}
             </ul>
           )}
@@ -335,10 +391,18 @@ export default function CircleView({ circleId, back, open }) {
                     <span>{METHOD_LABEL[c.method] ?? ""}</span>
                   </div>
                   <Money amount={c.amount} />
-                  {c.status === "paid" && <span className="badge success">پرداخت شد</span>}
-                  {c.status === "settled" && <span className="badge success">تسویه شد</span>}
-                  {c.status === "covered" && <span className="badge danger">ضمانت شد، بدهکار</span>}
-                  {c.status === "due" && <span className="badge gold">این ماه</span>}
+                  {c.status === "paid" && (
+                    <span className="badge success">پرداخت شد</span>
+                  )}
+                  {c.status === "settled" && (
+                    <span className="badge success">تسویه شد</span>
+                  )}
+                  {c.status === "covered" && (
+                    <span className="badge danger">ضمانت شد، بدهکار</span>
+                  )}
+                  {c.status === "due" && (
+                    <span className="badge gold">این ماه</span>
+                  )}
                 </li>
               ))}
             </ul>

@@ -10,7 +10,10 @@ import { toPersianDigits } from "../../lib/jalali.js";
 function useCountdown(deadline) {
   const [left, setLeft] = useState(() => Math.max(0, deadline - Date.now()));
   useEffect(() => {
-    const t = setInterval(() => setLeft(Math.max(0, deadline - Date.now())), 1000);
+    const t = setInterval(
+      () => setLeft(Math.max(0, deadline - Date.now())),
+      1000,
+    );
     return () => clearInterval(t);
   }, [deadline]);
   return left;
@@ -39,7 +42,10 @@ export default function WaitingRoom({ view, ops, onLeft, onRetry, reload }) {
           <TimerOff size={40} />
         </div>
         <h2>گروه در زمان مقرر تکمیل نشد</h2>
-        <p>عضویت شما لغو شد و هیچ مبلغی از شما کسر نشده است. می‌توانید دوباره امتحان کنید.</p>
+        <p>
+          عضویت شما لغو شد و قسط اولی که پرداخت کرده بودید به شما برگردانده
+          می‌شود. می‌توانید دوباره امتحان کنید.
+        </p>
         <button className="btn primary lg" onClick={onRetry}>
           تلاش دوباره
         </button>
@@ -50,7 +56,7 @@ export default function WaitingRoom({ view, ops, onLeft, onRetry, reload }) {
   const leave = async () => {
     const ok = await confirm({
       title: "خروج از صف؟",
-      body: "جای شما در این گروه آزاد می‌شود و می‌توانید بعداً دوباره بپیوندید.",
+      body: "جای شما در این گروه آزاد می‌شود و قسط اول به شما برگردانده می‌شود.",
       confirmLabel: "خروج از صف",
       tone: "danger",
     });
@@ -58,7 +64,7 @@ export default function WaitingRoom({ view, ops, onLeft, onRetry, reload }) {
     setBusy("leave");
     try {
       await api("POST", `/api/circles/${circle.id}/leave`);
-      toast("از صف خارج شدید");
+      toast("از صف خارج شدید؛ قسط اول برگردانده می‌شود");
       onLeft();
     } catch (e) {
       toast(e.message, { tone: "error" });
@@ -78,7 +84,10 @@ export default function WaitingRoom({ view, ops, onLeft, onRetry, reload }) {
     }
   };
 
-  const seats = Array.from({ length: circle.size }, (_, i) => members[i] ?? null);
+  const seats = Array.from(
+    { length: circle.size },
+    (_, i) => members[i] ?? null,
+  );
 
   return (
     <section className="waiting">
@@ -89,14 +98,28 @@ export default function WaitingRoom({ view, ops, onLeft, onRetry, reload }) {
       </div>
       <h2>در حال تکمیل گروه شما…</h2>
       <p>
-        {formatNumber(circle.taken)} نفر از {formatNumber(circle.size)} نفر آماده‌اند. به محض تکمیل، دوره شروع می‌شود و
-        خبرتان می‌کنیم.
+        {formatNumber(circle.taken)} نفر از {formatNumber(circle.size)} نفر
+        آماده‌اند. به محض تکمیل، دوره شروع می‌شود و خبرتان می‌کنیم.
       </p>
 
-      <div className="waiting-seats" aria-label={`${circle.taken} از ${circle.size} جا پر شده`}>
+      <div
+        className="waiting-seats"
+        aria-label={`${circle.taken} از ${circle.size} جا پر شده`}
+      >
         {seats.map((m, i) => (
-          <span key={i} className={`wseat ${m ? "on" : ""} ${m?.isMe ? "me" : ""} ${m?.isOperator ? "op" : ""}`}>
-            {m?.isOperator ? <LogoMark size={20} /> : m?.isMe ? "شما" : m ? toPersianDigits(m.position) : ""}
+          <span
+            key={i}
+            className={`wseat ${m ? "on" : ""} ${m?.isMe ? "me" : ""} ${m?.isOperator ? "op" : ""}`}
+          >
+            {m?.isOperator ? (
+              <LogoMark size={20} />
+            ) : m?.isMe ? (
+              "شما"
+            ) : m ? (
+              toPersianDigits(m.position)
+            ) : (
+              ""
+            )}
           </span>
         ))}
       </div>
@@ -116,14 +139,21 @@ export default function WaitingRoom({ view, ops, onLeft, onRetry, reload }) {
         </div>
       </div>
 
-      <p className="small muted">معمولاً کمتر از ۵ دقیقه طول می‌کشد. می‌توانید از اپ خارج شوید؛ جای شما محفوظ است.</p>
+      <p className="small muted">
+        معمولاً کمتر از ۵ دقیقه طول می‌کشد. می‌توانید از اپ خارج شوید؛ جای شما
+        محفوظ است.
+      </p>
 
       <div className="waiting-actions">
         <button className="btn ghost" onClick={leave} disabled={Boolean(busy)}>
           {busy === "leave" ? <Spinner /> : <LogOut size={17} />} خروج از صف
         </button>
         {ops && (
-          <button className="btn outline" onClick={fill} disabled={Boolean(busy)}>
+          <button
+            className="btn outline"
+            onClick={fill}
+            disabled={Boolean(busy)}
+          >
             {busy === "fill" ? <Spinner /> : <Users size={17} />} تکمیل آزمایشی
           </button>
         )}

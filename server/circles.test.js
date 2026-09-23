@@ -17,23 +17,55 @@ function setup({ clock } = {}) {
     payouts.push(p);
     return send(p);
   };
+  const refunds = [];
+  const refund = digipay.payments.refund;
+  digipay.payments.refund = async (r) => {
+    refunds.push(r);
+    return refund(r);
+  };
   const now = clock ? () => clock.t : Date.now;
-  return { db, service: createCircleService({ db, digipay, now, formTimeoutMs: 60 * 60 * 1000 }), payouts };
+  return {
+    db,
+    service: createCircleService({
+      db,
+      digipay,
+      now,
+      formTimeoutMs: 60 * 60 * 1000,
+    }),
+    payouts,
+    refunds,
+  };
+}
+
+// Joining = starting the entry checkout and paying the first share.
+async function join(service, { phone, planId }) {
+  const { checkoutId } = await service.join({ phone, planId });
+  return service.completeCheckout({ phone, id: checkoutId, action: "pay" });
 }
 
 async function fillPlan(service, planId, members) {
   let circleId;
-  for (let i = 1; i <= members; i++) ({ circleId } = await service.join({ phone: phone(i), planId }));
+  for (let i = 1; i <= members; i++)
+    ({ circleId } = await join(service, { phone: phone(i), planId }));
   return circleId;
 }
 
 test("scoring gates who can join and how much they can commit", async () => {
   const { service } = setup();
-  await assert.rejects(service.join({ phone: "09120000000", planId: "p12-5" }), { status: 403 });
+  await assert.rejects(
+    service.join({ phone: "09120000000", planId: "p12-5" }),
+    { status: 403 },
+  );
   // Limit 5M: the 5M plan fits, the 10M plan doesn't, and a second 5M plan doesn't either.
-  await service.join({ phone: "09120000001", planId: "p12-5" });
-  await assert.rejects(service.join({ phone: "09120000001", planId: "p12-10" }), { status: 403 });
-  await assert.rejects(service.join({ phone: "09120000001", planId: "p12-5" }), { status: 409 });
+  await join(service, { phone: "09120000001", planId: "p12-5" });
+  await assert.rejects(
+    service.join({ phone: "09120000001", planId: "p12-10" }),
+    { status: 403 },
+  );
+  await assert.rejects(
+    service.join({ phone: "09120000001", planId: "p12-5" }),
+    { status: 409 },
+  );
 });
 
 test("a circle starts when full, the operator takes month 1, and everyone receives exactly once", async () => {
@@ -77,9 +109,72 @@ test("every lottery can be verified by a member, and tampering is detected", asy
 
   const [first] = lotteries;
   const forgedWinner = first.eligible.find((id) => id !== first.winner);
-  assert.equal((await verifyDraw({ ...first, digest: view.nonceDigest, winner: forgedWinner })).ok, false);
-  const forgedReveal = await verifyDraw({ ...first, digest: view.nonceDigest, reveal: "0".repeat(64) });
+  assert.equal(
+    (
+      await verifyDraw({
+        ...first,
+        digest: view.nonceDigest,
+        winner: forgedWinner,
+      })
+    ).ok,
+    false,
+  );
+  const forgedReveal = await verifyDraw({
+    ...first,
+    digest: view.nonceDigest,
+    reveal: "0".repeat(64),
+  });
   assert.equal(forgedReveal.linkOk, false);
+});
+
+test("the first share is paid on joining and nothing is seated until it is", async () => {
+  const { service } = setup();
+  const { checkoutId } = await service.join({
+    phone: phone(1),
+    planId: "p12-5",
+  });
+  assert.equal(service.getCheckout(phone(1), checkoutId).amount, 5_000_000);
+  assert.equal((await service.myCircles(phone(1))).length, 0);
+
+  const cancelled = await service.completeCheckout({
+    phone: phone(1),
+    id: checkoutId,
+    action: "cancel",
+  });
+  assert.deepEqual(cancelled, { ok: false, circleId: null });
+  assert.equal((await service.myCircles(phone(1))).length, 0);
+
+  // Two entry payments for the same plan: one seat, the second is refunded.
+  const a = await service.join({ phone: phone(1), planId: "p12-5" });
+  const b = await service.join({ phone: phone(1), planId: "p12-5" });
+  const first = await service.completeCheckout({
+    phone: phone(1),
+    id: a.checkoutId,
+    action: "pay",
+  });
+  const second = await service.completeCheckout({
+    phone: phone(1),
+    id: b.checkoutId,
+    action: "pay",
+  });
+  assert.equal(second.refunded, true);
+  assert.equal(second.circleId, first.circleId);
+  assert.equal(
+    (await service.circleView(phone(1), first.circleId)).members.length,
+    2,
+  );
+
+  for (let i = 2; i <= 11; i++)
+    await join(service, { phone: phone(i), planId: "p12-5" });
+  const view = await service.circleView(phone(3), first.circleId);
+  assert.equal(view.circle.status, "active");
+  assert.deepEqual(view.contributions[0], {
+    month: 1,
+    amount: 5_000_000,
+    status: "paid",
+    method: "entry",
+  });
+  assert.equal(view.circle.dueNow, 0);
 });
 
 test("unpaid shares come from the wallet; if that fails, the guarantee covers them and debtors sit out draws", async () => {
@@ -87,27 +182,41 @@ test("unpaid shares come from the wallet; if that fails, the guarantee covers th
   const debtor = phone(5); // second-to-last digit 5: empty wallet in the simulator
   const circleId = await fillPlan(service, "p12-5", 11);
 
-  await service.closeMonth(circleId); // month 1: nobody used the gateway
+  await service.closeMonth(circleId); // month 1: everyone paid on joining
+  await service.closeMonth(circleId); // month 2: nobody used the gateway
   const payer = await service.circleView(phone(2), circleId);
-  assert.equal(payer.contributions[0].method, "wallet");
+  assert.equal(payer.contributions[1].method, "wallet");
   assert.equal(payer.circle.owed, 0);
 
   let view = await service.circleView(debtor, circleId);
-  assert.equal(view.contributions[0].status, "covered");
-  assert.equal(view.circle.owed, 5_000_000); // month 1, paid by the guarantee
-  assert.equal(view.circle.dueNow, 5_000_000); // month 2, not late yet
+  assert.equal(view.contributions[1].status, "covered");
+  assert.equal(view.circle.owed, 5_000_000); // month 2, paid by the guarantee
+  assert.equal(view.circle.dueNow, 5_000_000); // month 3, not late yet
 
-  await service.closeMonth(circleId); // month 2: still unpaid
+  await service.closeMonth(circleId); // month 3: still unpaid
   view = await service.circleView(debtor, circleId);
   const me = view.members.find((m) => m.isMe);
-  assert.ok(!view.draws[1].eligible.includes(me.id), "a member who owes is left out of the draw");
+  assert.ok(
+    !view.draws[2].eligible.includes(me.id),
+    "a member who owes is left out of the draw",
+  );
 
-  const { checkoutId } = await service.startCheckout({ phone: debtor, circleId });
+  const { checkoutId } = await service.startCheckout({
+    phone: debtor,
+    circleId,
+  });
   assert.equal(service.getCheckout(debtor, checkoutId).amount, 15_000_000);
-  await service.completeCheckout({ phone: debtor, id: checkoutId, action: "pay" });
+  await service.completeCheckout({
+    phone: debtor,
+    id: checkoutId,
+    action: "pay",
+  });
   view = await service.circleView(debtor, circleId);
   assert.equal(view.circle.owed, 0);
-  assert.deepEqual(view.contributions.map((c) => c.status), ["settled", "settled", "paid"]);
+  assert.deepEqual(
+    view.contributions.map((c) => c.status),
+    ["paid", "settled", "settled", "paid"],
+  );
 });
 
 test("members only see seats, never each other's phones, and strangers see nothing", async () => {
@@ -115,54 +224,85 @@ test("members only see seats, never each other's phones, and strangers see nothi
   const circleId = await fillPlan(service, "p12-5", 11);
   const view = await service.circleView(phone(2), circleId);
   assert.ok(!JSON.stringify(view).includes("09120"));
-  await assert.rejects(service.circleView("09129999999", circleId), { status: 404 });
+  await assert.rejects(service.circleView("09129999999", circleId), {
+    status: 404,
+  });
 });
 
 test("a month can't be closed twice at once", async () => {
   const { service } = setup();
   const circleId = await fillPlan(service, "p12-5", 11);
-  const results = await Promise.allSettled([service.closeMonth(circleId), service.closeMonth(circleId)]);
+  const results = await Promise.allSettled([
+    service.closeMonth(circleId),
+    service.closeMonth(circleId),
+  ]);
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
-  assert.equal((await service.circleView(phone(1), circleId)).circle.currentMonth, 2);
+  assert.equal(
+    (await service.circleView(phone(1), circleId)).circle.currentMonth,
+    2,
+  );
 });
 
 test("ops can fill a forming circle with simulated members to start it", async () => {
   const { service } = setup();
-  const { circleId } = await service.join({ phone: phone(1), planId: "p24-10" });
+  const { circleId } = await join(service, {
+    phone: phone(1),
+    planId: "p24-10",
+  });
   await service.fillWithBots(circleId);
   const view = await service.circleView(phone(1), circleId);
   assert.equal(view.circle.status, "active");
   assert.equal(view.members.length, 24);
   await service.closeMonth(circleId);
   await service.closeMonth(circleId);
-  // Failing bots' month-1 shares were covered by the guarantee.
-  assert.equal((await service.circleView(phone(1), circleId)).draws[1].pot, 240_000_000);
+  await service.closeMonth(circleId);
+  // Failing bots' month-2 shares were covered by the guarantee.
+  assert.equal(
+    (await service.circleView(phone(1), circleId)).draws[2].pot,
+    240_000_000,
+  );
 });
 
-test("a circle that doesn't fill before its deadline expires and releases its members", async () => {
+test("a circle that doesn't fill before its deadline expires, releasing and refunding its members", async () => {
   const clock = { t: Date.now() };
-  const { service } = setup({ clock });
-  const { circleId } = await service.join({ phone: phone(1), planId: "p12-5" });
-  await service.join({ phone: phone(2), planId: "p12-5" });
+  const { service, refunds } = setup({ clock });
+  const { circleId } = await join(service, {
+    phone: phone(1),
+    planId: "p12-5",
+  });
+  await join(service, { phone: phone(2), planId: "p12-5" });
   assert.equal((await service.myCircles(phone(1))).length, 1);
 
   clock.t += 61 * 60 * 1000;
-  assert.equal((await service.circleView(phone(1), circleId)).circle.status, "expired");
+  assert.equal(
+    (await service.circleView(phone(1), circleId)).circle.status,
+    "expired",
+  );
   assert.equal((await service.myCircles(phone(1))).length, 0);
+  assert.deepEqual(
+    refunds.map((r) => r.amount),
+    [5_000_000, 5_000_000],
+  );
   // Released members can queue again, into a fresh circle.
-  const again = await service.join({ phone: phone(1), planId: "p12-5" });
+  const again = await join(service, { phone: phone(1), planId: "p12-5" });
   assert.notEqual(again.circleId, circleId);
 });
 
-test("members can leave while waiting, and seats behind them move up", async () => {
-  const { service } = setup();
+test("members can leave while waiting, get their first share back, and seats behind them move up", async () => {
+  const { service, refunds } = setup();
   const circleId = await fillPlan(service, "p12-5", 4); // phone(i) sits in seat i + 1
   await service.leave({ phone: phone(2), circleId });
+  assert.equal(refunds.length, 1);
   const view = await service.circleView(phone(4), circleId);
-  assert.deepEqual(view.members.map((m) => m.position), [1, 2, 3, 4]);
+  assert.deepEqual(
+    view.members.map((m) => m.position),
+    [1, 2, 3, 4],
+  );
   assert.equal(view.circle.position, 4); // was seat 5
-  await service.join({ phone: phone(9), planId: "p12-5" }); // takes seat 5 without clashing
+  await join(service, { phone: phone(9), planId: "p12-5" }); // takes seat 5 without clashing
 
   const full = await fillPlan(service, "p12-10", 11);
-  await assert.rejects(service.leave({ phone: phone(1), circleId: full }), { status: 400 });
+  await assert.rejects(service.leave({ phone: phone(1), circleId: full }), {
+    status: 400,
+  });
 });

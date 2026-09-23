@@ -1,7 +1,23 @@
 import { useEffect, useState } from "react";
-import { ArrowRightLeft, CalendarCheck, Dices, Eye, House, LogOut, RefreshCw, Settings as SettingsIcon, Users, WalletCards } from "lucide-react";
+import {
+  ArrowRightLeft,
+  CalendarCheck,
+  Dices,
+  Eye,
+  House,
+  LogOut,
+  RefreshCw,
+  Settings as SettingsIcon,
+  Users,
+  WalletCards,
+} from "lucide-react";
 import Dashboard from "./components/Dashboard.jsx";
-import Members, { MemberForm, MemberSheet, blankMember, useMemberActions } from "./components/Members.jsx";
+import Members, {
+  MemberForm,
+  MemberSheet,
+  blankMember,
+  useMemberActions,
+} from "./components/Members.jsx";
 import Payments from "./components/Payments.jsx";
 import Lottery from "./components/Lottery.jsx";
 import Loans from "./components/Loans.jsx";
@@ -22,7 +38,12 @@ import { currentMonthKey, toPersianDigits } from "./lib/jalali.js";
 
 const TABS = [
   { id: "dashboard", label: "خانه", icon: House, Component: Dashboard },
-  { id: "payments", label: "پرداخت‌ها", icon: CalendarCheck, Component: Payments },
+  {
+    id: "payments",
+    label: "پرداخت‌ها",
+    icon: CalendarCheck,
+    Component: Payments,
+  },
   { id: "lottery", label: "قرعه‌کشی", icon: Dices, Component: Lottery },
   { id: "members", label: "اعضا", icon: Users, Component: Members },
   { id: "loans", label: "وام‌ها", icon: WalletCards, Component: Loans },
@@ -30,7 +51,12 @@ const TABS = [
 ];
 const MOBILE_TABS = TABS.filter((t) => t.id !== "settings");
 
-const SAVE_LABEL = { loading: "", saving: "در حال ذخیره…", saved: "ذخیره شد", error: "ذخیره نشد" };
+const SAVE_LABEL = {
+  loading: "",
+  saving: "در حال ذخیره…",
+  saved: "ذخیره شد",
+  error: "ذخیره نشد",
+};
 
 // Routes live in the URL hash (#/manage/<id>/<tab>, #/view/<id>) so a
 // refresh or a shared link lands on the same screen.
@@ -52,26 +78,38 @@ function useRoute() {
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
   const go = (page, id, tab) => {
-    window.location.hash = page === "home" ? "" : `/${page}${id ? `/${id}` : ""}${tab ? `/${tab}` : ""}`;
+    window.location.hash =
+      page === "home"
+        ? ""
+        : `/${page}${id ? `/${id}` : ""}${tab ? `/${tab}` : ""}`;
   };
   return [route, go];
 }
 
 function ManageFund({ fundId, tab: routeTab, go, phone, onLogout }) {
-  const { state, status, error, update, flush, applyServer } = useFundSync(fundId);
+  const { state, status, error, update, flush, applyServer } =
+    useFundSync(fundId);
   const [memberId, setMemberId] = useState(null);
   const [editing, setEditing] = useState(null);
   const currentMonth = currentMonthKey();
   const tab = TABS.some((t) => t.id === routeTab) ? routeTab : "dashboard";
-  const setTab = (id) => go("manage", fundId, id === "dashboard" ? undefined : id);
-  const actions = useMemberActions({ state: state ?? { members: [], payments: [], loans: [] }, update });
+  const setTab = (id) =>
+    go("manage", fundId, id === "dashboard" ? undefined : id);
+  const actions = useMemberActions({
+    state: state ?? { members: [], payments: [], loans: [] },
+    update,
+  });
 
   if (error) {
     return (
       <div className="home">
         <div className="card" style={{ marginTop: 40 }}>
           <p className="error-text">{error.message}</p>
-          <button className="btn outline" style={{ marginTop: 12 }} onClick={() => go("home")}>
+          <button
+            className="btn outline"
+            style={{ marginTop: 12 }}
+            onClick={() => go("home")}
+          >
             بازگشت به صندوق‌ها
           </button>
         </div>
@@ -80,14 +118,23 @@ function ManageFund({ fundId, tab: routeTab, go, phone, onLogout }) {
   }
 
   const { Component } = TABS.find((t) => t.id === tab);
-  const lateCount = state ? new Set(overdueDues(state, currentMonth).map((d) => d.memberId)).size : 0;
-  const goTo = (id, opts) => (id === "members" && opts?.add ? setEditing(blankMember(state.fund, currentMonth)) : setTab(id));
+  const lateCount = state
+    ? new Set(overdueDues(state, currentMonth).map((d) => d.memberId)).size
+    : 0;
+  const goTo = (id, opts) =>
+    id === "members" && opts?.add
+      ? setEditing(blankMember(state.fund, currentMonth))
+      : setTab(id);
 
   return (
     <div className="shell">
       <aside className="sidebar">
         <Logo />
-        <button className="fund-switch" onClick={() => flush().then(() => go("home"))} title="تغییر صندوق">
+        <button
+          className="fund-switch"
+          onClick={() => flush().then(() => go("home"))}
+          title="تغییر صندوق"
+        >
           <LogoMark size={30} />
           <div>
             <strong>{state?.fund.name ?? "…"}</strong>
@@ -107,7 +154,9 @@ function ManageFund({ fundId, tab: routeTab, go, phone, onLogout }) {
               >
                 <Icon size={19} />
                 {t.label}
-                {t.id === "payments" && lateCount > 0 && <span className="count">{toPersianDigits(lateCount)}</span>}
+                {t.id === "payments" && lateCount > 0 && (
+                  <span className="count">{toPersianDigits(lateCount)}</span>
+                )}
               </button>
             );
           })}
@@ -118,7 +167,11 @@ function ManageFund({ fundId, tab: routeTab, go, phone, onLogout }) {
           </button>
           <button className="side-link" onClick={onLogout}>
             <LogOut size={19} /> خروج
-            <span className="muted small" style={{ marginInlineStart: "auto" }} dir="ltr">
+            <span
+              className="muted small"
+              style={{ marginInlineStart: "auto" }}
+              dir="ltr"
+            >
               {toPersianDigits(phone)}
             </span>
           </button>
@@ -127,7 +180,11 @@ function ManageFund({ fundId, tab: routeTab, go, phone, onLogout }) {
 
       <div className="main">
         <header className="appbar">
-          <button className="icon-btn mobile-only" onClick={() => flush().then(() => go("home"))} aria-label="صندوق‌ها">
+          <button
+            className="icon-btn mobile-only"
+            onClick={() => flush().then(() => go("home"))}
+            aria-label="صندوق‌ها"
+          >
             <LogoMark size={30} />
           </button>
           <div className="appbar-title">
@@ -142,7 +199,12 @@ function ManageFund({ fundId, tab: routeTab, go, phone, onLogout }) {
               )}
             </div>
           </div>
-          <button className="icon-btn mobile-only" onClick={() => go("view", fundId)} aria-label="نمای اعضا" title="نمای اعضا">
+          <button
+            className="icon-btn mobile-only"
+            onClick={() => go("view", fundId)}
+            aria-label="نمای اعضا"
+            title="نمای اعضا"
+          >
             <Eye size={20} />
           </button>
           <button
@@ -175,12 +237,18 @@ function ManageFund({ fundId, tab: routeTab, go, phone, onLogout }) {
         {MOBILE_TABS.map((t) => {
           const Icon = t.icon;
           return (
-            <button key={t.id} className={t.id === tab ? "active" : ""} onClick={() => setTab(t.id)}>
+            <button
+              key={t.id}
+              className={t.id === tab ? "active" : ""}
+              onClick={() => setTab(t.id)}
+            >
               <span className="nav-icon">
                 <Icon size={21} strokeWidth={t.id === tab ? 2.2 : 1.8} />
               </span>
               {t.label}
-              {t.id === "payments" && lateCount > 0 && <span className="dot-count">{toPersianDigits(lateCount)}</span>}
+              {t.id === "payments" && lateCount > 0 && (
+                <span className="dot-count">{toPersianDigits(lateCount)}</span>
+              )}
             </button>
           );
         })}
@@ -228,7 +296,13 @@ export default function App() {
       ? api("POST", "/api/auth/digipay", { token: launchToken }).finally(() => {
           params.delete("dp_token");
           const query = params.toString();
-          window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname +
+              (query ? `?${query}` : "") +
+              window.location.hash,
+          );
         })
       : api("GET", "/api/me");
     signIn.then(
@@ -250,16 +324,43 @@ export default function App() {
   if (phone === undefined) content = <div className="home" />;
   else if (phone === null) content = <Login onLogin={setPhone} />;
   else if (route.page === "manage")
-    content = <ManageFund key={route.id} fundId={route.id} tab={route.tab} go={go} phone={phone} onLogout={logout} />;
+    content = (
+      <ManageFund
+        key={route.id}
+        fundId={route.id}
+        tab={route.tab}
+        go={go}
+        phone={phone}
+        onLogout={logout}
+      />
+    );
   else if (route.page === "view")
     content = (
-      <MemberView key={route.id} fundId={route.id} back={(isManager) => (isManager ? go("manage", route.id) : go("home"))} />
+      <MemberView
+        key={route.id}
+        fundId={route.id}
+        back={(isManager) => (isManager ? go("manage", route.id) : go("home"))}
+      />
     );
   else if (route.page === "circle")
-    content = <CircleView key={route.id} circleId={route.id} back={() => go("home")} open={go} />;
+    content = (
+      <CircleView
+        key={route.id}
+        circleId={route.id}
+        back={() => go("home")}
+        open={go}
+      />
+    );
   else if (route.page === "checkout")
-    content = <Checkout key={route.id} checkoutId={route.id} done={(circleId) => go("circle", circleId)} />;
-  else if (route.page === "ops") content = <Ops back={() => go("home")} open={go} />;
+    content = (
+      <Checkout
+        key={route.id}
+        checkoutId={route.id}
+        done={(circleId) => (circleId ? go("circle", circleId) : go("home"))}
+      />
+    );
+  else if (route.page === "ops")
+    content = <Ops back={() => go("home")} open={go} />;
   else content = <FundList phone={phone} open={go} onLogout={logout} />;
 
   return <FeedbackProvider>{content}</FeedbackProvider>;

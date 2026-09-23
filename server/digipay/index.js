@@ -8,6 +8,7 @@ import { createDigipaySimulator } from "./simulator.js";
 //   payments.charge({ mandateId, amount, ref })  → { ok, ref }
 //   payments.createCheckout({ phone, amount, ref }) → { checkoutRef, url }
 //   payments.verifyCheckout({ checkoutRef, action }) → { ok, ref }
+//   payments.refund({ paymentRef, amount }) → { ok, ref }
 //   payouts.send({ phone, operator, amount, ref }) → { ref }
 // The live adapter is written once the mini-app SDK docs arrive.
 export function createDigipay(env = process.env) {

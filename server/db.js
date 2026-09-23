@@ -85,6 +85,8 @@ const SCHEMA = `
     nonce TEXT NOT NULL,
     pay_method TEXT NOT NULL CHECK (pay_method IN ('operator', 'auto', 'manual')),
     mandate_id TEXT,
+    -- Gateway reference of the first share, paid to take the seat.
+    entry_ref TEXT,
     won_month INTEGER,
     joined_at INTEGER NOT NULL,
     UNIQUE (circle_id, position)
@@ -123,24 +125,29 @@ const SCHEMA = `
     PRIMARY KEY (circle_id, month)
   );
 
+  -- "entry" pays the first share to join a plan (the seat is taken once it's
+  -- paid); "dues" pays a member's outstanding months.
   CREATE TABLE IF NOT EXISTS checkouts (
     id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL CHECK (kind IN ('entry', 'dues')),
     phone TEXT NOT NULL,
-    circle_id TEXT NOT NULL REFERENCES circles (id),
-    member_id TEXT NOT NULL,
+    plan_id TEXT NOT NULL,
+    nonce TEXT,
+    circle_id TEXT REFERENCES circles (id),
+    member_id TEXT,
     items TEXT NOT NULL,
     amount INTEGER NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('pending', 'paid', 'cancelled')),
+    status TEXT NOT NULL CHECK (status IN ('pending', 'paid', 'cancelled', 'refunded')),
     ref TEXT,
     created_at INTEGER NOT NULL
   );
 `;
 
-// The circle tables changed shape before release (queue deadlines). They
-// only ever held simulator data, so an old copy is dropped and rebuilt.
+// The circle tables changed shape before release (paid entry). They only
+// ever held simulator data, so an old copy is dropped and rebuilt.
 function dropPreReleaseCircleTables(db) {
-  const columns = db.prepare("PRAGMA table_info(circles)").all();
-  if (columns.length === 0 || columns.some((c) => c.name === "deadline")) return;
+  const columns = db.prepare("PRAGMA table_info(checkouts)").all();
+  if (columns.length === 0 || columns.some((c) => c.name === "kind")) return;
   db.exec(`
     DROP TABLE IF EXISTS checkouts;
     DROP TABLE IF EXISTS circle_draws;

@@ -12,25 +12,40 @@
 // this in the terms); if the wallet can't cover it, the operator pays in
 // their place ("covered") so the pot is always whole, and the member owes it.
 //
-// A forming circle waits for members until its deadline; if it doesn't fill
-// in time it expires and everyone in it is released.
+// Joining costs the first share up front: the member pays it through the
+// gateway and only then takes a seat. A forming circle waits for members
+// until its deadline; if it doesn't fill in time it expires, everyone in it
+// is released and their first share is refunded (as it is when someone
+// leaves the queue).
 
 import { transaction } from "./db.js";
 import { HttpError } from "./errors.js";
 import { planById, PLANS, potOf } from "../src/lib/plans.js";
-import { buildChain, nonceDigest, pickWinner, randomHex } from "../src/lib/fairness.js";
+import {
+  buildChain,
+  nonceDigest,
+  pickWinner,
+  randomHex,
+} from "../src/lib/fairness.js";
 import { newId } from "../src/lib/fund.js";
 
 const NONCE = /^[0-9a-f]{32,64}$/;
 
 const HOUR = 60 * 60 * 1000;
 
-export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs = HOUR }) {
+export function createCircleService({
+  db,
+  digipay,
+  now = Date.now,
+  formTimeoutMs = HOUR,
+}) {
   const q = (sql) => db.prepare(sql);
 
   const getCircle = (id) => q("SELECT * FROM circles WHERE id = ?").get(id);
   const membersOf = (circleId) =>
-    q("SELECT * FROM circle_members WHERE circle_id = ? ORDER BY position").all(circleId);
+    q("SELECT * FROM circle_members WHERE circle_id = ? ORDER BY position").all(
+      circleId,
+    );
 
   // ---------- forming ----------
 
@@ -42,7 +57,17 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       q(
         `INSERT INTO circles (id, plan_id, status, size, months, share, chain_secret, anchor, created_at, deadline)
          VALUES (?, ?, 'forming', ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(id, plan.id, plan.size, plan.months, plan.share, secret, anchor, now(), now() + formTimeoutMs);
+      ).run(
+        id,
+        plan.id,
+        plan.size,
+        plan.months,
+        plan.share,
+        secret,
+        anchor,
+        now(),
+        now() + formTimeoutMs,
+      );
       q(
         `INSERT INTO circle_members (id, circle_id, position, phone, is_operator, nonce, pay_method, joined_at)
          VALUES (?, ?, 1, NULL, 1, ?, 'operator', ?)`,
@@ -60,29 +85,59 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
 
   // Release everyone from circles that didn't fill before their deadline.
   async function expireStale() {
-    const stale = q("SELECT id FROM circles WHERE status = 'forming' AND deadline <= ?").all(now());
+    const stale = q(
+      "SELECT id FROM circles WHERE status = 'forming' AND deadline <= ?",
+    ).all(now());
     for (const { id } of stale) {
-      const expired = q("UPDATE circles SET status = 'expired' WHERE id = ? AND status = 'forming'").run(id).changes;
+      const expired = q(
+        "UPDATE circles SET status = 'expired' WHERE id = ? AND status = 'forming'",
+      ).run(id).changes;
       if (!expired) continue;
-      for (const m of membersOf(id)) {
-        if (m.mandate_id) await digipay.payments.revokeMandate({ mandateId: m.mandate_id });
-      }
+      for (const m of membersOf(id)) await release(m, getCircle(id));
+    }
+  }
+
+  // Undo what a seat holds: the wallet mandate and the prepaid first share.
+  async function release(member, circle) {
+    if (member.mandate_id)
+      await digipay.payments.revokeMandate({ mandateId: member.mandate_id });
+    if (member.entry_ref && !member.is_bot) {
+      await digipay.payments.refund({
+        paymentRef: member.entry_ref,
+        amount: circle.share,
+      });
     }
   }
 
   function openMonth(circleId, month, share) {
     for (const m of membersOf(circleId)) {
-      const operator = Boolean(m.is_operator);
+      // Month 1 was paid on joining.
+      const method = m.is_operator
+        ? "operator"
+        : month === 1 && m.entry_ref
+          ? "entry"
+          : null;
       q(
-        `INSERT INTO contributions (circle_id, member_id, month, amount, status, method, paid_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      ).run(circleId, m.id, month, share, operator ? "paid" : "due", operator ? "operator" : null, operator ? now() : null);
+        `INSERT INTO contributions (circle_id, member_id, month, amount, status, method, ref, paid_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        circleId,
+        m.id,
+        month,
+        share,
+        method ? "paid" : "due",
+        method,
+        method === "entry" ? m.entry_ref : null,
+        method ? now() : null,
+      );
     }
   }
 
   // Must run inside a transaction, right after the last seat is taken.
   function startCircle(circle) {
-    q("UPDATE circles SET status = 'active', started_at = ?, current_month = 1 WHERE id = ?").run(now(), circle.id);
+    q(
+      "UPDATE circles SET status = 'active', started_at = ?, current_month = 1 WHERE id = ?",
+    ).run(now(), circle.id);
     openMonth(circle.id, 1, circle.share);
   }
 
@@ -90,7 +145,9 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     const circle = getCircle(circleId);
     if (circle.status === "forming" || circle.nonce_digest) return;
     const digest = await nonceDigest(membersOf(circleId).map((m) => m.nonce));
-    q("UPDATE circles SET nonce_digest = ? WHERE id = ? AND nonce_digest IS NULL").run(digest, circleId);
+    q(
+      "UPDATE circles SET nonce_digest = ? WHERE id = ? AND nonce_digest IS NULL",
+    ).run(digest, circleId);
   }
 
   function committedMonthly(phone) {
@@ -111,39 +168,90 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     };
   }
 
+  const seatIn = (phone, planId) =>
+    q(
+      `SELECT m.circle_id AS circleId FROM circle_members m JOIN circles c ON c.id = m.circle_id
+       WHERE m.phone = ? AND c.plan_id = ? AND c.status IN ('forming', 'active')`,
+    ).get(phone, planId);
+
+  // Step 1 of joining: check the member can join, then send them to the
+  // gateway to pay the first share. The seat is taken in completeCheckout.
   async function join({ phone, planId, nonce }) {
     const plan = planById(planId);
     if (!plan) throw new HttpError(404, "این طرح پیدا نشد.");
     await expireStale();
-    const already = q(
-      `SELECT 1 FROM circle_members m JOIN circles c ON c.id = m.circle_id
-       WHERE m.phone = ? AND c.plan_id = ? AND c.status IN ('forming', 'active')`,
-    ).get(phone, plan.id);
-    if (already) throw new HttpError(409, "شما در یک دوره‌ی فعال از همین طرح عضو هستید.");
+    if (seatIn(phone, plan.id))
+      throw new HttpError(409, "شما در یک دوره‌ی فعال از همین طرح عضو هستید.");
 
     const e = await eligibility(phone);
-    if (!e.approved) throw new HttpError(403, "در حال حاضر امکان عضویت در طرح‌ها برای شما فعال نیست.");
+    if (!e.approved)
+      throw new HttpError(
+        403,
+        "در حال حاضر امکان عضویت در طرح‌ها برای شما فعال نیست.",
+      );
     if (e.available < plan.share) {
-      throw new HttpError(403, "سقف اعتبار ماهانه‌ی شما برای این طرح کافی نیست. طرح کوچک‌تری را امتحان کنید.");
+      throw new HttpError(
+        403,
+        "سقف اعتبار ماهانه‌ی شما برای این طرح کافی نیست. طرح کوچک‌تری را امتحان کنید.",
+      );
     }
 
-    // The wallet-debit fallback the member agrees to in the terms.
-    const mandate = await digipay.payments.createMandate({ phone, monthlyAmount: plan.share, months: plan.months });
     // A nonce from the member's own device: entropy the server couldn't know
     // when it committed to the hash chain.
     const memberNonce = NONCE.test(nonce ?? "") ? nonce : randomHex(16);
+    const id = newId();
+    const checkout = await digipay.payments.createCheckout({
+      phone,
+      amount: plan.share,
+      ref: id,
+    });
+    q(
+      `INSERT INTO checkouts (id, kind, phone, plan_id, nonce, items, amount, status, ref, created_at)
+       VALUES (?, 'entry', ?, ?, ?, '[1]', ?, 'pending', ?, ?)`,
+    ).run(
+      id,
+      phone,
+      plan.id,
+      memberNonce,
+      plan.share,
+      checkout.checkoutRef,
+      now(),
+    );
+    return { checkoutId: id, redirectUrl: checkout.url ?? null };
+  }
+
+  // Step 2, once the first share is paid: take a seat in the plan's open
+  // circle (a fresh one if none is open).
+  async function seat({ phone, plan, nonce, entryRef }) {
+    // The wallet-debit fallback the member agrees to in the terms.
+    const mandate = await digipay.payments.createMandate({
+      phone,
+      monthlyAmount: plan.share,
+      months: plan.months,
+    });
 
     for (let attempt = 0; attempt < 3; attempt++) {
       const circleId = await openCircleFor(plan);
       const joined = transaction(db, () => {
         const circle = getCircle(circleId);
-        const taken = q("SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?").get(circleId).n;
+        const taken = q(
+          "SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?",
+        ).get(circleId).n;
         if (circle.status !== "forming" || taken >= circle.size) return null;
         const memberId = newId();
         q(
-          `INSERT INTO circle_members (id, circle_id, position, phone, nonce, pay_method, mandate_id, joined_at)
-           VALUES (?, ?, ?, ?, ?, 'manual', ?, ?)`,
-        ).run(memberId, circleId, taken + 1, phone, memberNonce, mandate.mandateId, now());
+          `INSERT INTO circle_members (id, circle_id, position, phone, nonce, pay_method, mandate_id, entry_ref, joined_at)
+           VALUES (?, ?, ?, ?, ?, 'manual', ?, ?, ?)`,
+        ).run(
+          memberId,
+          circleId,
+          taken + 1,
+          phone,
+          nonce,
+          mandate.mandateId,
+          entryRef,
+          now(),
+        );
         if (taken + 1 === circle.size) startCircle(circle);
         return { circleId, memberId };
       });
@@ -162,12 +270,17 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     const left = transaction(db, () => {
       if (getCircle(circleId).status !== "forming") return false;
       q("DELETE FROM circle_members WHERE id = ?").run(member.id);
-      q("UPDATE circle_members SET position = -position WHERE circle_id = ? AND position > ?").run(circleId, member.position);
-      q("UPDATE circle_members SET position = -position - 1 WHERE circle_id = ? AND position < 0").run(circleId);
+      q(
+        "UPDATE circle_members SET position = -position WHERE circle_id = ? AND position > ?",
+      ).run(circleId, member.position);
+      q(
+        "UPDATE circle_members SET position = -position - 1 WHERE circle_id = ? AND position < 0",
+      ).run(circleId);
       return true;
     });
-    if (!left) throw new HttpError(400, "گروه شروع شده و دیگر نمی‌شود از آن خارج شد.");
-    if (member.mandate_id) await digipay.payments.revokeMandate({ mandateId: member.mandate_id });
+    if (!left)
+      throw new HttpError(400, "گروه شروع شده و دیگر نمی‌شود از آن خارج شد.");
+    await release(member, getCircle(circleId));
   }
 
   // ---------- running ----------
@@ -176,7 +289,8 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     const claimed = q(
       "UPDATE circles SET closing = 1 WHERE id = ? AND status = 'active' AND closing = 0",
     ).run(circleId).changes;
-    if (!claimed) throw new HttpError(409, "این دوره فعال نیست یا در حال پردازش است.");
+    if (!claimed)
+      throw new HttpError(409, "این دوره فعال نیست یا در حال پردازش است.");
 
     try {
       await publishNonceDigest(circleId);
@@ -185,10 +299,9 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       const members = membersOf(circleId);
 
       // 1. Debit the wallet of anyone who hasn't paid through the gateway.
-      const due = q("SELECT * FROM contributions WHERE circle_id = ? AND month = ? AND status = 'due'").all(
-        circleId,
-        month,
-      );
+      const due = q(
+        "SELECT * FROM contributions WHERE circle_id = ? AND month = ? AND status = 'due'",
+      ).all(circleId, month);
       for (const d of due) {
         const member = members.find((m) => m.id === d.member_id);
         if (member.is_operator || !member.mandate_id) continue;
@@ -210,9 +323,17 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       let draw;
       if (month === 1) {
         const operator = members.find((m) => m.is_operator);
-        draw = { kind: "operator", winner: operator.id, eligible: [operator.id] };
+        draw = {
+          kind: "operator",
+          winner: operator.id,
+          eligible: [operator.id],
+        };
       } else if (waiting.length === 1) {
-        draw = { kind: "last", winner: waiting[0].id, eligible: [waiting[0].id] };
+        draw = {
+          kind: "last",
+          winner: waiting[0].id,
+          eligible: [waiting[0].id],
+        };
       } else {
         const owing = new Set(
           q(
@@ -224,10 +345,18 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
         );
         let eligible = waiting.filter((m) => !owing.has(m.id)).map((m) => m.id);
         if (eligible.length === 0) eligible = waiting.map((m) => m.id);
-        const drawNo = q("SELECT COUNT(*) AS n FROM circle_draws WHERE circle_id = ? AND kind = 'lottery'").get(circleId).n + 1;
+        const drawNo =
+          q(
+            "SELECT COUNT(*) AS n FROM circle_draws WHERE circle_id = ? AND kind = 'lottery'",
+          ).get(circleId).n + 1;
         const chain = await buildChain(circle.chain_secret, circle.months);
         const reveal = chain[drawNo];
-        const { seed, winner } = await pickWinner({ reveal, digest: getCircle(circleId).nonce_digest, month, eligible });
+        const { seed, winner } = await pickWinner({
+          reveal,
+          digest: getCircle(circleId).nonce_digest,
+          month,
+          eligible,
+        });
         draw = { kind: "lottery", drawNo, reveal, seed, winner, eligible };
       }
 
@@ -253,11 +382,18 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
           pot,
           now(),
         );
-        q("UPDATE circle_members SET won_month = ? WHERE id = ?").run(month, draw.winner);
+        q("UPDATE circle_members SET won_month = ? WHERE id = ?").run(
+          month,
+          draw.winner,
+        );
         if (month === circle.months) {
-          q("UPDATE circles SET status = 'completed', closing = 0 WHERE id = ?").run(circleId);
+          q(
+            "UPDATE circles SET status = 'completed', closing = 0 WHERE id = ?",
+          ).run(circleId);
         } else {
-          q("UPDATE circles SET current_month = ?, closing = 0 WHERE id = ?").run(month + 1, circleId);
+          q(
+            "UPDATE circles SET current_month = ?, closing = 0 WHERE id = ?",
+          ).run(month + 1, circleId);
           openMonth(circleId, month + 1, circle.share);
         }
       });
@@ -270,7 +406,9 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
         amount: pot,
         ref: `${circleId}:${month}`,
       });
-      q("UPDATE circle_draws SET payout_ref = ? WHERE circle_id = ? AND month = ?").run(payout.ref, circleId, month);
+      q(
+        "UPDATE circle_draws SET payout_ref = ? WHERE circle_id = ? AND month = ?",
+      ).run(payout.ref, circleId, month);
       return { month, kind: draw.kind, winner: draw.winner, pot };
     } catch (error) {
       q("UPDATE circles SET closing = 0 WHERE id = ?").run(circleId);
@@ -281,7 +419,9 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
   // ---------- manual payments ----------
 
   function memberFor(phone, circleId) {
-    const member = q("SELECT * FROM circle_members WHERE circle_id = ? AND phone = ?").get(circleId, phone);
+    const member = q(
+      "SELECT * FROM circle_members WHERE circle_id = ? AND phone = ?",
+    ).get(circleId, phone);
     if (!member) throw new HttpError(404, "این دوره پیدا نشد.");
     return member;
   }
@@ -298,33 +438,56 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     if (items.length === 0) throw new HttpError(400, "پرداخت معوقی ندارید.");
     const amount = items.reduce((t, i) => t + i.amount, 0);
     const id = newId();
-    const checkout = await digipay.payments.createCheckout({ phone, amount, ref: id });
+    const checkout = await digipay.payments.createCheckout({
+      phone,
+      amount,
+      ref: id,
+    });
     q(
-      `INSERT INTO checkouts (id, phone, circle_id, member_id, items, amount, status, ref, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-    ).run(id, phone, circleId, member.id, JSON.stringify(items.map((i) => i.month)), amount, checkout.checkoutRef, now());
+      `INSERT INTO checkouts (id, kind, phone, plan_id, circle_id, member_id, items, amount, status, ref, created_at)
+       VALUES (?, 'dues', ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+    ).run(
+      id,
+      phone,
+      getCircle(circleId).plan_id,
+      circleId,
+      member.id,
+      JSON.stringify(items.map((i) => i.month)),
+      amount,
+      checkout.checkoutRef,
+      now(),
+    );
     return { checkoutId: id, redirectUrl: checkout.url ?? null };
   }
 
   function getCheckout(phone, id) {
-    const checkout = q("SELECT * FROM checkouts WHERE id = ? AND phone = ?").get(id, phone);
+    const checkout = q(
+      "SELECT * FROM checkouts WHERE id = ? AND phone = ?",
+    ).get(id, phone);
     if (!checkout) throw new HttpError(404, "پرداخت پیدا نشد.");
-    const circle = getCircle(checkout.circle_id);
     return {
       id: checkout.id,
+      kind: checkout.kind,
       amount: checkout.amount,
       status: checkout.status,
       months: JSON.parse(checkout.items),
       circleId: checkout.circle_id,
-      planId: circle.plan_id,
+      planId: checkout.plan_id,
     };
   }
 
   async function completeCheckout({ phone, id, action }) {
-    const checkout = q("SELECT * FROM checkouts WHERE id = ? AND phone = ?").get(id, phone);
+    const checkout = q(
+      "SELECT * FROM checkouts WHERE id = ? AND phone = ?",
+    ).get(id, phone);
     if (!checkout) throw new HttpError(404, "پرداخت پیدا نشد.");
-    if (checkout.status !== "pending") throw new HttpError(400, "این پرداخت قبلاً نهایی شده است.");
-    const result = await digipay.payments.verifyCheckout({ checkoutRef: checkout.ref, action });
+    if (checkout.status !== "pending")
+      throw new HttpError(400, "این پرداخت قبلاً نهایی شده است.");
+    const result = await digipay.payments.verifyCheckout({
+      checkoutRef: checkout.ref,
+      action,
+    });
+    if (checkout.kind === "entry") return completeEntry(checkout, result);
     transaction(db, () => {
       if (!result.ok) {
         q("UPDATE checkouts SET status = 'cancelled' WHERE id = ?").run(id);
@@ -341,9 +504,51 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
            WHERE circle_id = ? AND member_id = ? AND month = ? AND status = 'covered' AND settled_at IS NULL`,
         ).run(now(), ...args);
       }
-      q("UPDATE checkouts SET status = 'paid', ref = ? WHERE id = ?").run(result.ref, id);
+      q("UPDATE checkouts SET status = 'paid', ref = ? WHERE id = ?").run(
+        result.ref,
+        id,
+      );
     });
     return { ok: result.ok, circleId: checkout.circle_id };
+  }
+
+  async function completeEntry(checkout, result) {
+    const claimed = q(
+      "UPDATE checkouts SET status = ?, ref = ? WHERE id = ? AND status = 'pending'",
+    ).run(
+      result.ok ? "paid" : "cancelled",
+      result.ref ?? checkout.ref,
+      checkout.id,
+    ).changes;
+    if (!claimed) throw new HttpError(400, "این پرداخت قبلاً نهایی شده است.");
+    if (!result.ok) return { ok: false, circleId: null };
+
+    const plan = planById(checkout.plan_id);
+    await expireStale();
+    // Paid twice for the same plan (two tabs): keep the seat, return the money.
+    const existing = seatIn(checkout.phone, plan.id);
+    if (existing) {
+      await digipay.payments.refund({
+        paymentRef: result.ref,
+        amount: checkout.amount,
+      });
+      q("UPDATE checkouts SET status = 'refunded' WHERE id = ?").run(
+        checkout.id,
+      );
+      return { ok: true, refunded: true, circleId: existing.circleId };
+    }
+    const { circleId, memberId } = await seat({
+      phone: checkout.phone,
+      plan,
+      nonce: checkout.nonce,
+      entryRef: result.ref,
+    });
+    q("UPDATE checkouts SET circle_id = ?, member_id = ? WHERE id = ?").run(
+      circleId,
+      memberId,
+      checkout.id,
+    );
+    return { ok: true, circleId };
   }
 
   // ---------- views ----------
@@ -360,11 +565,17 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
   }
 
   function summarize(circle, member) {
-    const taken = q("SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?").get(circle.id).n;
+    const taken = q(
+      "SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?",
+    ).get(circle.id).n;
     const outstanding = outstandingOf(circle.id, member.id);
     // Debt is only what the guarantee paid for; this month's share isn't late yet.
-    const owed = outstanding.filter((i) => i.status === "covered").reduce((t, i) => t + i.amount, 0);
-    const dueNow = outstanding.filter((i) => i.status === "due").reduce((t, i) => t + i.amount, 0);
+    const owed = outstanding
+      .filter((i) => i.status === "covered")
+      .reduce((t, i) => t + i.amount, 0);
+    const dueNow = outstanding
+      .filter((i) => i.status === "due")
+      .reduce((t, i) => t + i.amount, 0);
     return {
       id: circle.id,
       planId: circle.plan_id,
@@ -391,7 +602,12 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
        WHERE m.phone = ? AND c.status != 'expired' ORDER BY c.status = 'completed', c.created_at DESC`,
     )
       .all(phone)
-      .map((row) => summarize(row, q("SELECT * FROM circle_members WHERE id = ?").get(row.member_id)));
+      .map((row) =>
+        summarize(
+          row,
+          q("SELECT * FROM circle_members WHERE id = ?").get(row.member_id),
+        ),
+      );
   }
 
   // Members see each other only by seat number; phones never leave the server.
@@ -403,17 +619,29 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     const me = members.find((m) => m.phone === phone);
     if (!me && !ops) throw new HttpError(404, "این دوره پیدا نشد.");
 
-    const draws = q("SELECT * FROM circle_draws WHERE circle_id = ? ORDER BY month").all(circleId);
-    const reveals = new Map(draws.filter((d) => d.kind === "lottery").map((d) => [d.draw_no, d.reveal]));
+    const draws = q(
+      "SELECT * FROM circle_draws WHERE circle_id = ? ORDER BY month",
+    ).all(circleId);
+    const reveals = new Map(
+      draws
+        .filter((d) => d.kind === "lottery")
+        .map((d) => [d.draw_no, d.reveal]),
+    );
     const contributions = me
-      ? q("SELECT month, amount, status, method, settled_at FROM contributions WHERE circle_id = ? AND member_id = ? ORDER BY month").all(
-          circleId,
-          me.id,
-        )
+      ? q(
+          "SELECT month, amount, status, method, settled_at FROM contributions WHERE circle_id = ? AND member_id = ? ORDER BY month",
+        ).all(circleId, me.id)
       : [];
 
     return {
-      circle: me ? summarize(circle, me) : { ...summarize(circle, members[0]), position: null, owed: 0, dueNow: 0 },
+      circle: me
+        ? summarize(circle, me)
+        : {
+            ...summarize(circle, members[0]),
+            position: null,
+            owed: 0,
+            dueNow: 0,
+          },
       anchor: circle.anchor,
       nonceDigest: circle.nonce_digest,
       members: members.map((m) => ({
@@ -429,7 +657,12 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
         kind: d.kind,
         drawNo: d.draw_no,
         reveal: d.reveal,
-        previous: d.kind === "lottery" ? (d.draw_no === 1 ? circle.anchor : reveals.get(d.draw_no - 1)) : null,
+        previous:
+          d.kind === "lottery"
+            ? d.draw_no === 1
+              ? circle.anchor
+              : reveals.get(d.draw_no - 1)
+            : null,
         seed: d.seed,
         eligible: JSON.parse(d.eligible),
         winner: d.winner_member_id,
@@ -470,16 +703,27 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
   // "forgets" to pay, which shows the guarantee at work.
   async function fillWithBots(circleId) {
     const circle = getCircle(circleId);
-    if (!circle || circle.status !== "forming") throw new HttpError(400, "فقط دوره‌ی در حال تکمیل را می‌شود پر کرد.");
+    if (!circle || circle.status !== "forming")
+      throw new HttpError(400, "فقط دوره‌ی در حال تکمیل را می‌شود پر کرد.");
     transaction(db, () => {
-      let taken = q("SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?").get(circleId).n;
+      let taken = q(
+        "SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?",
+      ).get(circleId).n;
       while (taken < circle.size) {
         taken += 1;
         const failing = taken % 4 === 0;
         q(
-          `INSERT INTO circle_members (id, circle_id, position, phone, is_bot, nonce, pay_method, mandate_id, joined_at)
-           VALUES (?, ?, ?, NULL, 1, ?, 'auto', ?, ?)`,
-        ).run(newId(), circleId, taken, randomHex(16), `sim-mandate-${failing ? "failing-" : ""}${newId()}`, now());
+          `INSERT INTO circle_members (id, circle_id, position, phone, is_bot, nonce, pay_method, mandate_id, entry_ref, joined_at)
+           VALUES (?, ?, ?, NULL, 1, ?, 'auto', ?, ?, ?)`,
+        ).run(
+          newId(),
+          circleId,
+          taken,
+          randomHex(16),
+          `sim-mandate-${failing ? "failing-" : ""}${newId()}`,
+          `sim-entry-${newId()}`,
+          now(),
+        );
       }
       startCircle(circle);
     });

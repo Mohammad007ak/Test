@@ -4,6 +4,7 @@ import { Money, PageSkeleton, Spinner } from "../../ui/bits.jsx";
 import { useToast } from "../../ui/feedback.jsx";
 import { api } from "../../lib/api.js";
 import { formatNumber } from "../../lib/format.js";
+import { planById } from "../../lib/plans.js";
 
 // Stands in for Digipay's payment page while the app runs on the simulator.
 // With the live gateway the user is redirected to Digipay instead.
@@ -20,8 +21,21 @@ export default function Checkout({ checkoutId, done }) {
   const finish = async (action) => {
     setBusy(action);
     try {
-      const result = await api("POST", `/api/checkouts/${checkoutId}/complete`, { action });
-      toast(result.ok ? "پرداخت با موفقیت انجام شد" : "پرداخت لغو شد", { tone: result.ok ? "success" : "error" });
+      const result = await api(
+        "POST",
+        `/api/checkouts/${checkoutId}/complete`,
+        { action },
+      );
+      const message = !result.ok
+        ? checkout.kind === "entry"
+          ? "پرداخت لغو شد و عضویتی ثبت نشد"
+          : "پرداخت لغو شد"
+        : result.refunded
+          ? "شما از قبل در این طرح عضو هستید؛ مبلغ برگردانده می‌شود"
+          : checkout.kind === "entry"
+            ? "قسط اول پرداخت شد و به صف گروه پیوستید"
+            : "پرداخت با موفقیت انجام شد";
+      toast(message, { tone: result.ok ? "success" : "error" });
       done(result.circleId);
     } catch (e) {
       toast(e.message, { tone: "error" });
@@ -45,29 +59,51 @@ export default function Checkout({ checkoutId, done }) {
         </div>
         <div className="checkout-head">
           <CreditCard size={22} />
-          <h1>پرداخت سهم صندوق</h1>
+          <h1>
+            {checkout.kind === "entry"
+              ? "پرداخت قسط اول و عضویت"
+              : "پرداخت سهم صندوق"}
+          </h1>
         </div>
         <div className="checkout-amount">
           <span>مبلغ قابل پرداخت</span>
           <Money amount={checkout.amount} />
-          <small>بابت ماه {checkout.months.map((m) => formatNumber(m)).join("، ")}</small>
+          <small>
+            {checkout.kind === "entry"
+              ? `قسط اول ${planById(checkout.planId)?.title ?? ""}`
+              : `بابت ماه ${checkout.months.map((m) => formatNumber(m)).join("، ")}`}
+          </small>
         </div>
         {checkout.status === "pending" ? (
           <div className="stack-sm">
-            <button className="btn primary lg block" onClick={() => finish("pay")} disabled={Boolean(busy)}>
-              {busy === "pay" ? <Spinner /> : "پرداخت از کیف پول"}
+            <button
+              className="btn primary lg block"
+              onClick={() => finish("pay")}
+              disabled={Boolean(busy)}
+            >
+              {busy === "pay" ? <Spinner /> : "پرداخت"}
             </button>
-            <button className="btn ghost block" onClick={() => finish("cancel")} disabled={Boolean(busy)}>
+            <button
+              className="btn ghost block"
+              onClick={() => finish("cancel")}
+              disabled={Boolean(busy)}
+            >
               انصراف
             </button>
           </div>
         ) : (
-          <button className="btn outline block" onClick={() => done(checkout.circleId)}>
-            {checkout.status === "paid" ? "پرداخت شده؛ بازگشت" : "لغو شده؛ بازگشت"}
+          <button
+            className="btn outline block"
+            onClick={() => done(checkout.circleId)}
+          >
+            {checkout.status === "cancelled"
+              ? "لغو شده؛ بازگشت"
+              : "پرداخت شده؛ بازگشت"}
           </button>
         )}
         <p className="fine-print">
-          <ShieldCheck size={13} style={{ verticalAlign: "-2px" }} /> پرداخت امن از طریق دیجی‌پی
+          <ShieldCheck size={13} style={{ verticalAlign: "-2px" }} /> پرداخت امن
+          از طریق دیجی‌پی
         </p>
       </div>
     </div>

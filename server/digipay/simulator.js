@@ -50,6 +50,9 @@ export function createDigipaySimulator() {
       async verifyCheckout({ checkoutRef, action }) {
         return { ok: action === "pay", ref: action === "pay" ? ref("paid") : null, checkoutRef };
       },
+      async refund({ paymentRef, amount }) {
+        return { ok: true, ref: ref("refund"), paymentRef, amount };
+      },
     },
 
     payouts: {

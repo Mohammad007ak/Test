@@ -13,7 +13,11 @@ let baseUrl;
 let clock = Date.now();
 
 before(async () => {
-  const app = createApp({ db: openDatabase(":memory:"), now: () => clock, random: () => 0 });
+  const app = createApp({
+    db: openDatabase(":memory:"),
+    now: () => clock,
+    random: () => 0,
+  });
   server = app.listen(0);
   await new Promise((resolve) => server.once("listening", resolve));
   baseUrl = `http://localhost:${server.address().port}`;
@@ -38,7 +42,10 @@ function client() {
 async function login(phone) {
   const call = client();
   const { body } = await call("POST", "/api/auth/request-code", { phone });
-  const verified = await call("POST", "/api/auth/verify", { phone, code: body.devCode });
+  const verified = await call("POST", "/api/auth/verify", {
+    phone,
+    code: body.devCode,
+  });
   assert.equal(verified.status, 200);
   return call;
 }
@@ -47,10 +54,23 @@ function sampleData() {
   const month = currentMonthKey();
   return {
     version: 1,
-    fund: { name: "صندوق تست", contribution: 1000, loanAmount: 2000, installments: 2, startMonth: month, cycle: 1 },
+    fund: {
+      name: "صندوق تست",
+      contribution: 1000,
+      loanAmount: 2000,
+      installments: 2,
+      startMonth: month,
+      cycle: 1,
+    },
     members: [
       { id: "m1", name: "مدیر", phone: MANAGER, shares: 1, joinMonth: month },
-      { id: "m2", name: "عضو", phone: "+98 912 000 0002", shares: 1, joinMonth: month },
+      {
+        id: "m2",
+        name: "عضو",
+        phone: "+98 912 000 0002",
+        shares: 1,
+        joinMonth: month,
+      },
     ],
     payments: [
       { id: "p1", memberId: "m1", type: "contribution", month, amount: 1000 },
@@ -64,36 +84,73 @@ test("login requires the code that was sent", async () => {
   const call = client();
   assert.equal((await call("GET", "/api/me")).status, 401);
 
-  const requested = await call("POST", "/api/auth/request-code", { phone: "۰۹۱۲۰۰۰۰۰۰۹" });
+  const requested = await call("POST", "/api/auth/request-code", {
+    phone: "۰۹۱۲۰۰۰۰۰۰۹",
+  });
   assert.equal(requested.status, 200);
   assert.match(requested.body.devCode, /^\d{5}$/);
 
-  const wrong = await call("POST", "/api/auth/verify", { phone: "09120000009", code: "abcde" });
+  const wrong = await call("POST", "/api/auth/verify", {
+    phone: "09120000009",
+    code: "abcde",
+  });
   assert.equal(wrong.status, 400);
 
-  const ok = await call("POST", "/api/auth/verify", { phone: "09120000009", code: requested.body.devCode });
+  const ok = await call("POST", "/api/auth/verify", {
+    phone: "09120000009",
+    code: requested.body.devCode,
+  });
   assert.equal(ok.status, 200);
-  assert.deepEqual((await call("GET", "/api/me")).body, { phone: "09120000009" });
+  assert.deepEqual((await call("GET", "/api/me")).body, {
+    phone: "09120000009",
+  });
 
   // The code is single-use.
-  const reused = await call("POST", "/api/auth/verify", { phone: "09120000009", code: requested.body.devCode });
+  const reused = await call("POST", "/api/auth/verify", {
+    phone: "09120000009",
+    code: requested.body.devCode,
+  });
   assert.equal(reused.status, 400);
 });
 
 test("rejects invalid phones and rapid resends", async () => {
   const call = client();
-  assert.equal((await call("POST", "/api/auth/request-code", { phone: "12345" })).status, 400);
-  assert.equal((await call("POST", "/api/auth/request-code", { phone: "09120000010" })).status, 200);
-  assert.equal((await call("POST", "/api/auth/request-code", { phone: "09120000010" })).status, 429);
+  assert.equal(
+    (await call("POST", "/api/auth/request-code", { phone: "12345" })).status,
+    400,
+  );
+  assert.equal(
+    (await call("POST", "/api/auth/request-code", { phone: "09120000010" }))
+      .status,
+    200,
+  );
+  assert.equal(
+    (await call("POST", "/api/auth/request-code", { phone: "09120000010" }))
+      .status,
+    429,
+  );
   clock += 61 * 1000;
-  assert.equal((await call("POST", "/api/auth/request-code", { phone: "09120000010" })).status, 200);
+  assert.equal(
+    (await call("POST", "/api/auth/request-code", { phone: "09120000010" }))
+      .status,
+    200,
+  );
 });
 
 test("locks a code after too many wrong guesses", async () => {
   const call = client();
-  const { body } = await call("POST", "/api/auth/request-code", { phone: "09120000011" });
-  for (let i = 0; i < 5; i++) await call("POST", "/api/auth/verify", { phone: "09120000011", code: "00000" });
-  const locked = await call("POST", "/api/auth/verify", { phone: "09120000011", code: body.devCode });
+  const { body } = await call("POST", "/api/auth/request-code", {
+    phone: "09120000011",
+  });
+  for (let i = 0; i < 5; i++)
+    await call("POST", "/api/auth/verify", {
+      phone: "09120000011",
+      code: "00000",
+    });
+  const locked = await call("POST", "/api/auth/verify", {
+    phone: "09120000011",
+    code: body.devCode,
+  });
   assert.equal(locked.status, 429);
 });
 
@@ -106,9 +163,19 @@ test("manager owns the fund; members get a read-only view; strangers get nothing
   assert.equal(created.status, 201);
   const { id } = created.body;
 
-  assert.deepEqual((await member("GET", "/api/funds")).body.member, [{ id, name: "صندوق تست" }]);
+  assert.deepEqual((await member("GET", "/api/funds")).body.member, [
+    { id, name: "صندوق تست" },
+  ]);
   assert.equal((await member("GET", `/api/funds/${id}`)).status, 404);
-  assert.equal((await member("PUT", `/api/funds/${id}`, { data: sampleData(), version: 1 })).status, 404);
+  assert.equal(
+    (
+      await member("PUT", `/api/funds/${id}`, {
+        data: sampleData(),
+        version: 1,
+      })
+    ).status,
+    404,
+  );
   assert.equal((await stranger("GET", `/api/funds/${id}/view`)).status, 404);
 
   const view = await member("GET", `/api/funds/${id}/view`);
@@ -120,23 +187,34 @@ test("manager owns the fund; members get a read-only view; strangers get nothing
 
 test("saving with a stale version is rejected", async () => {
   const manager = await login(MANAGER);
-  const { id } = (await manager("POST", "/api/funds", { data: sampleData() })).body;
+  const { id } = (await manager("POST", "/api/funds", { data: sampleData() }))
+    .body;
 
-  const first = await manager("PUT", `/api/funds/${id}`, { data: sampleData(), version: 1 });
+  const first = await manager("PUT", `/api/funds/${id}`, {
+    data: sampleData(),
+    version: 1,
+  });
   assert.deepEqual(first.body, { version: 2 });
 
-  const stale = await manager("PUT", `/api/funds/${id}`, { data: sampleData(), version: 1 });
+  const stale = await manager("PUT", `/api/funds/${id}`, {
+    data: sampleData(),
+    version: 1,
+  });
   assert.equal(stale.status, 409);
   assert.equal(stale.body.version, 2);
 
-  const invalid = await manager("PUT", `/api/funds/${id}`, { data: { members: [] }, version: 2 });
+  const invalid = await manager("PUT", `/api/funds/${id}`, {
+    data: { members: [] },
+    version: 2,
+  });
   assert.equal(invalid.status, 400);
 });
 
 test("draws are chosen on the server and every re-roll is visible to members", async () => {
   const manager = await login(MANAGER);
   const member = await login(MEMBER);
-  const { id } = (await manager("POST", "/api/funds", { data: sampleData() })).body;
+  const { id } = (await manager("POST", "/api/funds", { data: sampleData() }))
+    .body;
 
   const first = await manager("POST", `/api/funds/${id}/draws`);
   assert.equal(first.status, 201);
@@ -144,12 +222,18 @@ test("draws are chosen on the server and every re-roll is visible to members", a
 
   // Drawing again silently cancels the pending draw, but it stays on record.
   const second = await manager("POST", `/api/funds/${id}/draws`);
-  const confirmed = await manager("POST", `/api/funds/${id}/draws/${second.body.draw.id}/confirm`);
+  const confirmed = await manager(
+    "POST",
+    `/api/funds/${id}/draws/${second.body.draw.id}/confirm`,
+  );
   assert.equal(confirmed.status, 200);
   assert.equal(confirmed.body.data.loans.length, 1);
   assert.equal(confirmed.body.data.loans[0].drawId, second.body.draw.id);
 
-  const again = await manager("POST", `/api/funds/${id}/draws/${first.body.draw.id}/confirm`);
+  const again = await manager(
+    "POST",
+    `/api/funds/${id}/draws/${first.body.draw.id}/confirm`,
+  );
   assert.equal(again.status, 400);
 
   const view = (await member("GET", `/api/funds/${id}/view`)).body;
@@ -165,19 +249,29 @@ test("draws are chosen on the server and every re-roll is visible to members", a
 });
 
 test("mutating requests must be JSON", async () => {
-  const response = await fetch(`${baseUrl}/api/auth/logout`, { method: "POST", body: "x" });
+  const response = await fetch(`${baseUrl}/api/auth/logout`, {
+    method: "POST",
+    body: "x",
+  });
   assert.equal(response.status, 415);
 });
 
 test("inside the Digipay mini-app, a launch token signs the user in without SMS", async () => {
   const call = client();
-  assert.equal((await call("POST", "/api/auth/digipay", { token: "bogus" })).status, 401);
-  const ok = await call("POST", "/api/auth/digipay", { token: "sim-09120000055" });
+  assert.equal(
+    (await call("POST", "/api/auth/digipay", { token: "bogus" })).status,
+    401,
+  );
+  const ok = await call("POST", "/api/auth/digipay", {
+    token: "sim-09120000055",
+  });
   assert.equal(ok.status, 200);
-  assert.deepEqual((await call("GET", "/api/me")).body, { phone: "09120000055" });
+  assert.deepEqual((await call("GET", "/api/me")).body, {
+    phone: "09120000055",
+  });
 });
 
-test("joining a guaranteed plan needs explicit acceptance, then shows up in my circles", async () => {
+test("joining a guaranteed plan needs explicit acceptance and the first share, then shows up in my circles", async () => {
   const call = client();
   await call("POST", "/api/auth/digipay", { token: "sim-09120000066" });
   const plans = await call("GET", "/api/plans");
@@ -186,12 +280,29 @@ test("joining a guaranteed plan needs explicit acceptance, then shows up in my c
   const refused = await call("POST", "/api/circles/join", { planId: "p12-5" });
   assert.equal(refused.status, 400);
 
-  const joined = await call("POST", "/api/circles/join", { planId: "p12-5", accept: true });
-  assert.equal(joined.status, 201);
+  const started = await call("POST", "/api/circles/join", {
+    planId: "p12-5",
+    accept: true,
+  });
+  assert.equal(started.status, 201);
+  const checkout = await call(
+    "GET",
+    `/api/checkouts/${started.body.checkoutId}`,
+  );
+  assert.equal(checkout.body.kind, "entry");
+  assert.equal(checkout.body.amount, 5_000_000);
+  assert.equal((await call("GET", "/api/circles")).body.circles.length, 0);
+
+  const paid = await call(
+    "POST",
+    `/api/checkouts/${started.body.checkoutId}/complete`,
+    { action: "pay" },
+  );
+  assert.equal(paid.body.ok, true);
   const mine = await call("GET", "/api/circles");
-  assert.equal(mine.body.circles[0].id, joined.body.circleId);
+  assert.equal(mine.body.circles[0].id, paid.body.circleId);
   assert.equal(mine.body.circles[0].status, "forming");
 
-  const view = await call("GET", `/api/circles/${joined.body.circleId}`);
+  const view = await call("GET", `/api/circles/${paid.body.circleId}`);
   assert.equal(view.body.members.find((m) => m.isMe).position, 2);
 });
