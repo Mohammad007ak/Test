@@ -34,7 +34,8 @@ COPY --from=build /app/src/lib ./src/lib
 # be able to write to them.
 RUN mkdir -p /app/data
 EXPOSE 3000
-# SQLite lives here: mount a persistent disk on this path.
-VOLUME /app/data
+# SQLite lives in /app/data: mount the platform's persistent disk there.
+# (No VOLUME line: it would create an anonymous volume some platforms keep
+# in place of, or alongside, the disk they mount.)
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 CMD ["node", "server/index.js"]
