@@ -48,6 +48,7 @@
 | `SMSIR_TEMPLATE_ID` | شناسه‌ی قالب «ارسال کد» تأییدشده در SMS.ir | لازم |
 | `SMSIR_TEMPLATE_PARAM` | اسم پارامتر قالب؛ پیش‌فرض `CODE` | همان |
 | `SMSIR_SANDBOX` | `true` اگر کلید از نوع Sandbox است | خالی |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | نام کاربری و رمز ورود به پنل مدیریت (رمز حداقل ۱۰ کاراکتر) | همان |
 | `OPS_PHONES` | اختیاری | شماره‌های مجاز به پنل عملیات |
 | `CIRCLE_FORM_TIMEOUT_MIN` | مثلاً `60` | در سطح بلوغ `5` |
 

@@ -5,6 +5,7 @@ import { HttpError } from "./errors.js";
 import { createCircleService } from "./circles.js";
 import { mountCircleRoutes } from "./circle-routes.js";
 import { createOpsReports } from "./ops.js";
+import { createAdminAuth } from "./admin-auth.js";
 import { createDigipaySimulator } from "./digipay/simulator.js";
 import { normalizePhone } from "../src/lib/phone.js";
 import { currentMonthKey } from "../src/lib/jalali.js";
@@ -55,6 +56,10 @@ export function createApp({
   random = secureRandom,
   digipay = createDigipaySimulator(),
   opsPhones = [],
+  // Admin panel sign-in; without them the panel falls back to the phone
+  // rules below (open in development and demos, OPS_PHONES in production).
+  adminUsername = null,
+  adminPassword = null,
   formTimeoutMs,
   // Whether the database sits on a mounted disk (null when unknown).
   persistentStorage = null,
@@ -308,16 +313,64 @@ export function createApp({
 
   // ---------- SMS status (admin panel) ----------
 
-  // Ops tools are open to everyone in development and demos, and to
-  // OPS_PHONES in production.
+  // Who may use the admin panel and the simulator tools:
+  // - a signed-in admin (username/password), always;
+  // - with no admin account configured, members by phone as before: anyone
+  //   in development and demos, OPS_PHONES in production.
+  // The simulator buttons members see in a demo (filling a waiting group,
+  // running a draw early) stay open to them either way.
   const isOps = (phone) => (production && !demo ? opsPhones.includes(phone) : true);
-  const requireOps = (req, res, next) =>
-    isOps(req.phone) ? next() : res.status(403).json({ error: "دسترسی ندارید." });
+  const admin = createAdminAuth({
+    db,
+    username: adminUsername,
+    password: adminPassword,
+    production,
+    now,
+    parseCookies,
+  });
+  const allow = (check) => async (req, res, next) => {
+    try {
+      req.admin = await admin.currentAdmin(req);
+      if (!req.admin) req.phone = await currentPhone(req);
+    } catch (error) {
+      return next(error);
+    }
+    if (req.admin || check(req.phone)) return next();
+    res.status(401).json({ error: "ورود مدیر لازم است.", adminLogin: true });
+  };
+  const requireAdmin = allow((phone) => !admin.configured && phone && isOps(phone));
+  const requireSimulatorOps = allow((phone) => phone && isOps(phone));
+
+  app.get(
+    "/api/admin/me",
+    route(async (req, res) => {
+      const username = await admin.currentAdmin(req);
+      const phone = username ? null : await currentPhone(req);
+      res.json({
+        configured: admin.configured,
+        username,
+        // Without an admin account, a phone with ops access gets in too.
+        allowed: Boolean(username || (!admin.configured && phone && isOps(phone))),
+      });
+    }),
+  );
+
+  app.post(
+    "/api/admin/login",
+    route(async (req, res) => res.json(await admin.login(req, res))),
+  );
+
+  app.post(
+    "/api/admin/logout",
+    route(async (req, res) => {
+      await admin.logout(req, res);
+      res.json({ ok: true });
+    }),
+  );
 
   app.get(
     "/api/ops/sms",
-    requireLogin,
-    requireOps,
+    requireAdmin,
     route(async (req, res) => {
       if (!sendCode) return res.json({ configured: false });
       const info = sendCode.info ?? {};
@@ -333,8 +386,7 @@ export function createApp({
   // whole path work (or read the provider's exact error).
   app.post(
     "/api/ops/sms/test",
-    requireLogin,
-    requireOps,
+    requireAdmin,
     route(async (req, res) => {
       if (!sendCode) throw new HttpError(400, "سرویس پیامک تنظیم نشده است.");
       const phone = normalizePhone(req.body.phone);
@@ -634,6 +686,8 @@ export function createApp({
     // Ops tools (simulating months, filling circles) are open to everyone
     // in development and to OPS_PHONES in production.
     isOps,
+    requireAdmin,
+    requireSimulatorOps,
     simulator: digipay.name === "simulator",
   });
 

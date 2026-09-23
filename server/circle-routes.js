@@ -1,9 +1,9 @@
 import { HttpError } from "./errors.js";
 
-export function mountCircleRoutes(app, { service, reports, requireLogin, route, isOps, simulator }) {
-  const requireOps = (req, res, next) =>
-    isOps(req.phone) ? next() : res.status(403).json({ error: "دسترسی ندارید." });
-
+export function mountCircleRoutes(
+  app,
+  { service, reports, requireLogin, requireAdmin, requireSimulatorOps, route, isOps, simulator },
+) {
   app.get(
     "/api/plans",
     route(async (req, res) => res.json({ plans: await service.planSummaries(), simulator })),
@@ -88,36 +88,31 @@ export function mountCircleRoutes(app, { service, reports, requireLogin, route, 
 
   app.get(
     "/api/ops/overview",
-    requireLogin,
-    requireOps,
+    requireAdmin,
     route(async (req, res) => res.json(await reports.overview())),
   );
 
   app.get(
     "/api/ops/circles",
-    requireLogin,
-    requireOps,
+    requireAdmin,
     route(async (req, res) => res.json({ circles: await reports.circles() })),
   );
 
   app.get(
     "/api/ops/circles/:id",
-    requireLogin,
-    requireOps,
+    requireAdmin,
     route(async (req, res) => res.json(await reports.circle(req.params.id))),
   );
 
   app.get(
     "/api/ops/debtors",
-    requireLogin,
-    requireOps,
+    requireAdmin,
     route(async (req, res) => res.json({ debtors: await reports.debtors() })),
   );
 
   app.get(
     "/api/ops/events",
-    requireLogin,
-    requireOps,
+    requireAdmin,
     route(async (req, res) =>
       res.json({ events: await reports.events({ limit: req.query.limit, kind: req.query.kind || undefined }) }),
     ),
@@ -125,8 +120,7 @@ export function mountCircleRoutes(app, { service, reports, requireLogin, route, 
 
   app.post(
     "/api/ops/circles/:id/fill",
-    requireLogin,
-    requireOps,
+    requireSimulatorOps,
     route(async (req, res) => {
       await service.fillWithBots(req.params.id);
       res.json({ ok: true });
@@ -135,8 +129,7 @@ export function mountCircleRoutes(app, { service, reports, requireLogin, route, 
 
   app.post(
     "/api/ops/circles/:id/close-month",
-    requireLogin,
-    requireOps,
+    requireSimulatorOps,
     route(async (req, res) => res.json(await service.closeMonth(req.params.id))),
   );
 }

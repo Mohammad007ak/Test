@@ -168,6 +168,13 @@ const SCHEMA = `
     detail TEXT
   );
   CREATE INDEX IF NOT EXISTS ops_events_at ON ops_events (at);
+
+  -- Admin panel sign-ins (username/password), apart from members' sessions.
+  CREATE TABLE IF NOT EXISTS admin_sessions (
+    token_hash TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    expires_at BIGINT NOT NULL
+  );
   CREATE INDEX IF NOT EXISTS ops_events_circle ON ops_events (circle_id, at);
 `;
 

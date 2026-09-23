@@ -87,6 +87,8 @@ export async function createAppFromEnv(env = process.env) {
     demo,
     digipay: createDigipay(env),
     opsPhones,
+    adminUsername: env.ADMIN_USERNAME || null,
+    adminPassword: env.ADMIN_PASSWORD || null,
     formTimeoutMs,
     persistentStorage,
     storageInfo: postgres

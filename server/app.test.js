@@ -297,3 +297,60 @@ test("joining a guaranteed plan needs explicit acceptance and the first share, t
   const view = await call("GET", `/api/circles/${paid.body.circleId}`);
   assert.equal(view.body.members.find((m) => m.isMe).position, 2);
 });
+
+test("the admin panel needs the admin username and password; members keep the demo simulator buttons", async () => {
+  const db = await testDatabase();
+  const app = createApp({ db, demo: true, adminUsername: "boss", adminPassword: "a-long-secret" });
+  const server = app.listen(0);
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const session = () => {
+    let cookie = "";
+    return async (method, path, body) => {
+      const r = await fetch(base + path, {
+        method,
+        headers: { "content-type": "application/json", cookie },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      const set = r.headers.get("set-cookie");
+      if (set) cookie = set.split(";")[0];
+      return { status: r.status, body: await r.json() };
+    };
+  };
+  try {
+    const member = session();
+    await member("POST", "/api/auth/digipay", { token: "sim-09120000019" });
+    assert.equal((await member("GET", "/api/ops/overview")).status, 401);
+    assert.equal((await member("GET", "/api/admin/me")).body.allowed, false);
+
+    // A member in the demo can still fill their waiting group.
+    const { checkoutId } = (await member("POST", "/api/circles/join", { planId: "p12-5", accept: true })).body;
+    const { circleId } = (await member("POST", `/api/checkouts/${checkoutId}/complete`, { action: "pay" })).body;
+    assert.equal((await member("POST", `/api/ops/circles/${circleId}/fill`)).status, 200);
+
+    const boss = session();
+    assert.equal((await boss("POST", "/api/admin/login", { username: "boss", password: "wrong" })).status, 401);
+    assert.equal((await boss("POST", "/api/admin/login", { username: "boss", password: "a-long-secret" })).status, 200);
+    assert.deepEqual((await boss("GET", "/api/admin/me")).body, { configured: true, username: "boss", allowed: true });
+    assert.equal((await boss("GET", "/api/ops/overview")).body.circles.active, 1);
+    await boss("POST", "/api/admin/logout");
+    assert.equal((await boss("GET", "/api/ops/overview")).status, 401);
+
+    // Five wrong passwords lock the address out, even for the right one.
+    const guesser = session();
+    for (let i = 0; i < 5; i++) await guesser("POST", "/api/admin/login", { username: "boss", password: `x${i}` });
+    assert.equal(
+      (await guesser("POST", "/api/admin/login", { username: "boss", password: "a-long-secret" })).status,
+      429,
+    );
+  } finally {
+    server.close();
+  }
+});
+
+test("production refuses a short admin password", async () => {
+  const db = await testDatabase();
+  assert.throws(
+    () => createApp({ db, production: true, demo: true, adminUsername: "boss", adminPassword: "short" }),
+    /ADMIN_PASSWORD/,
+  );
+});

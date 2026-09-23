@@ -274,7 +274,10 @@ export default function App() {
   };
 
   let content;
-  if (phone === undefined) content = <div className="home" />;
+  // The admin panel has its own username/password sign-in.
+  if (route.page === "ops")
+    content = <AdminPanel section={route.id} itemId={route.tab} back={() => back("home")} go={go} goBack={back} />;
+  else if (phone === undefined) content = <div className="home" />;
   else if (phone === null) content = <Login onLogin={setPhone} />;
   else if (route.page === "manage")
     content = (
@@ -310,18 +313,6 @@ export default function App() {
             ? go("circle", circleId, undefined, { replace: true })
             : back(circleId ? "circle" : "home", circleId)
         }
-      />
-    );
-  else if (route.page === "ops")
-    content = <AdminPanel section={route.id} itemId={route.tab} back={() => back("home")} go={go} goBack={back} />;
-  else
-    content = (
-      <FundList
-        phone={phone}
-        tab={route.page === "family" ? "family" : "plans"}
-        setTab={(tab) => go(tab === "family" ? "family" : "home", undefined, undefined, { replace: true })}
-        open={go}
-        onLogout={logout}
       />
     );
 

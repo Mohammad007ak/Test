@@ -4056,3 +4056,22 @@ body {
   flex: 1;
   min-width: 11rem;
 }
+
+.admin-login {
+  margin: 24px auto;
+}
+
+.admin-login header {
+  justify-items: center;
+  text-align: center;
+}
+
+.admin-login-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--brand-soft);
+  color: var(--brand-soft-ink);
+}
