@@ -4045,3 +4045,14 @@ body {
 .padded {
   padding: 0 18px 18px;
 }
+
+.sms-test {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sms-test .input {
+  flex: 1;
+  min-width: 11rem;
+}

@@ -306,6 +306,50 @@ export function createApp({
     }),
   );
 
+  // ---------- SMS status (admin panel) ----------
+
+  // Ops tools are open to everyone in development and demos, and to
+  // OPS_PHONES in production.
+  const isOps = (phone) => (production && !demo ? opsPhones.includes(phone) : true);
+  const requireOps = (req, res, next) =>
+    isOps(req.phone) ? next() : res.status(403).json({ error: "دسترسی ندارید." });
+
+  app.get(
+    "/api/ops/sms",
+    requireLogin,
+    requireOps,
+    route(async (req, res) => {
+      if (!sendCode) return res.json({ configured: false });
+      const info = sendCode.info ?? {};
+      try {
+        res.json({ configured: true, ...info, ...(await sendCode.status()) });
+      } catch (error) {
+        res.json({ configured: true, ...info, error: error.message });
+      }
+    }),
+  );
+
+  // Sends a real code message to a number, so the operator can see the
+  // whole path work (or read the provider's exact error).
+  app.post(
+    "/api/ops/sms/test",
+    requireLogin,
+    requireOps,
+    route(async (req, res) => {
+      if (!sendCode) throw new HttpError(400, "سرویس پیامک تنظیم نشده است.");
+      const phone = normalizePhone(req.body.phone);
+      if (!phone) throw new HttpError(400, "شماره موبایل معتبر نیست.");
+      const code = String(randomInt(0, 100000)).padStart(5, "0");
+      try {
+        await sendCode(phone, code);
+      } catch (error) {
+        console.error("SMS test failed:", error.message);
+        return res.json({ ok: false, error: error.message });
+      }
+      res.json({ ok: true, code, sandbox: Boolean(sendCode.sandbox) });
+    }),
+  );
+
   // ---------- funds (manager) ----------
 
   app.get(
@@ -589,7 +633,7 @@ export function createApp({
     route,
     // Ops tools (simulating months, filling circles) are open to everyone
     // in development and to OPS_PHONES in production.
-    isOps: (phone) => (production && !demo ? opsPhones.includes(phone) : true),
+    isOps,
     simulator: digipay.name === "simulator",
   });
 

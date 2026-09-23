@@ -52,3 +52,15 @@ test("SMS.ir wins over Kavenegar when both are set", async () => {
   await send("09121234567", "11111");
   assert.match(calls[0].url, /sms\.ir/);
 });
+
+test("the admin panel can read the SMS.ir credit, or its exact error", async () => {
+  const ok = fakeFetch({ body: { status: 1, message: "موفق", data: 1250.5 } });
+  const send = createSmsSender({ SMSIR_API_KEY: "k", SMSIR_TEMPLATE_ID: "7" }, { fetch: ok.request });
+  assert.deepEqual(send.info, { provider: "sms.ir", sandbox: false, templateId: 7, parameter: "CODE" });
+  assert.deepEqual(await send.status(), { credit: 1250.5 });
+  assert.equal(ok.calls[0].url, "https://api.sms.ir/v1/credit");
+
+  const bad = fakeFetch({ ok: false, httpStatus: 401, body: { status: 0, message: "کلید نامعتبر است" } });
+  const send2 = createSmsSender({ SMSIR_API_KEY: "x", SMSIR_TEMPLATE_ID: "7" }, { fetch: bad.request });
+  await assert.rejects(send2.status(), /کلید نامعتبر است/);
+});

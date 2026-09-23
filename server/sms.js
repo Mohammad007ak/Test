@@ -33,15 +33,35 @@ function smsIr(env, request) {
     }
   };
   sendCode.sandbox = sandbox;
+  sendCode.info = { provider: "sms.ir", sandbox, templateId, parameter };
+  // For the admin panel: is the key accepted, and how much credit is left?
+  sendCode.status = async () => {
+    const response = await request("https://api.sms.ir/v1/credit", {
+      headers: { accept: "application/json", "x-api-key": env.SMSIR_API_KEY },
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body.status !== 1) {
+      throw new Error(`SMS.ir: ${response.status} ${body.status ?? ""} ${body.message ?? ""}`.trim());
+    }
+    return { credit: Number(body.data) };
+  };
   return sendCode;
 }
 
 function kavenegar(env, request) {
   const template = env.KAVENEGAR_TEMPLATE ?? "sandogh-login";
-  return async function sendCode(phone, code) {
+  const sendCode = async (phone, code) => {
     const url = new URL(`https://api.kavenegar.com/v1/${env.KAVENEGAR_API_KEY}/verify/lookup.json`);
     url.search = new URLSearchParams({ receptor: phone, token: code, template }).toString();
     const response = await request(url, { method: "POST" });
     if (!response.ok) throw new Error(`Kavenegar responded ${response.status}`);
   };
+  sendCode.info = { provider: "kavenegar", sandbox: false, template };
+  sendCode.status = async () => {
+    const response = await request(`https://api.kavenegar.com/v1/${env.KAVENEGAR_API_KEY}/account/info.json`);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(`Kavenegar: ${response.status} ${body.return?.message ?? ""}`.trim());
+    return { credit: Number(body.entries?.remaincredit ?? NaN) };
+  };
+  return sendCode;
 }

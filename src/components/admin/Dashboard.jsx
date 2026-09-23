@@ -4,6 +4,7 @@ import { PageSkeleton } from "../../ui/bits.jsx";
 import { api } from "../../lib/api.js";
 import { formatCompact, formatNumber } from "../../lib/format.js";
 import { formatDay } from "../../lib/jalali.js";
+import SmsCard from "./SmsCard.jsx";
 import { METHOD, describeEvent, eventTone, formatDuration, formatWhen, planTitle, toman } from "./shared.jsx";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -234,6 +235,8 @@ export default function Dashboard({ open }) {
           </ul>
         )}
       </section>
+
+      <SmsCard />
 
       <section className="card">
         <div className="section-title">
