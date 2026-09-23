@@ -9,6 +9,9 @@ import Settings from "./components/Settings.jsx";
 import Login from "./components/Login.jsx";
 import FundList from "./components/FundList.jsx";
 import MemberView from "./components/MemberView.jsx";
+import CircleView from "./components/circles/CircleView.jsx";
+import Checkout from "./components/circles/Checkout.jsx";
+import Ops from "./components/circles/Ops.jsx";
 import { Logo, LogoMark } from "./ui/Logo.jsx";
 import { PageSkeleton } from "./ui/bits.jsx";
 import { FeedbackProvider } from "./ui/feedback.jsx";
@@ -31,9 +34,11 @@ const SAVE_LABEL = { loading: "", saving: "در حال ذخیره…", saved: "�
 
 // Routes live in the URL hash (#/manage/<id>/<tab>, #/view/<id>) so a
 // refresh or a shared link lands on the same screen.
+const PAGES = ["manage", "view", "circle", "checkout", "ops"];
+
 function parseRoute() {
   const [, page, id, tab] = window.location.hash.split("/");
-  return page === "manage" || page === "view" ? { page, id, tab } : { page: "home" };
+  return PAGES.includes(page) ? { page, id, tab } : { page: "home" };
 }
 
 function useRoute() {
@@ -47,7 +52,7 @@ function useRoute() {
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
   const go = (page, id, tab) => {
-    window.location.hash = page === "home" ? "" : `/${page}/${id}${tab ? `/${tab}` : ""}`;
+    window.location.hash = page === "home" ? "" : `/${page}${id ? `/${id}` : ""}${tab ? `/${tab}` : ""}`;
   };
   return [route, go];
 }
@@ -216,7 +221,17 @@ export default function App() {
   const [route, go] = useRoute();
 
   useEffect(() => {
-    api("GET", "/api/me").then(
+    // Opened inside the Digipay app: sign in with the host's launch token.
+    const params = new URLSearchParams(window.location.search);
+    const launchToken = params.get("dp_token");
+    const signIn = launchToken
+      ? api("POST", "/api/auth/digipay", { token: launchToken }).finally(() => {
+          params.delete("dp_token");
+          const query = params.toString();
+          window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
+        })
+      : api("GET", "/api/me");
+    signIn.then(
       (me) => setPhone(me.phone),
       () => setPhone(null),
     );
@@ -240,6 +255,11 @@ export default function App() {
     content = (
       <MemberView key={route.id} fundId={route.id} back={(isManager) => (isManager ? go("manage", route.id) : go("home"))} />
     );
+  else if (route.page === "circle")
+    content = <CircleView key={route.id} circleId={route.id} back={() => go("home")} open={go} />;
+  else if (route.page === "checkout")
+    content = <Checkout key={route.id} checkoutId={route.id} done={(circleId) => go("circle", circleId)} />;
+  else if (route.page === "ops") content = <Ops back={() => go("home")} open={go} />;
   else content = <FundList phone={phone} open={go} onLogout={logout} />;
 
   return <FeedbackProvider>{content}</FeedbackProvider>;

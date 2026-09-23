@@ -1,6 +1,10 @@
 import express from "express";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { transaction } from "./db.js";
+import { HttpError } from "./errors.js";
+import { createCircleService } from "./circles.js";
+import { mountCircleRoutes } from "./circle-routes.js";
+import { createDigipaySimulator } from "./digipay/simulator.js";
 import { normalizePhone } from "../src/lib/phone.js";
 import { currentMonthKey } from "../src/lib/jalali.js";
 import {
@@ -30,14 +34,6 @@ const secureRandom = () => randomInt(0, 2 ** 47) / 2 ** 47;
 const toLatinDigits = (value) =>
   String(value ?? "").replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
 
-class HttpError extends Error {
-  constructor(status, message, extra) {
-    super(message);
-    this.status = status;
-    this.extra = extra;
-  }
-}
-
 function parseCookies(header = "") {
   return Object.fromEntries(
     header
@@ -48,7 +44,15 @@ function parseCookies(header = "") {
   );
 }
 
-export function createApp({ db, sendCode = null, production = false, now = Date.now, random = secureRandom }) {
+export function createApp({
+  db,
+  sendCode = null,
+  production = false,
+  now = Date.now,
+  random = secureRandom,
+  digipay = createDigipaySimulator(),
+  opsPhones = [],
+}) {
   const app = express();
   app.use(express.json({ limit: "2mb" }));
 
@@ -121,6 +125,19 @@ export function createApp({ db, sendCode = null, production = false, now = Date.
     return { ...data, fund: { cycle: 1, ...data.fund } };
   }
 
+  function startSession(res, phone) {
+    const token = randomBytes(32).toString("base64url");
+    transaction(db, () => {
+      db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(now());
+      db.prepare("INSERT INTO sessions (token_hash, phone, expires_at) VALUES (?, ?, ?)").run(
+        sha256(token),
+        phone,
+        now() + SESSION_TTL,
+      );
+    });
+    res.cookie("sid", token, { ...cookieOptions, maxAge: SESSION_TTL });
+  }
+
   const route = (handler) => async (req, res, next) => {
     try {
       await handler(req, res);
@@ -188,18 +205,22 @@ export function createApp({ db, sendCode = null, production = false, now = Date.
         throw new HttpError(400, "کد وارد شده اشتباه است.");
       }
 
-      const token = randomBytes(32).toString("base64url");
-      transaction(db, () => {
-        // Keep the send counter so verifying doesn't reset the rate limit.
-        db.prepare("UPDATE otp_codes SET code_hash = '', expires_at = 0 WHERE phone = ?").run(phone);
-        db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(now());
-        db.prepare("INSERT INTO sessions (token_hash, phone, expires_at) VALUES (?, ?, ?)").run(
-          sha256(token),
-          phone,
-          now() + SESSION_TTL,
-        );
-      });
-      res.cookie("sid", token, { ...cookieOptions, maxAge: SESSION_TTL });
+      // Keep the send counter so verifying doesn't reset the rate limit.
+      db.prepare("UPDATE otp_codes SET code_hash = '', expires_at = 0 WHERE phone = ?").run(phone);
+      startSession(res, phone);
+      res.json({ phone });
+    }),
+  );
+
+  // Inside the Digipay app the user is already signed in; the host hands us
+  // a launch token that Digipay vouches for, so no SMS code is needed.
+  app.post(
+    "/api/auth/digipay",
+    route(async (req, res) => {
+      const identity = await digipay.identity.verifyLaunchToken(req.body.token);
+      const phone = identity && normalizePhone(identity.phone);
+      if (!phone) throw new HttpError(401, "ورود از طریق دیجی‌پی تأیید نشد.");
+      startSession(res, phone);
       res.json({ phone });
     }),
   );
@@ -454,6 +475,16 @@ export function createApp({ db, sendCode = null, production = false, now = Date.
       });
     }),
   );
+
+  mountCircleRoutes(app, {
+    service: createCircleService({ db, digipay, now }),
+    requireLogin,
+    route,
+    // Ops tools (simulating months, filling circles) are open to everyone
+    // in development and to OPS_PHONES in production.
+    isOps: (phone) => (production ? opsPhones.includes(phone) : true),
+    simulator: digipay.name === "simulator",
+  });
 
   app.use("/api", (req, res) => res.status(404).json({ error: "مسیر پیدا نشد." }));
 

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, CloudUpload, Landmark, LogOut, Plus, Sparkles, Users, WalletCards } from "lucide-react";
 import CreateFundWizard from "./CreateFundWizard.jsx";
+import PlansSection from "./circles/PlansSection.jsx";
 import { Logo } from "../ui/Logo.jsx";
-import { EmptyState, Skeleton } from "../ui/bits.jsx";
+import { EmptyState, Segmented, Skeleton } from "../ui/bits.jsx";
 import { useToast } from "../ui/feedback.jsx";
 import { api } from "../lib/api.js";
 import { createDemoState } from "../lib/demo.js";
@@ -25,6 +26,21 @@ export default function FundList({ phone, open, onLogout }) {
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
   const [legacy, setLegacy] = useState(loadLegacyState);
+  const [tab, setTabState] = useState(() => {
+    try {
+      return localStorage.getItem("sandogh:home-tab") ?? "plans";
+    } catch {
+      return "plans";
+    }
+  });
+  const setTab = (value) => {
+    setTabState(value);
+    try {
+      localStorage.setItem("sandogh:home-tab", value);
+    } catch {
+      // Only a convenience.
+    }
+  };
   const toast = useToast();
 
   useEffect(() => {
@@ -69,118 +85,136 @@ export default function FundList({ phone, open, onLogout }) {
         <div className="page-head">
           <div>
             <h1>{greeting()} 👋</h1>
-            <p>صندوق‌هایی که مدیر یا عضو آن‌ها هستید.</p>
+            <p>
+              {tab === "plans"
+                ? "طرح‌های تضمینی با مدیریت و ضمانت دیجی‌پی."
+                : "صندوق‌های خانوادگی‌ای که مدیر یا عضو آن‌ها هستید."}
+            </p>
           </div>
+          <Segmented
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: "plans", label: "طرح‌های تضمینی" },
+              { value: "family", label: "صندوق خانوادگی" },
+            ]}
+          />
         </div>
 
-        {error && <p className="error-text">{error.message}</p>}
+        {tab === "plans" && <PlansSection open={open} />}
 
-        {legacy && (
-          <div className="banner">
-            <CloudUpload size={24} />
-            <div>
-              <strong>«{legacy.fund.name}» فقط روی این مرورگر است</strong>
-              <p>آن را به حسابتان منتقل کنید تا از هر دستگاهی در دسترس باشد و اعضا هم ببینند.</p>
-            </div>
-            <button className="btn primary sm" onClick={migrateLegacy}>
-              انتقال
-            </button>
-          </div>
-        )}
-
-        {!funds && !error && (
-          <div className="fund-grid">
-            <Skeleton height={150} radius={20} />
-            <Skeleton height={150} radius={20} />
-          </div>
-        )}
-
-        {nothingYet && (
-          <div className="card">
-            <EmptyState
-              icon={Landmark}
-              title="اولین صندوقتان را بسازید"
-              text="در کمتر از یک دقیقه صندوق را تعریف کنید، اعضا را اضافه کنید و قرعه‌کشی را شروع کنید."
-              action={
-                <div className="stack-sm">
-                  <button className="btn primary lg" onClick={() => setCreating(true)}>
-                    <Plus size={20} /> ساخت صندوق
-                  </button>
-                  <button className="btn ghost" onClick={() => create(createDemoState(), "صندوق نمونه ساخته شد")}>
-                    <Sparkles size={18} /> اول با یک صندوق نمونه امتحان کنم
-                  </button>
-                </div>
-              }
-            />
-          </div>
-        )}
-
-        {funds && !nothingYet && (
+        {tab === "family" && (
           <>
-            <section>
-              <div className="section-title">
-                <h2>مدیریت می‌کنید</h2>
-              </div>
-              <div className="fund-grid">
-                {funds.managed.map((fund) => (
-                  <button key={fund.id} className="fund-card" onClick={() => open("manage", fund.id)}>
-                    <div className="fund-card-top">
-                      <span className="fund-mark">
-                        <WalletCards size={22} />
-                      </span>
-                      <div>
-                        <strong>{fund.name}</strong>
-                        <span>مدیر صندوق</span>
-                      </div>
-                      <ChevronLeft size={20} className="muted" />
-                    </div>
-                    <div className="fund-card-stats">
-                      <div>
-                        <span>موجودی</span>
-                        <strong className="num">{formatCompact(fund.balance)}</strong>
-                      </div>
-                      <div>
-                        <span>اعضا</span>
-                        <strong className="num">{formatNumber(fund.members)}</strong>
-                      </div>
-                      <div>
-                        <span>بدهکار</span>
-                        <strong className="num" style={{ color: fund.lateMembers ? "var(--danger)" : undefined }}>
-                          {fund.lateMembers ? `${formatNumber(fund.lateMembers)} نفر` : "ندارد"}
-                        </strong>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-                <button className="fund-card add" onClick={() => setCreating(true)}>
-                  <Plus size={24} />
-                  صندوق جدید
+            {error && <p className="error-text">{error.message}</p>}
+
+            {legacy && (
+              <div className="banner">
+                <CloudUpload size={24} />
+                <div>
+                  <strong>«{legacy.fund.name}» فقط روی این مرورگر است</strong>
+                  <p>آن را به حسابتان منتقل کنید تا از هر دستگاهی در دسترس باشد و اعضا هم ببینند.</p>
+                </div>
+                <button className="btn primary sm" onClick={migrateLegacy}>
+                  انتقال
                 </button>
               </div>
-            </section>
+            )}
 
-            {funds.member.length > 0 && (
-              <section>
-                <div className="section-title">
-                  <h2>عضو هستید</h2>
-                </div>
-                <div className="fund-grid">
-                  {funds.member.map((fund) => (
-                    <button key={fund.id} className="fund-card member" onClick={() => open("view", fund.id)}>
-                      <div className="fund-card-top">
-                        <span className="fund-mark">
-                          <Users size={22} />
-                        </span>
-                        <div>
-                          <strong>{fund.name}</strong>
-                          <span>عضو صندوق</span>
+            {!funds && !error && (
+              <div className="fund-grid">
+                <Skeleton height={150} radius={20} />
+                <Skeleton height={150} radius={20} />
+              </div>
+            )}
+
+            {nothingYet && (
+              <div className="card">
+                <EmptyState
+                  icon={Landmark}
+                  title="اولین صندوقتان را بسازید"
+                  text="در کمتر از یک دقیقه صندوق را تعریف کنید، اعضا را اضافه کنید و قرعه‌کشی را شروع کنید."
+                  action={
+                    <div className="stack-sm">
+                      <button className="btn primary lg" onClick={() => setCreating(true)}>
+                        <Plus size={20} /> ساخت صندوق
+                      </button>
+                      <button className="btn ghost" onClick={() => create(createDemoState(), "صندوق نمونه ساخته شد")}>
+                        <Sparkles size={18} /> اول با یک صندوق نمونه امتحان کنم
+                      </button>
+                    </div>
+                  }
+                />
+              </div>
+            )}
+
+            {funds && !nothingYet && (
+              <>
+                <section>
+                  <div className="section-title">
+                    <h2>مدیریت می‌کنید</h2>
+                  </div>
+                  <div className="fund-grid">
+                    {funds.managed.map((fund) => (
+                      <button key={fund.id} className="fund-card" onClick={() => open("manage", fund.id)}>
+                        <div className="fund-card-top">
+                          <span className="fund-mark">
+                            <WalletCards size={22} />
+                          </span>
+                          <div>
+                            <strong>{fund.name}</strong>
+                            <span>مدیر صندوق</span>
+                          </div>
+                          <ChevronLeft size={20} className="muted" />
                         </div>
-                        <ChevronLeft size={20} className="muted" />
-                      </div>
+                        <div className="fund-card-stats">
+                          <div>
+                            <span>موجودی</span>
+                            <strong className="num">{formatCompact(fund.balance)}</strong>
+                          </div>
+                          <div>
+                            <span>اعضا</span>
+                            <strong className="num">{formatNumber(fund.members)}</strong>
+                          </div>
+                          <div>
+                            <span>بدهکار</span>
+                            <strong className="num" style={{ color: fund.lateMembers ? "var(--danger)" : undefined }}>
+                              {fund.lateMembers ? `${formatNumber(fund.lateMembers)} نفر` : "ندارد"}
+                            </strong>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    <button className="fund-card add" onClick={() => setCreating(true)}>
+                      <Plus size={24} />
+                      صندوق جدید
                     </button>
-                  ))}
-                </div>
-              </section>
+                  </div>
+                </section>
+
+                {funds.member.length > 0 && (
+                  <section>
+                    <div className="section-title">
+                      <h2>عضو هستید</h2>
+                    </div>
+                    <div className="fund-grid">
+                      {funds.member.map((fund) => (
+                        <button key={fund.id} className="fund-card member" onClick={() => open("view", fund.id)}>
+                          <div className="fund-card-top">
+                            <span className="fund-mark">
+                              <Users size={22} />
+                            </span>
+                            <div>
+                              <strong>{fund.name}</strong>
+                              <span>عضو صندوق</span>
+                            </div>
+                            <ChevronLeft size={20} className="muted" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
             )}
           </>
         )}

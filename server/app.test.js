@@ -168,3 +168,30 @@ test("mutating requests must be JSON", async () => {
   const response = await fetch(`${baseUrl}/api/auth/logout`, { method: "POST", body: "x" });
   assert.equal(response.status, 415);
 });
+
+test("inside the Digipay mini-app, a launch token signs the user in without SMS", async () => {
+  const call = client();
+  assert.equal((await call("POST", "/api/auth/digipay", { token: "bogus" })).status, 401);
+  const ok = await call("POST", "/api/auth/digipay", { token: "sim-09120000055" });
+  assert.equal(ok.status, 200);
+  assert.deepEqual((await call("GET", "/api/me")).body, { phone: "09120000055" });
+});
+
+test("joining a guaranteed plan needs explicit acceptance, then shows up in my circles", async () => {
+  const call = client();
+  await call("POST", "/api/auth/digipay", { token: "sim-09120000066" });
+  const plans = await call("GET", "/api/plans");
+  assert.equal(plans.body.plans.length, 3);
+
+  const refused = await call("POST", "/api/circles/join", { planId: "p12-5", payMethod: "auto" });
+  assert.equal(refused.status, 400);
+
+  const joined = await call("POST", "/api/circles/join", { planId: "p12-5", payMethod: "auto", accept: true });
+  assert.equal(joined.status, 201);
+  const mine = await call("GET", "/api/circles");
+  assert.equal(mine.body.circles[0].id, joined.body.circleId);
+  assert.equal(mine.body.circles[0].status, "forming");
+
+  const view = await call("GET", `/api/circles/${joined.body.circleId}`);
+  assert.equal(view.body.members.find((m) => m.isMe).position, 2);
+});
