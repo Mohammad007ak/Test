@@ -10,6 +10,15 @@ for (const page of ["index.html", "app/index.html", "404.html"]) {
   if (!existsSync(`${dist}/${page}`)) console.error(`Missing ${dist}/${page}: was \`npm run build\` run?`);
 }
 
+// Plain-http visits (e.g. typing the bare domain) go to https. Only when the
+// platform's proxy says the request came in over http, so this can't loop.
+app.use((req, res, next) => {
+  if (req.headers["x-forwarded-proto"] === "http") {
+    return res.redirect(301, `https://${req.headers.host}${req.originalUrl}`);
+  }
+  next();
+});
+
 // Hashed build assets never change, so browsers may keep them for a year.
 app.use("/assets", express.static(`${dist}/assets`, { immutable: true, maxAge: "1y" }));
 app.use(express.static(dist, { maxAge: "1h" }));
