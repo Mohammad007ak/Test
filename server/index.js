@@ -36,7 +36,22 @@ app.get(["/app", "/app/{*path}"], (req, res) => {
   const query = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
   res.redirect(301, `/${query}`);
 });
-app.get(["/welcome", "/welcome/"], (req, res) => res.sendFile("index.html", { root: dist }));
+// Read from disk rather than sendFile: a failed sendFile answers a bare
+// "Not Found" without saying why, and this page must not silently vanish.
+function sendPage(file) {
+  return (req, res) => {
+    try {
+      res
+        .type("html")
+        .set("Cache-Control", "no-cache")
+        .send(readFileSync(`${dist}/${file}`, "utf8"));
+    } catch (error) {
+      console.error(`Could not serve ${req.originalUrl} from ${dist}/${file}: ${error.message}`);
+      res.status(500).type("text").send("این صفحه موقتاً در دسترس نیست.");
+    }
+  };
+}
+app.get(["/welcome", "/welcome/"], sendPage("index.html"));
 
 // The terms page names how to reach the business. The details come from
 // the environment (CONTACT_*), so they can change without a rebuild.
