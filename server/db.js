@@ -154,6 +154,21 @@ const SCHEMA = `
     ref TEXT,
     created_at BIGINT NOT NULL
   );
+
+  -- Every money movement and lifecycle step in the guaranteed plans, for the
+  -- operator's reports and audit trail. Append-only.
+  CREATE TABLE IF NOT EXISTS ops_events (
+    id TEXT PRIMARY KEY,
+    at BIGINT NOT NULL,
+    kind TEXT NOT NULL,
+    circle_id TEXT,
+    member_id TEXT,
+    phone TEXT,
+    amount BIGINT,
+    detail TEXT
+  );
+  CREATE INDEX IF NOT EXISTS ops_events_at ON ops_events (at);
+  CREATE INDEX IF NOT EXISTS ops_events_circle ON ops_events (circle_id, at);
 `;
 
 // The circle tables changed shape before release. They only ever held

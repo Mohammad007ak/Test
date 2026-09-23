@@ -22,7 +22,7 @@ import FundList from "./components/FundList.jsx";
 import MemberView from "./components/MemberView.jsx";
 import CircleView from "./components/circles/CircleView.jsx";
 import Checkout from "./components/circles/Checkout.jsx";
-import Ops from "./components/circles/Ops.jsx";
+import AdminPanel from "./components/admin/AdminPanel.jsx";
 import { Logo, LogoMark } from "./ui/Logo.jsx";
 import { PageSkeleton } from "./ui/bits.jsx";
 import { FeedbackProvider, useDialog } from "./ui/feedback.jsx";
@@ -312,7 +312,8 @@ export default function App() {
         }
       />
     );
-  else if (route.page === "ops") content = <Ops back={() => back("home")} open={go} />;
+  else if (route.page === "ops")
+    content = <AdminPanel section={route.id} itemId={route.tab} back={() => back("home")} go={go} goBack={back} />;
   else
     content = (
       <FundList

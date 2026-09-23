@@ -4,6 +4,7 @@ import { createHash, randomBytes, randomInt } from "node:crypto";
 import { HttpError } from "./errors.js";
 import { createCircleService } from "./circles.js";
 import { mountCircleRoutes } from "./circle-routes.js";
+import { createOpsReports } from "./ops.js";
 import { createDigipaySimulator } from "./digipay/simulator.js";
 import { normalizePhone } from "../src/lib/phone.js";
 import { currentMonthKey } from "../src/lib/jalali.js";
@@ -583,6 +584,7 @@ export function createApp({
 
   mountCircleRoutes(app, {
     service: circles,
+    reports: createOpsReports({ db, now }),
     requireLogin,
     route,
     // Ops tools (simulating months, filling circles) are open to everyone

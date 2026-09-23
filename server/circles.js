@@ -46,6 +46,21 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
   const countMembers = async (circleId, d = db) =>
     (await d.get("SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?", circleId)).n;
 
+  // The audit trail behind the operator's reports: one row per money
+  // movement or lifecycle step.
+  const log = (d, kind, { circleId = null, memberId = null, phone = null, amount = null, detail = null } = {}) =>
+    d.run(
+      "INSERT INTO ops_events (id, at, kind, circle_id, member_id, phone, amount, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      newId(),
+      now(),
+      kind,
+      circleId,
+      memberId,
+      phone,
+      amount,
+      detail === null ? null : JSON.stringify(detail),
+    );
+
   // ---------- forming ----------
 
   async function createCircle(plan) {
@@ -74,6 +89,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
         randomHex(16),
         now(),
       );
+      await log(tx, "circle_created", { circleId: id, detail: { planId: plan.id } });
     });
     return id;
   }
@@ -94,7 +110,9 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       const { changes } = await db.run("UPDATE circles SET status = 'expired' WHERE id = ? AND status = 'forming'", id);
       if (!changes) continue;
       const circle = await getCircle(id);
-      for (const m of await membersOf(id)) await release(m, circle);
+      const members = await membersOf(id);
+      await log(db, "circle_expired", { circleId: id, detail: { taken: members.length, size: circle.size } });
+      for (const m of members) await release(m, circle);
     }
   }
 
@@ -105,6 +123,13 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       await digipay.payments.refund({
         paymentRef: member.entry_ref,
         amount: circle.share,
+      });
+      await log(db, "refund", {
+        circleId: circle.id,
+        memberId: member.id,
+        phone: member.phone,
+        amount: circle.share,
+        detail: { reason: circle.status === "expired" ? "expired" : "left" },
       });
     }
   }
@@ -136,6 +161,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       circle.id,
     );
     await openMonth(tx, circle.id, 1, circle.share);
+    await log(tx, "circle_started", { circleId: circle.id, detail: { fillMs: now() - circle.created_at } });
   }
 
   async function publishNonceDigest(circleId) {
@@ -239,6 +265,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
           entryRef,
           now(),
         );
+        await log(tx, "joined", { circleId, memberId, phone, amount: plan.share, detail: { position: taken + 1 } });
         if (taken + 1 === circle.size) await startCircle(tx, circle);
         return { circleId, memberId };
       });
@@ -267,6 +294,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       return true;
     });
     if (!left) throw new HttpError(400, "گروه شروع شده و دیگر نمی‌شود از آن خارج شد.");
+    await log(db, "left", { circleId, memberId: member.id, phone });
     await release(member, await getCircle(circleId));
   }
 
@@ -333,6 +361,21 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
             member.id,
             month,
           );
+          await log(db, "wallet_debit", {
+            circleId,
+            memberId: member.id,
+            phone: member.phone,
+            amount: d.amount,
+            detail: { month },
+          });
+        } else {
+          await log(db, "wallet_failed", {
+            circleId,
+            memberId: member.id,
+            phone: member.phone,
+            amount: d.amount,
+            detail: { month, reason: charge.reason ?? null },
+          });
         }
       }
 
@@ -382,6 +425,11 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       // 3. Record it: the guarantee covers anyone still unpaid.
       const pot = circle.size * circle.share;
       await db.transaction(async (tx) => {
+        const uncovered = await tx.all(
+          "SELECT member_id, amount FROM contributions WHERE circle_id = ? AND month = ? AND status = 'due'",
+          circleId,
+          month,
+        );
         await tx.run(
           `UPDATE contributions SET status = 'covered', method = 'guarantee', paid_at = ?
            WHERE circle_id = ? AND month = ? AND status = 'due'`,
@@ -389,6 +437,16 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
           circleId,
           month,
         );
+        for (const u of uncovered) {
+          const m = members.find((x) => x.id === u.member_id);
+          await log(tx, "guarantee", {
+            circleId,
+            memberId: u.member_id,
+            phone: m?.phone ?? null,
+            amount: u.amount,
+            detail: { month },
+          });
+        }
         await tx.run(
           `INSERT INTO circle_draws (circle_id, month, kind, draw_no, reveal, seed, eligible, winner_member_id, pot, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -404,6 +462,14 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
           now(),
         );
         await tx.run("UPDATE circle_members SET won_month = ? WHERE id = ?", month, draw.winner);
+        const winner = members.find((m) => m.id === draw.winner);
+        await log(tx, "draw", {
+          circleId,
+          memberId: draw.winner,
+          phone: winner.phone,
+          amount: pot,
+          detail: { month, kind: draw.kind, eligible: draw.eligible.length, position: winner.position },
+        });
         if (month === circle.months) {
           await tx.run("UPDATE circles SET status = 'completed', closing = 0 WHERE id = ?", circleId);
         } else {
@@ -426,6 +492,13 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
         circleId,
         month,
       );
+      await log(db, "payout", {
+        circleId,
+        memberId: recipient.id,
+        phone: recipient.phone,
+        amount: pot,
+        detail: { month, operator: Boolean(recipient.is_operator), ref: payout.ref },
+      });
       return { month, kind: draw.kind, winner: draw.winner, pot };
     } catch (error) {
       await db.run("UPDATE circles SET closing = 0 WHERE id = ?", circleId);
@@ -508,8 +581,14 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       );
       if (!changes) throw new HttpError(400, "این پرداخت قبلاً نهایی شده است.");
       if (!result.ok) return;
+      let paid = 0;
+      let settled = 0;
       for (const month of JSON.parse(checkout.items)) {
         const args = [checkout.circle_id, checkout.member_id, month];
+        const row = await tx.get(
+          "SELECT amount, status, settled_at FROM contributions WHERE circle_id = ? AND member_id = ? AND month = ?",
+          ...args,
+        );
         await tx.run(
           `UPDATE contributions SET status = 'paid', method = 'manual', ref = ?, paid_at = ?
            WHERE circle_id = ? AND member_id = ? AND month = ? AND status = 'due'`,
@@ -523,7 +602,12 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
           now(),
           ...args,
         );
+        if (row?.status === "due") paid += row.amount;
+        if (row?.status === "covered" && !row.settled_at) settled += row.amount;
       }
+      const who = { circleId: checkout.circle_id, memberId: checkout.member_id, phone: checkout.phone };
+      if (paid) await log(tx, "gateway_payment", { ...who, amount: paid });
+      if (settled) await log(tx, "debt_settled", { ...who, amount: settled });
     });
     return { ok: result.ok, circleId: checkout.circle_id };
   }
@@ -548,6 +632,12 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
         amount: checkout.amount,
       });
       await db.run("UPDATE checkouts SET status = 'refunded' WHERE id = ?", checkout.id);
+      await log(db, "refund", {
+        circleId: existing.circle_id,
+        phone: checkout.phone,
+        amount: checkout.amount,
+        detail: { reason: "duplicate" },
+      });
       return { ok: true, refunded: true, circleId: existing.circle_id };
     }
     const { circleId, memberId } = await seat({
@@ -689,23 +779,6 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
 
   // ---------- ops / simulator ----------
 
-  async function listCircles() {
-    const rows = await db.all(
-      `SELECT c.*, (SELECT COUNT(*) FROM circle_members m WHERE m.circle_id = c.id) AS taken
-       FROM circles c ORDER BY c.created_at DESC`,
-    );
-    return rows.map((c) => ({
-      id: c.id,
-      planId: c.plan_id,
-      status: c.status,
-      size: c.size,
-      months: c.months,
-      share: c.share,
-      taken: c.taken,
-      currentMonth: c.current_month,
-    }));
-  }
-
   // Seat simulated members so a demo circle can start. Every fourth bot
   // "forgets" to pay, which shows the guarantee at work.
   async function fillWithBots(circleId) {
@@ -747,7 +820,6 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     planSummaries,
     myCircles,
     circleView,
-    listCircles,
     fillWithBots,
     runDueDraws,
     markSeen,

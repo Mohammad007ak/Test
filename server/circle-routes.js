@@ -1,6 +1,6 @@
 import { HttpError } from "./errors.js";
 
-export function mountCircleRoutes(app, { service, requireLogin, route, isOps, simulator }) {
+export function mountCircleRoutes(app, { service, reports, requireLogin, route, isOps, simulator }) {
   const requireOps = (req, res, next) =>
     isOps(req.phone) ? next() : res.status(403).json({ error: "دسترسی ندارید." });
 
@@ -84,11 +84,43 @@ export function mountCircleRoutes(app, { service, requireLogin, route, isOps, si
     }),
   );
 
+  // ---------- admin panel ----------
+
+  app.get(
+    "/api/ops/overview",
+    requireLogin,
+    requireOps,
+    route(async (req, res) => res.json(await reports.overview())),
+  );
+
   app.get(
     "/api/ops/circles",
     requireLogin,
     requireOps,
-    route(async (req, res) => res.json({ circles: await service.listCircles() })),
+    route(async (req, res) => res.json({ circles: await reports.circles() })),
+  );
+
+  app.get(
+    "/api/ops/circles/:id",
+    requireLogin,
+    requireOps,
+    route(async (req, res) => res.json(await reports.circle(req.params.id))),
+  );
+
+  app.get(
+    "/api/ops/debtors",
+    requireLogin,
+    requireOps,
+    route(async (req, res) => res.json({ debtors: await reports.debtors() })),
+  );
+
+  app.get(
+    "/api/ops/events",
+    requireLogin,
+    requireOps,
+    route(async (req, res) =>
+      res.json({ events: await reports.events({ limit: req.query.limit, kind: req.query.kind || undefined }) }),
+    ),
   );
 
   app.post(
