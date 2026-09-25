@@ -9,4 +9,7 @@ ffmpeg به MP4 تبدیل می‌شود. موسیقی و افکت‌ها با `
 node promo/build.mjs          # promo.html  (متن زیرنویس‌ها و صحنه‌ها این‌جاست)
 python3 promo/music.py        # music.wav   (نیاز به numpy و scipy)
 FFMPEG=/path/to/ffmpeg node promo/render.mjs   # digigharz-promo.mp4 (نیاز به playwright)
+
+# نسخه‌ی افقی ۱۶:۹ برای دسکتاپ (۱۹۲۰×۱۰۸۰):
+node promo/build.mjs --wide && FFMPEG=/path/to/ffmpeg node promo/render.mjs --wide   # digigharz-promo-wide.mp4
 ```

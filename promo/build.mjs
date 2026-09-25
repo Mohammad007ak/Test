@@ -34,6 +34,10 @@ const S = {
   cta: [53.5, 60],
 };
 export const DURATION = 60;
+// `--wide` builds the 16:9 desktop cut (promo-wide.html): same scenes, laid out
+// for a landscape screen by the overrides in WIDE_CSS.
+const WIDE = process.argv.includes("--wide");
+const [VW, VH] = WIDE ? [960, 540] : [540, 960];
 
 const scene = (name, bg, body) => {
   const [s, e] = S[name];
@@ -210,14 +214,61 @@ const cta = scene(
 `,
 );
 
+const WIDE_CSS = `
+.cap{left:50%;right:auto;width:760px;margin-left:-380px;bottom:22px;padding:12px 20px;font-size:25px;border-radius:22px}
+@keyframes cap-in{from{opacity:0;transform:translateY(40px) scale(.7)}}
+/* 1 bank */
+.bank-bldg{right:130px;top:40px;width:210px}
+.stamp{font-size:26px}
+.stamp.s1{right:290px;top:30px}.stamp.s2{right:70px;top:190px}.stamp.s3{right:250px;top:290px}
+.bank-me{left:170px;top:120px}
+/* 2 family */
+.book{top:26px;width:240px;margin-left:-120px}
+.page{top:90px}
+.fam-argue{top:220px}
+.q1{left:230px;top:-20px}.q2{left:440px;top:-50px}.q3{right:220px;top:-10px}
+/* 3 reveal */
+.hero-dg{left:110px;right:auto;top:50px;text-align:left}
+.hero-dg .fig{height:360px!important}
+.brand{left:430px;right:40px;top:110px;font-size:96px}
+.tagline{left:460px;right:60px;top:280px;font-size:28px}
+/* 4 group */
+.grid12{top:84px;grid-template-columns:repeat(6,auto);gap:16px 26px}
+.count-pill{top:14px;font-size:32px;padding:4px 24px}
+/* 5 pot */
+.givers{top:40px}
+.potbox{top:230px}
+.winner-walk{top:200px;animation-name:winwalk-w}
+@keyframes winwalk-w{from{transform:translateX(-200px)}to{transform:translateX(120px)}}
+/* 6 draw */
+.ring{top:30px;width:720px;height:350px;margin-left:-360px}
+.seat .fig{height:84px!important}
+.glow{width:100px;height:100px;margin-left:-50px}
+.drum{top:268px;left:auto;right:60px;text-align:right;font-size:34px}
+/* 7 guarantee */
+.gu-late{right:230px;top:60px}
+.gu-dg{left:230px;top:60px}
+/* 8 free */
+.roof{top:6px;width:520px;margin-left:-260px}
+.fam-line{top:160px}
+.free-tag{left:800px;top:210px}
+/* 9 cta */
+.brand.end{top:20px;left:0;right:0;font-size:80px}
+.tagline.end{top:132px;left:270px;right:270px;font-size:26px}
+.crowd-end{bottom:140px}
+.cheer .fig{height:110px!important}.flip .fig{height:170px!important}
+.cta-pill{left:280px;right:280px;bottom:48px;padding:12px;font-size:28px}
+.cta-url{bottom:12px;font-size:20px}
+`;
+
 const html = `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>Digi Gharz promo</title>
 <style>
 @font-face{font-family:Estedad;src:url(file://${FONTS}/estedad/files/estedad-arabic-wght-normal.woff2) format("woff2");font-weight:100 900}
 @font-face{font-family:Vazirmatn;src:url(file://${FONTS}/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2) format("woff2");font-weight:100 900}
 *{box-sizing:border-box;margin:0}
-html,body{width:540px;height:960px;overflow:hidden;background:#0000ff}
+html,body{width:${VW}px;height:${VH}px;overflow:hidden;background:#0000ff}
 body{font-family:Estedad,Vazirmatn,sans-serif;color:#fff}
-#stage{position:relative;width:540px;height:960px;overflow:hidden}
+#stage{position:relative;width:${VW}px;height:${VH}px;overflow:hidden}
 .sc{position:absolute;inset:0;overflow:hidden}
 @keyframes sc-vis{0%{opacity:0}4%{opacity:1}96%{opacity:1}100%{opacity:0}}
 .fig{display:inline-block;line-height:0}.fig svg{height:100%;width:auto;overflow:visible}
@@ -333,6 +384,7 @@ body{font-family:Estedad,Vazirmatn,sans-serif;color:#fff}
 @keyframes flip{0%,40%,100%{transform:none}55%{transform:translateY(-120px) rotate(-180deg)}70%{transform:translateY(-120px) rotate(-360deg)}85%{transform:rotate(-360deg) scale(1.1,.9)}}
 .cta-url{position:absolute;left:0;right:0;bottom:26px;text-align:center;font-family:sans-serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:.5px;animation:pop .5s ease-out calc(var(--s) + var(--a)) both}
 .cta-pill{position:absolute;left:36px;right:36px;bottom:84px;padding:18px;border:4px solid #111126;border-radius:999px;background:#ffc53d;color:#111126;text-align:center;font-size:36px;font-weight:900;box-shadow:0 7px 0 #111126;animation:pop .5s cubic-bezier(.34,1.56,.64,1) calc(var(--s) + var(--a)) both, wob 1.4s ease-in-out calc(var(--s) + 2s) infinite}
+${WIDE ? WIDE_CSS : ""}
 </style></head><body><div id="stage">
 ${bank}${family}${reveal}${group}${pot}${draw}${guarantee}${free}${cta}
 </div>
@@ -357,5 +409,6 @@ window.seek = (t) => {
 window.seek(0);
 </script></body></html>`;
 
-writeFileSync(new URL("./promo.html", import.meta.url), html);
-console.log("built promo.html,", DURATION, "s");
+const out = WIDE ? "promo-wide.html" : "promo.html";
+writeFileSync(new URL(`./${out}`, import.meta.url), html);
+console.log(`built ${out},`, DURATION, "s");
