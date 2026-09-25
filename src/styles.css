@@ -2899,17 +2899,6 @@ button.row:hover {
   color: var(--muted);
 }
 
-.plan-fill {
-  display: grid;
-  gap: 6px;
-  font-size: 0.76rem;
-  color: var(--muted);
-}
-
-.plan-fill .bar {
-  height: 6px;
-}
-
 .how-list {
   display: grid;
   gap: 12px;
@@ -4399,8 +4388,7 @@ body {
   min-height: 52px;
   padding-inline-end: 110px;
 }
-.bar,
-.plan-fill .bar {
+.bar {
   height: 12px;
   border: var(--line-w) solid var(--line);
   background: var(--surface);

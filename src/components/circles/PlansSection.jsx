@@ -113,14 +113,6 @@ export default function PlansSection({ open }) {
                     <b>{formatNumber(p.size)} نفر</b>
                   </li>
                 </ul>
-                <div className="plan-fill">
-                  <div className="bar">
-                    <div style={{ width: `${(p.taken / p.size) * 100}%` }} />
-                  </div>
-                  <span>
-                    دوره‌ی بعدی: {formatNumber(p.taken)} از {formatNumber(p.size)} جا پر شده
-                  </span>
-                </div>
                 <button className={`btn ${i === 1 ? "primary" : "outline"} block`} onClick={() => setJoining(p)}>
                   دریافت
                 </button>

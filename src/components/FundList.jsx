@@ -13,16 +13,6 @@ import { formatCompact, formatNumber } from "../lib/format.js";
 import { planById } from "../lib/plans.js";
 import { toPersianDigits } from "../lib/jalali.js";
 
-function greeting() {
-  const hour = Number(
-    new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Tehran" }).format(new Date()),
-  );
-  if (hour < 5) return "شب بخیر";
-  if (hour < 12) return "صبح بخیر";
-  if (hour < 17) return "روز بخیر";
-  return "عصر بخیر";
-}
-
 // The banner's crowd is the member's own group: one figure per seat of their
 // running plan (or the one still filling up), a check over each who's been paid.
 function crowdOf(tab, circles) {
@@ -110,14 +100,6 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
       <div className="page">
         <CoinCrowd {...crowdOf(tab, circles)} />
         <div className="page-head">
-          <div>
-            <h1>{greeting()} 👋</h1>
-            <p>
-              {tab === "plans"
-                ? "طرح‌های تضمینی با مدیریت و ضمانت دیجی‌پی."
-                : "صندوق‌های خانوادگی‌ای که مدیر یا عضو آن‌ها هستید."}
-            </p>
-          </div>
           <Segmented
             value={tab}
             onChange={setTab}
