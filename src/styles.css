@@ -4524,6 +4524,8 @@ body {
   background: #fff;
   color: #111126;
 }
-.crowd.angry {
-  height: 330px;
+@media (max-width: 759px) {
+  .crowd.angry {
+    height: 330px; /* room for the pay button; a computer's banner is full-screen */
+  }
 }

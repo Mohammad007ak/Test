@@ -200,7 +200,18 @@ export default function CoinCrowd({
       for (const p of people) {
         let tx = p.homeX;
         let ty = p.homeY;
-        if (pointer.down) {
+        if (pointer.down && angry) {
+          // Angry: they back away from the finger, out of its reach, and
+          // stay inside the banner.
+          const fx = p.homeX - pointer.x;
+          const fy = (p.homeY - (pointer.y + base * 0.45)) * 1.6;
+          const d = Math.hypot(fx, fy) || 1;
+          const reach = base * 1.6;
+          if (d < reach) {
+            tx = Math.min(width - base * 0.3, Math.max(base * 0.3, pointer.x + (fx / d) * reach));
+            ty = Math.min(height - 6, Math.max(floor, p.homeY + ((fy / d) * (reach - d)) / 1.6));
+          }
+        } else if (pointer.down) {
           // Rings around the finger (golden angle: an even, tight cluster),
           // feet a little below it so the heads crowd round the touch.
           const ring = base * (0.12 + 0.2 * Math.sqrt(p.slot));
