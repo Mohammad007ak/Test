@@ -13,12 +13,35 @@ import { formatCompact, formatNumber } from "../lib/format.js";
 import { planById } from "../lib/plans.js";
 import { toPersianDigits } from "../lib/jalali.js";
 
+// Seat 1 is always Digi Gharz; seats fill in from the right, so it goes last.
+const seatsCast = (size) => Array.from({ length: size }, (_, i) => (i === size - 1 ? "logo" : "plain"));
+
 // The banner's crowd is the member's own group: one figure per seat of their
 // running plan (or the one still filling up), a check over each who's been paid.
-function crowdOf(tab, circles) {
+function crowdOf(tab, circles, pay) {
   if (tab === "family")
     return { title: "صندوق فامیلی، بدون دفترچه", text: "سهم‌ها، قرعه و وام‌ها را آنلاین با هم ببینید." };
-  const circle = circles?.find((c) => c.status === "active") ?? circles?.find((c) => c.status === "forming");
+  const active = circles?.filter((c) => c.status === "active") ?? [];
+  // An unpaid installment comes first: the banner goes red and the crowd is cross.
+  const late = active.find((c) => c.owed > 0) ?? active.find((c) => c.dueNow > 0);
+  if (late)
+    return {
+      title: late.owed > 0 ? "قسطتان عقب افتاده!" : "قسط این ماهتان را نپرداخته‌اید!",
+      text:
+        late.owed > 0
+          ? `${formatCompact(late.owed)} تومان بدهی دارید؛ تا تسویه نکنید در قرعه شرکت داده نمی‌شوید.`
+          : `قسط ${formatCompact(late.dueNow)} تومانی ${planById(late.planId)?.title ?? "طرحتان"} منتظر پرداخت شماست.`,
+      count: late.size,
+      done: late.received,
+      cast: seatsCast(late.size),
+      angry: true,
+      action: (
+        <button className="btn crowd-action" onClick={() => pay(late)}>
+          <WalletCards size={18} /> پرداخت قسط
+        </button>
+      ),
+    };
+  const circle = active[0] ?? circles?.find((c) => c.status === "forming");
   // Not in a plan yet: just you and Digi Gharz.
   if (!circle)
     return {
@@ -28,8 +51,7 @@ function crowdOf(tab, circles) {
       cast: ["plain", "logo"],
     };
   const title = planById(circle.planId)?.title ?? "طرح شما";
-  // Seat 1 is always Digi Gharz; seats fill in from the right, so it goes last.
-  const cast = Array.from({ length: circle.size }, (_, i) => (i === circle.size - 1 ? "logo" : "plain"));
+  const cast = seatsCast(circle.size);
   if (circle.status === "forming")
     return {
       title,
@@ -54,6 +76,17 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
   const [circles, setCircles] = useState(null);
   const [legacy, setLegacy] = useState(loadLegacyState);
   const toast = useToast();
+
+  // Straight to the payment page for this month's share (or the debt).
+  const payInstallment = async (circle) => {
+    try {
+      const { checkoutId, redirectUrl } = await api("POST", `/api/circles/${circle.id}/pay`);
+      if (redirectUrl) window.location.href = redirectUrl;
+      else open("checkout", checkoutId);
+    } catch (e) {
+      toast(e.message, { tone: "error" });
+    }
+  };
 
   useEffect(() => {
     api("GET", "/api/funds").then(setFunds, setError);
@@ -98,7 +131,7 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
       </header>
 
       <div className="page">
-        <CoinCrowd {...crowdOf(tab, circles)} />
+        <CoinCrowd {...crowdOf(tab, circles, payInstallment)} />
         <div className="page-head">
           <Segmented
             value={tab}

@@ -4510,3 +4510,20 @@ body {
 .appbar .muted {
   color: var(--ink-2);
 }
+
+/* An unpaid installment: the banner goes red and the crowd gets cross. */
+.crowd.angry {
+  background: #e0242f;
+}
+.crowd-text .crowd-action {
+  align-self: flex-start;
+  margin-top: 8px;
+  pointer-events: auto;
+}
+.crowd-text .crowd-action {
+  background: #fff;
+  color: #111126;
+}
+.crowd.angry {
+  height: 330px;
+}

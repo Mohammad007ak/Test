@@ -10,10 +10,11 @@ export const INK = "#111126";
 // "stand", or "a" / "b" for the two steps of the walk (stride, then passing).
 // `face` colors the coin, `label` writes on it, `check` floats a green check
 // over the head, `empty` draws a dashed outline for a seat nobody holds, and
-// `logo` makes it Digi Gharz itself, the logo for a face.
+// `logo` makes it Digi Gharz itself, the logo for a face, and `angry` gives
+// it a frown and an anger mark (someone's installment is unpaid).
 export function figureSvg(
   pose = "stand",
-  { face = "#fff", label = "", labelColor = INK, check = false, empty = false, logo = false } = {},
+  { face = "#fff", label = "", labelColor = INK, check = false, empty = false, logo = false, angry = false } = {},
 ) {
   const P = {
     stand: { l: 0, r: 0, lift: 0, arm: 0, lean: 0 },
@@ -56,6 +57,14 @@ export function figureSvg(
   const mark = logo
     ? `<path d="M${cx - 12.8} ${cy + 2.4}L${cx} ${cy - 10.4}L${cx + 12.8} ${cy + 2.4}" fill="none" stroke="#fff" stroke-width="7"/><circle cx="${cx}" cy="${cy + 12.8}" r="4.4" fill="#ffc53d" stroke="none"/>`
     : "";
+  // Angry: brows down, a frown, and an anger mark over the head (white with
+  // an ink outline, so it shows on the red banner too).
+  const mood = angry
+    ? `<g stroke="${INK}" stroke-width="4" fill="none"><path d="M${cx - 15} ${cy - 11}L${cx - 5} ${cy - 5}M${cx + 15} ${cy - 11}L${cx + 5} ${cy - 5}"/><path d="M${cx - 9} ${cy + 15}Q${cx} ${cy + 7} ${cx + 9} ${cy + 15}"/></g><circle cx="${cx - 8}" cy="${cy + 2}" r="3.2" fill="${INK}" stroke="none"/><circle cx="${cx + 8}" cy="${cy + 2}" r="3.2" fill="${INK}" stroke="none"/>`
+    : "";
+  const vein = angry
+    ? `<g stroke-linecap="round" fill="none" transform="translate(${cx + 22} ${cy - 32}) scale(1.3)">${[INK, "#fff"].map((c, i) => `<path d="M-7 -2q4 0 5-5M2 -7q1 5 5 5M7 2q-4 0-5 5M-2 7q-1-5-5-5" stroke="${c}" stroke-width="${i ? 2.6 : 6}"/>`).join("")}</g>`
+    : "";
   // An empty seat is just a dashed outline of someone.
   const paint = empty ? `fill="none" stroke-dasharray="8 6" opacity="0.4"` : `fill="#fff"`;
   const text = label
@@ -74,8 +83,8 @@ ${empty ? "" : `<path d="${creases}" fill="none" stroke-width="3"/>`}
 ${empty ? "" : `<circle cx="${cx - dx}" cy="${cy + dy}" r="${r}" stroke-width="4" fill="${face}"/>`}
 ${empty ? "" : `<path d="${ridges.join("")}" fill="none" stroke-width="3.2"/>`}
 <circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="4" ${empty ? "" : `fill="${face}"`}/>
-${text}${mark}
-</g>
+${text}${mark}${mood}
+</g>${vein}
 </g>${badge}</svg>`;
 }
 

@@ -7,8 +7,9 @@ import { INK, figureSvg } from "./Figure.jsx";
 
 const HINT_KEY = "dg:crowd-hint-seen";
 
-// The kinds of figure in a crowd: an ordinary member, or Digi Gharz itself.
-const KINDS = { plain: {}, logo: { logo: true } };
+// The kinds of figure in a crowd: an ordinary member (calm or angry), or
+// Digi Gharz itself.
+const KINDS = { plain: {}, logo: { logo: true }, angry: { angry: true } };
 
 // Rasterize each kind in each pose once, sharp for this screen, then just
 // stamp them.
@@ -31,8 +32,11 @@ async function makeSprites(px) {
 // `count` people of the kinds in `cast` (plain when it doesn't say): `done`
 // of them wear a check mark (Digi Gharz first, as it's always paid first,
 // then at random), and seats past `present` are still empty, drawn faded.
-function makePeople(width, height, base, floor, count, done, present, cast) {
-  const kind = (i) => cast?.[i] ?? "plain";
+function makePeople(width, height, base, floor, count, done, present, cast, angry) {
+  const kind = (i) => {
+    const k = cast?.[i] ?? "plain";
+    return angry && k === "plain" ? "angry" : k;
+  };
   const order = Array.from({ length: count }, (_, i) => i).sort(() => Math.random() - 0.5);
   order.sort((a, b) => (kind(b) === "logo") - (kind(a) === "logo"));
   const checked = new Set(order.slice(0, done));
@@ -65,17 +69,25 @@ function makePeople(width, height, base, floor, count, done, present, cast) {
   });
 }
 
-function drawPerson(ctx, sprites, base, p) {
+function drawPerson(ctx, sprites, base, p, t) {
   const moving = Math.hypot(p.vx, p.vy);
   if (p.vx > 0.4) p.facing = 1;
   else if (p.vx < -0.4) p.facing = -1;
-  const pose = moving < 0.35 ? "stand" : Math.sin(p.phase) > 0 ? "a" : "b";
   const h = base * p.size;
   const w = h * (120 / 160);
-  const bob = moving < 0.35 ? 0 : Math.abs(Math.sin(p.phase)) * h * 0.035;
+  let pose = moving < 0.35 ? "stand" : Math.sin(p.phase) > 0 ? "a" : "b";
+  let bob = moving < 0.35 ? 0 : Math.abs(Math.sin(p.phase)) * h * 0.035;
+  let shake = 0;
+  // Standing and angry: stamping a foot and trembling, each in their own time.
+  if (p.kind === "angry" && moving < 0.35) {
+    const stamp = Math.sin(t * 0.011 + p.phase);
+    pose = stamp > 0.35 ? "a" : "stand";
+    bob = Math.max(0, stamp) * h * 0.05;
+    shake = Math.sin(t * 0.06 + p.phase * 3) * h * 0.012;
+  }
   ctx.save();
   if (p.empty) ctx.globalAlpha = 0.3;
-  ctx.translate(p.x, p.y - bob);
+  ctx.translate(p.x + shake, p.y - bob);
   ctx.scale(p.facing, 1);
   // The sprite's feet sit at 150/160 of its height.
   ctx.drawImage(sprites[`${p.kind}:${pose}`], -w / 2, -h * (150 / 160), w, h);
@@ -110,8 +122,20 @@ function drawCheck(ctx, x, headTop, h) {
 // `count` is how many people to show (the member's plan size), `done` how
 // many of them have already received their loan, and `present` how many
 // seats are taken while the group is still filling up. `cast` names each
-// figure's kind ("plain" or "logo"), by position.
-export default function CoinCrowd({ title, text, count = 12, done = 0, present = count, cast, children }) {
+// figure's kind ("plain" or "logo"), by position. `angry` turns the banner
+// red and the crowd cross (an installment is unpaid); `action` is a button
+// shown under the text.
+export default function CoinCrowd({
+  title,
+  text,
+  count = 12,
+  done = 0,
+  present = count,
+  cast,
+  angry = false,
+  action,
+  children,
+}) {
   const castKey = cast?.join(",") ?? "";
   const wrap = useRef(null);
   const canvas = useRef(null);
@@ -154,24 +178,25 @@ export default function CoinCrowd({ title, text, count = 12, done = 0, present =
       const hintEl = textBox.current.querySelector(".crowd-hint");
       const textEnd = hintEl ? hintEl.offsetTop : textBox.current.offsetHeight;
       floor = textBox.current.offsetTop + textEnd + 8 + base * 1.2; // room for a check mark too
-      people = makePeople(width, height, base, floor, count, Math.min(done, count), present, cast);
+      people = makePeople(width, height, base, floor, count, Math.min(done, count), present, cast, angry);
       makeSprites(base * 1.1 * dpr).then((made) => {
         if (!alive) return;
         sprites = made;
         draw();
+        wake();
       });
     };
 
-    const draw = () => {
+    const draw = (t = performance.now()) => {
       ctx.clearRect(0, 0, width, height);
       if (!sprites) return;
       // Nearer (lower) people are drawn last so they overlap the ones behind.
-      for (const p of [...people].sort((a, b) => a.y - b.y)) drawPerson(ctx, sprites, base, p);
+      for (const p of [...people].sort((a, b) => a.y - b.y)) drawPerson(ctx, sprites, base, p, t);
     };
 
-    const tick = () => {
+    const tick = (t) => {
       frame = 0;
-      let busy = pointer.down;
+      let busy = pointer.down || angry; // an angry crowd never quite settles
       for (const p of people) {
         let tx = p.homeX;
         let ty = p.homeY;
@@ -213,7 +238,7 @@ export default function CoinCrowd({ title, text, count = 12, done = 0, present =
         p.phase += v * 0.2;
         if (v > 0.05) busy = true; // settled: stop drawing until the next touch
       }
-      draw();
+      draw(t);
       if (busy && visible) frame = requestAnimationFrame(tick);
     };
 
@@ -301,16 +326,17 @@ export default function CoinCrowd({ title, text, count = 12, done = 0, present =
       el.removeEventListener("contextmenu", noMenu);
     };
     // `cast` is compared by its contents (castKey), not the array's identity.
-  }, [count, done, present, castKey]);
+  }, [count, done, present, castKey, angry]);
 
   return (
-    <div className="crowd" ref={wrap}>
+    <div className={`crowd ${angry ? "angry" : ""}`} ref={wrap}>
       <canvas ref={canvas} aria-hidden="true" />
       <div className="crowd-text" ref={textBox}>
         {children}
         <strong>{title}</strong>
         {text && <span>{text}</span>}
-        {hint && (
+        {action}
+        {hint && !action && (
           <span className="crowd-hint">{hover ? "موس را روی این‌جا ببرید" : "انگشتتان را جایی نگه دارید 👆"}</span>
         )}
       </div>
