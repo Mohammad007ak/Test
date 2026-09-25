@@ -341,7 +341,7 @@ export default function CircleView({ circleId, back, open }) {
               <Seat key={m.id} member={m} size={58} check={Boolean(m.wonMonth)} />
             ))}
           </div>
-          <p className="muted small">فقط شماره‌ی جایگاه نمایش داده می‌شود؛ جایگاه آبی مال دیجی‌پی است.</p>
+          <p className="muted small">فقط شماره‌ی جایگاه نمایش داده می‌شود؛ جایگاه ۱ با لوگو، مال دیجی قرض است.</p>
         </section>
 
         <section className="card">

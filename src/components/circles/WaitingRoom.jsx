@@ -23,13 +23,13 @@ function clock(ms) {
   return toPersianDigits(`${m}:${String(s).padStart(2, "0")}`);
 }
 
-// One seat of the group as a little figure: Digipay's in blue, yours in gold,
-// a taken one with its number, an empty one as a dashed outline; `check`
-// floats a green check over one who has been paid.
+// One seat of the group as a little figure: Digi Gharz's with the logo for a
+// face, yours in gold, a taken one with its number, an empty one as a dashed
+// outline; `check` floats a green check over one who has been paid.
 export function Seat({ member: m, size = 54, check = false }) {
   if (!m) return <Figure size={size} empty title="جای خالی" />;
   const paid = check ? "، وامش را گرفته" : "";
-  if (m.isOperator) return <Figure size={size} face="#0000ff" check={check} title={`جایگاه ۱: دیجی‌پی${paid}`} />;
+  if (m.isOperator) return <Figure size={size} logo check={check} title={`جایگاه ۱: دیجی قرض${paid}`} />;
   if (m.isMe) return <Figure size={size} face="#ffc53d" label="شما" check={check} title={`شما${paid}`} />;
   const n = toPersianDigits(m.position);
   return <Figure size={size} label={n} check={check} title={`عضو ${n}${paid}`} />;

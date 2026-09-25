@@ -29,20 +29,31 @@ function crowdOf(tab, circles) {
   if (tab === "family")
     return { title: "صندوق فامیلی، بدون دفترچه", text: "سهم‌ها، قرعه و وام‌ها را آنلاین با هم ببینید." };
   const circle = circles?.find((c) => c.status === "active") ?? circles?.find((c) => c.status === "forming");
-  if (!circle) return { title: "با هم، زودتر به پول برسید", text: "هر ماه یکی از جمع، کل مبلغ را یک‌جا می‌گیرد." };
+  // Not in a plan yet: just you and Digi Gharz.
+  if (!circle)
+    return {
+      title: "با هم، زودتر به پول برسید",
+      text: "هر ماه یکی از جمع، کل مبلغ را یک‌جا می‌گیرد.",
+      count: 2,
+      cast: ["plain", "logo"],
+    };
   const title = planById(circle.planId)?.title ?? "طرح شما";
+  // Seat 1 is always Digi Gharz; seats fill in from the right, so it goes last.
+  const cast = Array.from({ length: circle.size }, (_, i) => (i === circle.size - 1 ? "logo" : "plain"));
   if (circle.status === "forming")
     return {
       title,
       text: `${formatNumber(circle.taken)} نفر از ${formatNumber(circle.size)} نفر آمده‌اند؛ گروه در حال تکمیل است.`,
       count: circle.size,
       present: circle.taken,
+      cast,
     };
   return {
     title,
     text: `${formatNumber(circle.received)} نفر از ${formatNumber(circle.size)} نفر وامشان را گرفته‌اند.`,
     count: circle.size,
     done: circle.received,
+    cast,
   };
 }
 

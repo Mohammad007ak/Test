@@ -9,10 +9,11 @@ export const INK = "#111126";
 // outline for the body and legs, the arms only creases inside it. `pose` is
 // "stand", or "a" / "b" for the two steps of the walk (stride, then passing).
 // `face` colors the coin, `label` writes on it, `check` floats a green check
-// over the head, and `empty` draws a dashed outline for a seat nobody holds.
+// over the head, `empty` draws a dashed outline for a seat nobody holds, and
+// `logo` makes it Digi Gharz itself, the logo for a face.
 export function figureSvg(
   pose = "stand",
-  { face = "#fff", label = "", labelColor = INK, check = false, empty = false } = {},
+  { face = "#fff", label = "", labelColor = INK, check = false, empty = false, logo = false } = {},
 ) {
   const P = {
     stand: { l: 0, r: 0, lift: 0, arm: 0, lean: 0 },
@@ -49,6 +50,12 @@ export function figureSvg(
     const y = cy + Math.sin(t) * r;
     ridges.push(`M${f(x - 1.5)} ${f(y)}L${f(x - dx + 1.5)} ${f(y + dy)}`);
   }
+  // Digi Gharz itself: the logo for a face, Digipay's white chevron and the
+  // gold coin under it on a blue coin.
+  if (logo) face = "#0000ff";
+  const mark = logo
+    ? `<path d="M${cx - 12.8} ${cy + 2.4}L${cx} ${cy - 10.4}L${cx + 12.8} ${cy + 2.4}" fill="none" stroke="#fff" stroke-width="7"/><circle cx="${cx}" cy="${cy + 12.8}" r="4.4" fill="#ffc53d" stroke="none"/>`
+    : "";
   // An empty seat is just a dashed outline of someone.
   const paint = empty ? `fill="none" stroke-dasharray="8 6" opacity="0.4"` : `fill="#fff"`;
   const text = label
@@ -67,7 +74,7 @@ ${empty ? "" : `<path d="${creases}" fill="none" stroke-width="3"/>`}
 ${empty ? "" : `<circle cx="${cx - dx}" cy="${cy + dy}" r="${r}" stroke-width="4" fill="${face}"/>`}
 ${empty ? "" : `<path d="${ridges.join("")}" fill="none" stroke-width="3.2"/>`}
 <circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="4" ${empty ? "" : `fill="${face}"`}/>
-${text}
+${text}${mark}
 </g>
 </g>${badge}</svg>`;
 }

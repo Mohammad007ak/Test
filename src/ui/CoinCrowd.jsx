@@ -7,37 +7,45 @@ import { INK, figureSvg } from "./Figure.jsx";
 
 const HINT_KEY = "dg:crowd-hint-seen";
 
-// Rasterize each pose once, sharp for this screen, then just stamp them.
+// The kinds of figure in a crowd: an ordinary member, or Digi Gharz itself.
+const KINDS = { plain: {}, logo: { logo: true } };
+
+// Rasterize each kind in each pose once, sharp for this screen, then just
+// stamp them.
 async function makeSprites(px) {
   const out = {};
-  for (const pose of ["stand", "a", "b"]) {
-    const img = new Image();
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(figureSvg(pose))}`;
-    await img.decode();
-    const c = document.createElement("canvas");
-    c.width = Math.round(px * (120 / 160));
-    c.height = Math.round(px);
-    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-    out[pose] = c;
-  }
+  for (const [kind, opts] of Object.entries(KINDS))
+    for (const pose of ["stand", "a", "b"]) {
+      const img = new Image();
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(figureSvg(pose, opts))}`;
+      await img.decode();
+      const c = document.createElement("canvas");
+      c.width = Math.round(px * (120 / 160));
+      c.height = Math.round(px);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      out[`${kind}:${pose}`] = c;
+    }
   return out;
 }
 
-// `count` people: `done` of them (picked at random) wear a check mark, and
-// seats past `present` are still empty and drawn faded.
-function makePeople(width, height, base, floor, count, done, present) {
-  const checked = new Set(
-    Array.from({ length: count }, (_, i) => i)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, done),
-  );
+// `count` people of the kinds in `cast` (plain when it doesn't say): `done`
+// of them wear a check mark (Digi Gharz first, as it's always paid first,
+// then at random), and seats past `present` are still empty, drawn faded.
+function makePeople(width, height, base, floor, count, done, present, cast) {
+  const kind = (i) => cast?.[i] ?? "plain";
+  const order = Array.from({ length: count }, (_, i) => i).sort(() => Math.random() - 0.5);
+  order.sort((a, b) => (kind(b) === "logo") - (kind(a) === "logo"));
+  const checked = new Set(order.slice(0, done));
   // Feet no higher than `floor`, so heads stay clear of the banner's text.
   const top = Math.max(height * 0.5, floor);
   const bottom = height - 6; // everyone fully in view, so they can be counted
+  const few = count <= 3; // a small group stands together, side by side
   return Array.from({ length: count }, (_, i) => {
     const edge = base * 0.35;
-    const x = edge + ((i + 0.5) / count) * (width - 2 * edge) + (Math.random() - 0.5) * base * 0.3;
-    const y = top + Math.random() * (bottom - top);
+    const x = few
+      ? width / 2 + (i - (count - 1) / 2) * base * 0.75
+      : edge + ((i + 0.5) / count) * (width - 2 * edge) + (Math.random() - 0.5) * base * 0.3;
+    const y = few ? bottom - base * 0.1 : top + Math.random() * (bottom - top);
     return {
       homeX: x,
       homeY: y,
@@ -49,6 +57,7 @@ function makePeople(width, height, base, floor, count, done, present) {
       speed: 0.7 + Math.random() * 0.6,
       phase: Math.random() * Math.PI * 2,
       facing: Math.random() < 0.5 ? -1 : 1,
+      kind: kind(i),
       checked: checked.has(i),
       empty: i < count - present, // the ones who came fill in from the right (RTL)
       slot: 0,
@@ -69,7 +78,7 @@ function drawPerson(ctx, sprites, base, p) {
   ctx.translate(p.x, p.y - bob);
   ctx.scale(p.facing, 1);
   // The sprite's feet sit at 150/160 of its height.
-  ctx.drawImage(sprites[pose], -w / 2, -h * (150 / 160), w, h);
+  ctx.drawImage(sprites[`${p.kind}:${pose}`], -w / 2, -h * (150 / 160), w, h);
   ctx.restore();
   if (p.checked) drawCheck(ctx, p.x, p.y - bob - h * (136 / 160), h);
 }
@@ -100,8 +109,10 @@ function drawCheck(ctx, x, headTop, h) {
 
 // `count` is how many people to show (the member's plan size), `done` how
 // many of them have already received their loan, and `present` how many
-// seats are taken while the group is still filling up.
-export default function CoinCrowd({ title, text, count = 12, done = 0, present = count, children }) {
+// seats are taken while the group is still filling up. `cast` names each
+// figure's kind ("plain" or "logo"), by position.
+export default function CoinCrowd({ title, text, count = 12, done = 0, present = count, cast, children }) {
+  const castKey = cast?.join(",") ?? "";
   const wrap = useRef(null);
   const canvas = useRef(null);
   const textBox = useRef(null);
@@ -143,7 +154,7 @@ export default function CoinCrowd({ title, text, count = 12, done = 0, present =
       const hintEl = textBox.current.querySelector(".crowd-hint");
       const textEnd = hintEl ? hintEl.offsetTop : textBox.current.offsetHeight;
       floor = textBox.current.offsetTop + textEnd + 8 + base * 1.2; // room for a check mark too
-      people = makePeople(width, height, base, floor, count, Math.min(done, count), present);
+      people = makePeople(width, height, base, floor, count, Math.min(done, count), present, cast);
       makeSprites(base * 1.1 * dpr).then((made) => {
         if (!alive) return;
         sprites = made;
@@ -289,7 +300,8 @@ export default function CoinCrowd({ title, text, count = 12, done = 0, present =
       el.removeEventListener("pointerleave", leave);
       el.removeEventListener("contextmenu", noMenu);
     };
-  }, [count, done, present]);
+    // `cast` is compared by its contents (castKey), not the array's identity.
+  }, [count, done, present, castKey]);
 
   return (
     <div className="crowd" ref={wrap}>
