@@ -4625,11 +4625,6 @@ body {
   background: var(--ink);
   animation: caret 0.8s steps(2) infinite;
 }
-@keyframes caret {
-  50% {
-    opacity: 0;
-  }
-}
 .tour-nav {
   display: flex;
   align-items: center;
@@ -4661,6 +4656,7 @@ body {
   display: grid;
   place-items: center;
   color: #fff;
+  overflow: hidden;
 }
 .scene-tag {
   position: absolute;
@@ -4670,40 +4666,8 @@ body {
   border-radius: 999px;
   background: #ffc53d;
   color: #111126;
-  font-size: 0.9rem;
-}
-.hop-in {
-  animation: hop-in 0.9s var(--ease-spring) both;
-}
-@keyframes hop-in {
-  from {
-    transform: translateY(160px);
-  }
-  60% {
-    transform: translateY(-14px);
-  }
-}
-.pop-in {
-  display: inline-block;
-  animation: pop-in 0.45s var(--ease-spring) both;
-}
-@keyframes pop-in {
-  from {
-    opacity: 0;
-    transform: scale(0.3) translateY(20px);
-  }
-}
-.fade-in {
-  animation: fade-in 0.5s ease-out both;
-}
-.slide-in {
-  animation: slide-in 0.7s var(--ease-out) both;
-}
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-140px);
-  }
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
 }
 .coin {
   display: block;
@@ -4714,46 +4678,121 @@ body {
   background: #ffc53d;
   box-shadow: inset -3px 0 0 #e09a00;
 }
-
-/* 1. hello */
-.spark {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #ffc53d;
-  border: 2px solid #111126;
-  animation: spark 1.6s ease-in-out infinite;
+.coin.spin {
+  animation: coin-spin 0.5s linear infinite;
 }
-.spark.s1 {
-  top: 40px;
-  left: 22%;
-}
-.spark.s2 {
-  top: 70px;
-  right: 20%;
-  animation-delay: -0.5s;
-}
-.spark.s3 {
-  bottom: 60px;
-  left: 30%;
-  animation-delay: -1s;
-}
-@keyframes spark {
+@keyframes coin-spin {
   50% {
-    transform: translateY(-10px) scale(1.25);
+    transform: scaleX(0.15);
   }
 }
 
-/* 2. group */
+/* Falling in from the sky and landing with a squash */
+.drop-in {
+  animation: drop-in 0.7s cubic-bezier(0.5, 0, 0.9, 0.6) both;
+}
+.drop-in.small {
+  display: inline-block;
+  animation-duration: 0.5s;
+}
+@keyframes drop-in {
+  from {
+    transform: translateY(-320px);
+  }
+}
+.squash-land {
+  transform-origin: bottom center;
+  animation: squash 0.6s ease-out 0.7s both;
+}
+.drop-in.small > .stadium {
+  transform-origin: bottom center;
+}
+@keyframes squash {
+  0% {
+    transform: scale(1.25, 0.72);
+  }
+  40% {
+    transform: scale(0.9, 1.12);
+  }
+  70% {
+    transform: scale(1.04, 0.97);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* 1. hello: coins rain; Digi Gharz lands and waves */
+.coin.rain {
+  position: absolute;
+  top: -30px;
+  opacity: 0.9;
+  animation:
+    coin-rain 2.6s linear infinite,
+    coin-spin 0.6s linear infinite;
+}
+@keyframes coin-rain {
+  to {
+    top: 110%;
+  }
+}
+.wave-hi {
+  transform-origin: bottom center;
+  animation: wave-hi 0.5s ease-in-out 1.35s 4 alternate;
+}
+@keyframes wave-hi {
+  from {
+    transform: rotate(-9deg);
+  }
+  to {
+    transform: rotate(9deg);
+  }
+}
+.say-pop {
+  position: absolute;
+  top: 26px;
+  left: 58%;
+  padding: 4px 14px;
+  border: 2px solid #111126;
+  border-radius: 16px 16px 16px 4px;
+  background: #fff;
+  color: #111126;
+  font-weight: 800;
+  animation: tour-pop 0.45s var(--ease-spring) 1.3s both;
+}
+@keyframes tour-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+/* 2. group: a stadium wave once everyone's in */
 .group-grid {
   display: grid;
   grid-template-columns: repeat(6, auto);
   gap: 4px 10px;
-  margin-bottom: 26px;
+  margin-bottom: 28px;
+}
+.stadium {
+  display: inline-block;
+  animation: stadium 2.6s ease-in-out infinite;
+}
+@keyframes stadium {
+  0%,
+  12%,
+  100% {
+    transform: none;
+  }
+  5% {
+    transform: translateY(-16px) scale(1.05, 0.95);
+  }
+}
+.scene-tag.counter {
+  animation: tour-pop 0.4s var(--ease-spring) 0.1s both;
 }
 
-/* 3. pot: coins fly from each giver down into the pot */
+/* 3. pot: coins toss in arcs, spinning; the pot jiggles and fills */
 .scene-pot {
   align-content: space-between;
   padding: 58px 0 14px;
@@ -4765,28 +4804,51 @@ body {
 .pot-giver {
   position: relative;
 }
-.pot-giver .coin.fly {
+.toss {
+  display: inline-block;
+  transform-origin: bottom center;
+  animation: squash 0.5s ease-out both;
+}
+.coin-x {
   position: absolute;
   top: 6px;
   left: 50%;
   margin-left: -11px;
-  animation: coin-fly 0.9s ease-in both;
+  opacity: 0;
+  animation: coin-x 0.9s linear both;
 }
-@keyframes coin-fly {
-  from {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.6);
-  }
-  20% {
+.coin-y {
+  display: block;
+  animation: coin-y 0.9s linear both;
+}
+@keyframes coin-x {
+  0% {
     opacity: 1;
-    transform: translate(0, -24px);
+    transform: translateX(0);
   }
-  to {
+  95% {
+    opacity: 1;
+  }
+  100% {
     opacity: 0;
-    transform: translate(var(--dx), 96px) scale(0.8);
+    transform: translateX(var(--dx));
+  }
+}
+@keyframes coin-y {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: ease-out;
+  }
+  35% {
+    transform: translateY(-46px);
+    animation-timing-function: ease-in;
+  }
+  100% {
+    transform: translateY(104px);
   }
 }
 .pot {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -4796,23 +4858,32 @@ body {
   background: #fff;
   color: #111126;
   font-size: 1.1rem;
-  animation: pot-fill 2s ease-out both;
+  font-variant-numeric: tabular-nums;
+  animation: jiggle 0.2s ease-in-out 0.9s 9;
+}
+.pot.full {
+  animation: pot-full 0.5s var(--ease-spring) both;
+  background: #ffc53d;
 }
 .pot .coin.big {
   width: 34px;
   height: 34px;
 }
-@keyframes pot-fill {
-  0%,
-  60% {
-    transform: scale(0.85);
+@keyframes jiggle {
+  25% {
+    transform: rotate(-4deg) scale(1.04);
   }
   75% {
-    transform: scale(1.12);
+    transform: rotate(4deg) scale(1.04);
+  }
+}
+@keyframes pot-full {
+  from {
+    transform: scale(1.35);
   }
 }
 
-/* 4. draw: a gold light runs round the ring twice and stops on the winner */
+/* 4. draw: everyone trembles while the light hops; the winner jumps */
 .draw-ring {
   position: relative;
   width: 230px;
@@ -4821,61 +4892,50 @@ body {
 .draw-seat {
   position: absolute;
   transform: translate(-50%, -60%);
+  line-height: 0;
+}
+.draw-seat .figure {
+  transform-origin: bottom center;
+}
+.draw-ring.spinning .draw-seat .figure {
+  animation: nervous 0.18s linear infinite;
+  animation-delay: calc(var(--i) * -0.04s);
+}
+@keyframes nervous {
+  25% {
+    transform: translateX(-1.5px) rotate(-2deg);
+  }
+  75% {
+    transform: translateX(1.5px) rotate(2deg);
+  }
 }
 .draw-seat::before {
   content: "";
   position: absolute;
   left: 50%;
-  top: 14%;
-  width: 46px;
-  height: 46px;
-  margin-left: -23px;
+  top: 8px;
+  width: 64px;
+  height: 64px;
+  margin-left: -32px;
+  margin-top: -7px;
   border-radius: 50%;
-  background: #ffc53d;
+  /* A soft glow drawn as a gradient: lighter than a blur filter. */
+  background: radial-gradient(circle, #ffc53d 0 38%, rgb(255 197 61 / 0) 70%);
   opacity: 0;
-  filter: blur(6px);
-  animation: seat-light 1.44s linear 2;
-  animation-delay: inherit;
+  transition: opacity 0.12s;
 }
-@keyframes seat-light {
-  0%,
-  14% {
-    opacity: 0.95;
-  }
-  15%,
-  100% {
-    opacity: 0;
-  }
+.draw-seat.lit::before {
+  opacity: 0.9;
 }
-.draw-seat.winner::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px #ffc53d;
-  opacity: 0;
-  animation: angry-in 0.4s ease-out 3s forwards;
+.draw-seat.won .figure {
+  animation: win-jump 0.55s ease-in-out infinite alternate;
 }
-.win-check {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  line-height: 0;
-  opacity: 0;
-  transform-origin: bottom center;
-  animation: win-in 0.5s var(--ease-spring) 3s forwards;
-}
-.win-check .figure {
-  display: block;
-}
-@keyframes win-in {
+@keyframes win-jump {
   from {
-    opacity: 0;
-    transform: scale(0.8);
+    transform: translateY(0) scale(1.08, 0.92);
   }
   to {
-    opacity: 1;
-    transform: scale(1);
+    transform: translateY(-18px) scale(0.96, 1.06);
   }
 }
 .draw-lock {
@@ -4891,16 +4951,33 @@ body {
   border-radius: 50%;
   background: #fff;
   color: #111126;
+  font-size: 1.6rem;
+}
+.draw-ring.spinning .draw-lock {
+  animation: jiggle 0.25s ease-in-out infinite;
+}
+.drumroll {
+  position: absolute;
+  bottom: 10px;
+  color: #ffc53d;
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+  animation: nervous 0.2s linear infinite;
 }
 
-/* 5. calendar: the month fills from due date to draw day */
+/* 5. calendar: a little figure walks the month, stop by stop */
 .scene-calendar {
   align-content: center;
-  gap: 18px;
+  gap: 14px;
   padding: 0 18px;
 }
-.cal-track {
+.cal-road {
+  position: relative;
   width: 100%;
+  padding-top: 64px;
+}
+.cal-track {
+  display: block;
   height: 14px;
   border: 2px solid #111126;
   border-radius: 999px;
@@ -4912,11 +4989,72 @@ body {
   height: 100%;
   background: #ffc53d;
   transform-origin: right;
-  animation: cal-fill 2.4s ease-in-out both;
+  animation: cal-fill 3s linear both;
 }
 @keyframes cal-fill {
-  from {
+  0% {
     transform: scaleX(0);
+  }
+  12% {
+    transform: scaleX(0.02);
+  }
+  35%,
+  50% {
+    transform: scaleX(0.5);
+  }
+  85%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+/* It walks right to left (RTL), pausing at the middle stop. */
+.cal-walker {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translateX(50%) scaleX(-1);
+  animation: cal-walk 3s linear both;
+}
+@keyframes cal-walk {
+  0%,
+  12% {
+    right: 0;
+  }
+  35%,
+  50% {
+    right: 50%;
+  }
+  85%,
+  100% {
+    right: 100%;
+  }
+}
+.walker {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.walker .figure + .figure {
+  position: absolute;
+  inset: 0 auto auto 0;
+}
+.walker .figure:first-child {
+  animation: step-a 0.36s steps(1) infinite;
+}
+.walker .figure + .figure {
+  animation: step-b 0.36s steps(1) infinite;
+}
+@keyframes step-a {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes step-b {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
   }
 }
 .cal-steps {
@@ -4932,55 +5070,143 @@ body {
   display: grid;
   justify-items: center;
   gap: 2px;
-  padding: 10px 6px;
+  padding: 8px 6px;
   border: 2px solid #111126;
   border-radius: 14px;
   background: #fff;
   color: #111126;
   text-align: center;
+  opacity: 0.45;
+  animation: stop-on 0.4s var(--ease-spring) both;
 }
 .cal-steps li span {
   font-size: 0.75rem;
   color: #3a3f5c;
 }
-.cal-steps li:last-child {
-  background: #ffc53d;
+.cal-steps .s1 {
+  animation-delay: 0.2s;
+}
+.cal-steps .s2 {
+  animation-delay: 1.3s;
+}
+.cal-steps .s3 {
+  animation-delay: 2.7s;
+}
+@keyframes stop-on {
+  0% {
+    opacity: 0.45;
+    transform: none;
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    background: #ffc53d;
+  }
 }
 
-/* 6. guarantee: someone skips a payment and gets cross; Digi Gharz covers */
+/* 6. guarantee: red flash, shaking and fuming; Digi Gharz swoops in */
 .scene-guarantee {
   grid-auto-flow: column;
-  gap: 16px;
+  gap: 18px;
   align-content: end;
   padding-bottom: 12px;
-  animation: stage-red 3s ease-in-out both;
+  animation: stage-red 3.2s ease-in-out both;
 }
 @keyframes stage-red {
-  30%,
+  25%,
   55% {
     background: #e0242f;
   }
 }
 .late {
   position: relative;
+  line-height: 0;
 }
 .late-calm {
   display: block;
-  animation: fade-in 0.4s ease-out 0.9s forwards reverse;
+  animation: vanish 0.01s linear 0.8s forwards;
 }
 .late-angry {
   position: absolute;
   inset: 0;
   opacity: 0;
-  animation: angry-in 0.4s ease-out 0.9s forwards;
+  animation: appear 0.01s linear 0.8s forwards;
 }
-@keyframes angry-in {
+@keyframes vanish {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes appear {
   to {
     opacity: 1;
   }
 }
-.cover {
+.fume {
+  display: block;
+  transform-origin: bottom center;
+  animation: fume 0.12s linear 0.8s infinite;
+}
+@keyframes fume {
+  25% {
+    transform: translateX(-2px) rotate(-1.5deg);
+  }
+  75% {
+    transform: translateX(2px) rotate(1.5deg);
+  }
+}
+.steam {
+  position: absolute;
+  top: 8px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #111126;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  animation: steam 1.2s ease-out 1s infinite;
+}
+.steam.s1 {
+  left: 20%;
+}
+.steam.s2 {
+  left: 50%;
+  animation-delay: 1.4s;
+}
+.steam.s3 {
+  left: 75%;
+  animation-delay: 1.8s;
+}
+@keyframes steam {
+  0% {
+    opacity: 0.9;
+    transform: translateY(0) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50px) scale(1.4);
+  }
+}
+.swoop {
   position: relative;
+  line-height: 0;
+  animation: swoop 0.9s cubic-bezier(0.3, 0.8, 0.4, 1) 1.5s both;
+}
+@keyframes swoop {
+  from {
+    opacity: 0;
+    transform: translate(-220px, -160px) rotate(-40deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.late-land {
+  animation-delay: 2.3s;
 }
 .shield {
   position: absolute;
@@ -4994,30 +5220,145 @@ body {
   border-radius: 50%;
   background: #3ddc84;
   color: #111126;
+  animation:
+    tour-pop 0.4s var(--ease-spring) 2.4s both,
+    shield-pulse 1.2s ease-out 2.8s infinite;
+}
+@keyframes shield-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(61 220 132 / 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 16px rgb(61 220 132 / 0);
+  }
 }
 
-/* 7. family */
+/* 7. family: hop into place, then a roof draws itself over them */
+.scene-family {
+  align-content: end;
+  padding-bottom: 44px;
+}
+.roof {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  width: 300px;
+  margin-left: -150px;
+  overflow: visible;
+}
+.roof path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 320;
+  stroke-dashoffset: 320;
+  animation: draw-roof 0.9s ease-out 1.3s forwards;
+}
+@keyframes draw-roof {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
 .fam {
   display: flex;
   align-items: flex-end;
-  margin-bottom: 22px;
+}
+.hop-line {
+  display: inline-block;
+  transform-origin: bottom center;
+  animation: hop-line 0.7s ease-out both;
+}
+@keyframes hop-line {
+  0% {
+    opacity: 0;
+    transform: translate(60px, 0);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(40px, -30px);
+  }
+  60% {
+    transform: translate(15px, 0) scale(1.1, 0.9);
+  }
+  80% {
+    transform: translate(5px, -10px);
+  }
+  100% {
+    transform: none;
+  }
+}
+.scene-tag.wobble {
+  animation:
+    tour-pop 0.4s var(--ease-spring) 2s both,
+    tag-wobble 1.4s ease-in-out 2.4s infinite;
+}
+@keyframes tag-wobble {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(6deg);
+  }
 }
 
-/* 8. go: everyone cheers */
+/* 8. go: everyone cheers; Digi Gharz flips */
 .scene-go {
   grid-auto-flow: column;
   align-content: end;
   justify-content: center;
   padding-bottom: 12px;
 }
-.cheer {
+.cheer,
+.flip-jump {
   display: block;
   margin-inline: -4px;
-  animation: cheer 0.7s ease-in-out infinite alternate;
+  transform-origin: center 70%;
+}
+.cheer {
+  animation: cheer 0.6s ease-in-out infinite alternate;
 }
 @keyframes cheer {
+  from {
+    transform: scale(1.05, 0.95);
+  }
   to {
-    transform: translateY(-12px);
+    transform: translateY(-16px) scale(0.97, 1.04);
+  }
+}
+.flip-jump {
+  animation: flip-jump 1.6s ease-in-out 0.4s infinite;
+}
+@keyframes flip-jump {
+  0%,
+  40%,
+  100% {
+    transform: none;
+  }
+  55% {
+    transform: translateY(-60px) rotate(-180deg);
+  }
+  70% {
+    transform: translateY(-60px) rotate(-360deg);
+  }
+  85% {
+    transform: translateY(0) rotate(-360deg) scale(1.1, 0.9);
+  }
+}
+
+/* The guide "talks" while its caption types out. */
+.tour-guide.talking .figure {
+  transform-origin: bottom center;
+  animation: talk 0.22s ease-in-out infinite alternate;
+}
+@keyframes talk {
+  to {
+    transform: scale(1.04, 0.95) rotate(-2deg);
   }
 }
 
@@ -5028,13 +5369,5 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     animation-delay: 0s !important;
-  }
-}
-.draw-seat.winner > .figure {
-  animation: vanish 0.01s linear 3s forwards;
-}
-@keyframes vanish {
-  to {
-    opacity: 0;
   }
 }

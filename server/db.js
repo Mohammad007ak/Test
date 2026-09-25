@@ -183,6 +183,13 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS ops_events_at ON ops_events (at);
 
+  -- Members who have been shown the first-visit tour, so every new
+  -- account gets it once right after signing in, on whatever device.
+  CREATE TABLE IF NOT EXISTS tour_seen (
+    phone TEXT PRIMARY KEY,
+    seen_at BIGINT NOT NULL
+  );
+
   -- Admin panel sign-ins (username/password), apart from members' sessions.
   CREATE TABLE IF NOT EXISTS admin_sessions (
     token_hash TEXT PRIMARY KEY,

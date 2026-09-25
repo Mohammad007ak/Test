@@ -1,30 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CalendarCheck, Lock, ShieldCheck, X } from "lucide-react";
 import { Figure } from "../ui/Figure.jsx";
+import Confetti from "../ui/Confetti.jsx";
 import { toPersianDigits } from "../lib/jalali.js";
 
 // A first-visit tour: Digi Gharz itself (the figure with the logo for a
 // head) walks a newcomer through the app, one small animated scene per
-// idea, "saying" each caption as it types out. Shown once; the home screen
-// and the login page can open it again.
-
-const SEEN_KEY = "dg:tour-seen";
-
-export function tourSeen() {
-  try {
-    return Boolean(localStorage.getItem(SEEN_KEY));
-  } catch {
-    return true; // no storage: don't nag on every visit
-  }
-}
-
-function markSeen() {
-  try {
-    localStorage.setItem(SEEN_KEY, "1");
-  } catch {
-    // Private mode: it just shows again next time.
-  }
-}
+// idea, "saying" each caption as it types out. Every new account sees it
+// once right after signing in; the home screen and login page reopen it.
 
 const still = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -42,118 +25,215 @@ function useTyped(text) {
 
 const n = toPersianDigits;
 
+// ---------- helpers ----------
+
+// A number that counts up to `to` over `ms`, after `delay`.
+function useCount(to, ms = 1200, delay = 0) {
+  const [v, setV] = useState(() => (still() ? to : 0));
+  useEffect(() => {
+    if (still()) return setV(to);
+    let raf = 0;
+    const start = performance.now() + delay;
+    const tick = (t) => {
+      const k = Math.min(1, Math.max(0, (t - start) / ms));
+      setV(Math.round(to * (1 - (1 - k) ** 3)));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to, ms, delay]);
+  return v;
+}
+
+// True once `ms` have passed since the scene appeared.
+function useAfter(ms) {
+  const [on, setOn] = useState(() => still());
+  useEffect(() => {
+    const t = setTimeout(() => setOn(true), still() ? 0 : ms);
+    return () => clearTimeout(t);
+  }, [ms]);
+  return on;
+}
+
+// A confetti burst that leaves no layers behind once it has fallen.
+function Burst({ count }) {
+  const over = useAfter(1800);
+  return over ? null : <Confetti count={count} />;
+}
+
+// A walking figure: its two steps alternate while it moves.
+function Walker({ size, ...opts }) {
+  return (
+    <span className="walker">
+      <Figure size={size} pose="a" {...opts} />
+      <Figure size={size} pose="b" {...opts} />
+    </span>
+  );
+}
+
+const rain = Array.from({ length: 12 }, (_, i) => ({
+  left: `${(i * 37) % 100}%`,
+  delay: `${(i * 0.23) % 2.2}s`,
+  size: 14 + ((i * 7) % 12),
+}));
+
 // ---------- the scenes ----------
 
+// Digi Gharz drops out of the sky, squashes on landing, springs up and
+// waves hello, while coins rain behind it.
 function Hello() {
   return (
     <div className="scene scene-hello">
-      <div className="hop-in">
-        <Figure logo size={150} />
+      {rain.map((r, i) => (
+        <i
+          key={i}
+          className="coin rain"
+          style={{ left: r.left, animationDelay: r.delay, width: r.size, height: r.size }}
+        />
+      ))}
+      <div className="drop-in">
+        <div className="squash-land">
+          <div className="wave-hi">
+            <Figure logo size={150} />
+          </div>
+        </div>
       </div>
-      <span className="spark s1" />
-      <span className="spark s2" />
-      <span className="spark s3" />
+      <span className="say-pop">سلام!</span>
     </div>
   );
 }
 
+// Twelve drop in one by one while the count ticks up, then do a stadium wave.
 function Group() {
+  const count = useCount(12, 1400, 200);
   return (
     <div className="scene scene-group">
       <div className="group-grid">
         {Array.from({ length: 12 }, (_, i) => (
-          <span key={i} className="pop-in" style={{ animationDelay: `${0.15 + i * 0.12}s` }}>
-            <Figure size={52} logo={i === 0} pose={i % 3 === 1 ? "a" : "stand"} />
+          <span key={i} className="drop-in small" style={{ animationDelay: `${0.15 + i * 0.11}s` }}>
+            <span className="stadium" style={{ animationDelay: `${2 + (i % 6) * 0.09 + Math.floor(i / 6) * 0.3}s` }}>
+              <Figure size={50} logo={i === 0} />
+            </span>
           </span>
         ))}
       </div>
-      <b className="scene-tag fade-in" style={{ animationDelay: "1.8s" }}>
-        {n(12)} نفر، هر ماه {n(5)} میلیون
-      </b>
+      <b className="scene-tag counter">{n(count)} نفر</b>
     </div>
   );
 }
 
+// Everyone flips a coin into the pot: coins arc over and spin as they fly,
+// the pot jiggles with each one and the total rolls up to 60 million.
 function Pot() {
+  const total = useCount(60, 1500, 700);
+  const full = useAfter(2300);
   return (
     <div className="scene scene-pot">
       <div className="pot-row">
         {Array.from({ length: 6 }, (_, i) => (
           <span key={i} className="pot-giver">
-            <Figure size={50} pose={i % 2 ? "a" : "stand"} />
-            <i className="coin fly" style={{ "--dx": `${(2.5 - i) * 46}px`, animationDelay: `${0.3 + i * 0.18}s` }} />
+            <span className="toss" style={{ animationDelay: `${0.3 + i * 0.2}s` }}>
+              <Figure size={50} pose={i % 2 ? "a" : "stand"} />
+            </span>
+            <span className="coin-x" style={{ "--dx": `${(2.5 - i) * 46}px`, animationDelay: `${0.35 + i * 0.2}s` }}>
+              <span className="coin-y" style={{ animationDelay: `${0.35 + i * 0.2}s` }}>
+                <i className="coin spin" />
+              </span>
+            </span>
           </span>
         ))}
       </div>
-      <div className="pot">
-        <i className="coin big" />
-        <b className="fade-in" style={{ animationDelay: "1.6s" }}>
-          {n(60)} میلیون
-        </b>
+      <div className={`pot ${full ? "full" : ""}`}>
+        <i className="coin big spin" />
+        <b>{n(total)} میلیون</b>
       </div>
+      {full && <Burst count={24} />}
     </div>
   );
 }
 
+// A drumroll: the light hops round the ring, slowing down, while everyone
+// trembles; it stops on the winner, who jumps for joy under confetti.
 function Draw() {
   const seats = 8;
+  const winner = 5;
+  const [lit, setLit] = useState(-1);
+  const [done, setDone] = useState(() => still());
+  useEffect(() => {
+    if (still()) return setLit(winner);
+    const steps = 2 * seats + winner;
+    let i = 0;
+    let t;
+    const hop = () => {
+      setLit(i % seats);
+      if (i === steps) return (t = setTimeout(() => setDone(true), 250));
+      const k = i / steps;
+      i += 1;
+      t = setTimeout(hop, 55 + 330 * k ** 3);
+    };
+    t = setTimeout(hop, 500);
+    return () => clearTimeout(t);
+  }, []);
   return (
     <div className="scene scene-draw">
-      <div className="draw-ring">
+      <div className={`draw-ring ${done ? "done" : "spinning"}`}>
         {Array.from({ length: seats }, (_, i) => {
           const a = (i / seats) * 2 * Math.PI - Math.PI / 2;
+          const won = done && i === winner;
           return (
             <span
               key={i}
-              className={`draw-seat ${i === 5 ? "winner" : ""}`}
-              style={{
-                left: `${50 + Math.cos(a) * 40}%`,
-                top: `${50 + Math.sin(a) * 40}%`,
-                animationDelay: `${(i * 0.18) % (seats * 0.18)}s`,
-              }}
+              className={`draw-seat ${i === lit ? "lit" : ""} ${won ? "won" : ""}`}
+              style={{ left: `${50 + Math.cos(a) * 40}%`, top: `${50 + Math.sin(a) * 40}%`, "--i": i }}
             >
-              <Figure size={46} check={false} />
-              {i === 5 && (
-                <span className="win-check">
-                  <Figure size={46} check />
-                </span>
-              )}
+              <Figure size={46} check={won} face={i === lit ? "#ffc53d" : "#fff"} />
             </span>
           );
         })}
-        <span className="draw-lock">
-          <Lock size={26} />
-        </span>
+        <span className="draw-lock">{done ? "🎉" : <Lock size={24} />}</span>
       </div>
+      {done && <Burst count={30} />}
+      {!done && <b className="drumroll">دررررر…</b>}
     </div>
   );
 }
 
+// A little figure walks the month: due date, five days to pay, draw day,
+// stopping at each; the stops light up as it arrives.
 function Calendar() {
+  const party = useAfter(3300);
   return (
     <div className="scene scene-calendar">
-      <div className="cal-track">
-        <span className="cal-fill" />
+      <div className="cal-road">
+        <span className="cal-walker">
+          <Walker size={58} />
+        </span>
+        <span className="cal-track">
+          <span className="cal-fill" />
+        </span>
       </div>
       <ol className="cal-steps">
-        <li className="fade-in" style={{ animationDelay: "0.2s" }}>
-          <CalendarCheck size={22} />
+        <li className="stop s1">
+          <CalendarCheck size={20} />
           <b>سررسید</b>
           <span>روز اول</span>
         </li>
-        <li className="fade-in" style={{ animationDelay: "1s" }}>
+        <li className="stop s2">
           <b>{n(5)} روز مهلت</b>
           <span>پرداخت از درگاه</span>
         </li>
-        <li className="fade-in" style={{ animationDelay: "1.8s" }}>
+        <li className="stop s3">
           <b>قرعه</b>
           <span>روز ششم</span>
         </li>
       </ol>
+      {party && <Burst count={20} />}
     </div>
   );
 }
 
+// Someone skips a payment: the stage flashes red, they shake with steam
+// coming off their head; Digi Gharz swoops in with a shield to cover.
 function Guarantee() {
   return (
     <div className="scene scene-guarantee">
@@ -162,11 +242,18 @@ function Guarantee() {
           <Figure size={110} />
         </span>
         <span className="late-angry">
-          <Figure size={110} angry />
+          <span className="fume">
+            <Figure size={110} angry />
+          </span>
+          <i className="steam s1" />
+          <i className="steam s2" />
+          <i className="steam s3" />
         </span>
       </div>
-      <div className="cover slide-in" style={{ animationDelay: "1.4s" }}>
-        <Figure logo size={110} pose="a" />
+      <div className="swoop">
+        <div className="squash-land late-land">
+          <Figure logo size={110} pose="a" />
+        </div>
         <span className="shield">
           <ShieldCheck size={26} />
         </span>
@@ -175,28 +262,32 @@ function Guarantee() {
   );
 }
 
+// The family hops into place and a roof draws itself over them: free.
 function Family() {
   return (
     <div className="scene scene-family">
+      <svg className="roof" viewBox="0 0 300 90" aria-hidden="true">
+        <path d="M20 86 L150 12 L280 86" />
+      </svg>
       <div className="fam">
         {["stand", "a", "stand", "b"].map((pose, i) => (
-          <span key={i} className="pop-in" style={{ animationDelay: `${0.2 + i * 0.2}s` }}>
+          <span key={i} className="hop-line" style={{ animationDelay: `${0.2 + i * 0.22}s` }}>
             <Figure size={i === 1 ? 96 : 80} pose={pose} face={i === 1 ? "#ffc53d" : "#fff"} />
           </span>
         ))}
       </div>
-      <b className="scene-tag fade-in" style={{ animationDelay: "1.2s" }}>
-        رایگان
-      </b>
+      <b className="scene-tag wobble">رایگان!</b>
     </div>
   );
 }
 
+// Everyone jumps for joy; Digi Gharz does a flip; confetti.
 function Go() {
   return (
     <div className="scene scene-go">
+      <Burst count={40} />
       {Array.from({ length: 7 }, (_, i) => (
-        <span key={i} className="cheer" style={{ animationDelay: `${i * 0.11}s` }}>
+        <span key={i} className={i === 3 ? "flip-jump" : "cheer"} style={{ animationDelay: `${i * 0.11}s` }}>
           <Figure size={i === 3 ? 120 : 76} logo={i === 3} pose={i % 2 ? "a" : "b"} />
         </span>
       ))}
@@ -254,10 +345,7 @@ export default function Tour({ onClose }) {
   const last = step === STEPS.length - 1;
   const swipe = useRef(null);
 
-  const close = () => {
-    markSeen();
-    onClose();
-  };
+  const close = () => onClose();
   const next = () => (last ? close() : setStep((s) => s + 1));
   const prev = () => setStep((s) => Math.max(0, s - 1));
 
@@ -294,7 +382,7 @@ export default function Tour({ onClose }) {
         </div>
 
         <div className="tour-talk">
-          <span className="tour-guide" aria-hidden="true">
+          <span className={`tour-guide ${caption.done ? "" : "talking"}`} aria-hidden="true">
             <Figure logo size={64} pose={caption.done ? "stand" : "a"} />
           </span>
           <div className="tour-bubble" aria-live="polite">

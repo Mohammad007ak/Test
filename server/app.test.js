@@ -354,3 +354,14 @@ test("production refuses a short admin password", async () => {
     /ADMIN_PASSWORD/,
   );
 });
+
+test("each account sees the first-visit tour once, whatever the device", async () => {
+  const call = await login("09120000019");
+  assert.deepEqual((await call("GET", "/api/me/tour")).body, { seen: false });
+  assert.equal((await call("POST", "/api/me/tour", {})).status, 200);
+  assert.equal((await call("POST", "/api/me/tour", {})).status, 200); // twice is fine
+  // Another sign-in (another phone or browser) already knows.
+  const again = await login("09120000019");
+  assert.deepEqual((await again("GET", "/api/me/tour")).body, { seen: true });
+  assert.deepEqual((await (await login("09120000029"))("GET", "/api/me/tour")).body, { seen: false });
+});

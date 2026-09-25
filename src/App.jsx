@@ -23,7 +23,7 @@ import MemberView from "./components/MemberView.jsx";
 import CircleView from "./components/circles/CircleView.jsx";
 import Checkout from "./components/circles/Checkout.jsx";
 import AdminPanel from "./components/admin/AdminPanel.jsx";
-import Tour, { tourSeen } from "./components/Tour.jsx";
+import Tour from "./components/Tour.jsx";
 import { Logo, LogoMark } from "./ui/Logo.jsx";
 import { PageSkeleton } from "./ui/bits.jsx";
 import { FeedbackProvider, useDialog } from "./ui/feedback.jsx";
@@ -243,9 +243,21 @@ function ManageFund({ fundId, tab: routeTab, go, back, phone, onLogout }) {
 export default function App() {
   const [phone, setPhone] = useState(undefined);
   const [route, go, back] = useRoute();
-  // A newcomer gets the tour on their first visit; it can be opened again.
-  const [touring, setTouring] = useState(() => !tourSeen());
+  // Every new account gets the tour right after signing in (the server
+  // remembers who has seen it); it can be opened again any time.
+  const [touring, setTouring] = useState(false);
   const openTour = () => setTouring(true);
+  useEffect(() => {
+    if (!phone) return;
+    api("GET", "/api/me/tour").then(
+      (r) => !r.seen && setTouring(true),
+      () => {},
+    );
+  }, [phone]);
+  const closeTour = () => {
+    setTouring(false);
+    if (phone) api("POST", "/api/me/tour", {}).catch(() => {});
+  };
 
   useEffect(() => {
     // Opened inside the Digipay app: sign in with the host's launch token.
@@ -334,7 +346,7 @@ export default function App() {
   return (
     <FeedbackProvider>
       {content}
-      {touring && route.page !== "ops" && <Tour onClose={() => setTouring(false)} />}
+      {touring && route.page !== "ops" && <Tour onClose={closeTour} />}
     </FeedbackProvider>
   );
 }

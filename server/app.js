@@ -290,6 +290,27 @@ export function createApp({
 
   app.get("/api/me", requireLogin, (req, res) => res.json({ phone: req.phone }));
 
+  // The first-visit tour: shown once per account, right after signing in.
+  app.get(
+    "/api/me/tour",
+    requireLogin,
+    route(async (req, res) =>
+      res.json({ seen: Boolean(await db.get("SELECT 1 AS x FROM tour_seen WHERE phone = ?", req.phone)) }),
+    ),
+  );
+  app.post(
+    "/api/me/tour",
+    requireLogin,
+    route(async (req, res) => {
+      await db.run(
+        "INSERT INTO tour_seen (phone, seen_at) VALUES (?, ?) ON CONFLICT (phone) DO NOTHING",
+        req.phone,
+        now(),
+      );
+      res.json({ ok: true });
+    }),
+  );
+
   // For the hosting platform's health checks, and to see which build is live.
   let builtAt = null;
   try {
