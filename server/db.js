@@ -138,6 +138,20 @@ const SCHEMA = `
     PRIMARY KEY (circle_id, month)
   );
 
+  -- A month's pot nobody could take: everyone still waiting owes the
+  -- guarantee. Digipay holds it until one of them settles (debt plus the
+  -- late fee) and claims it; unclaimed past the grace period, Digipay keeps it.
+  CREATE TABLE IF NOT EXISTS held_pots (
+    circle_id TEXT NOT NULL REFERENCES circles (id),
+    month BIGINT NOT NULL,
+    pot BIGINT NOT NULL,
+    held_at BIGINT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('held', 'claimed', 'forfeited')),
+    member_id TEXT,
+    resolved_at BIGINT,
+    PRIMARY KEY (circle_id, month)
+  );
+
   -- "entry" pays the first share to join a plan (the seat is taken once it's
   -- paid); "dues" pays a member's outstanding months.
   CREATE TABLE IF NOT EXISTS checkouts (

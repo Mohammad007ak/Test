@@ -79,6 +79,16 @@ export function describeEvent(e) {
       return `قسط ماه ${formatNumber(d.month)} با ضمانت دیجی‌پی پرداخت شد`;
     case "debt_settled":
       return "بدهی تسویه شد";
+    case "late_fee":
+      return "جریمه‌ی تأخیر دریافت شد";
+    case "held":
+      return `ماه ${formatNumber(d.month)}: همه‌ی ${formatNumber(d.owing)} نفر باقی‌مانده بدهکارند؛ مبلغ نزد دیجی‌پی امانت ماند`;
+    case "held_claimed":
+      return `مبلغ امانت ماه ${formatNumber(d.month)} پس از تسویه به جایگاه ${toPersianDigits(d.position)} رسید`;
+    case "forfeit":
+      return `مبلغ امانت ماه ${formatNumber(d.month)} پس از پایان مهلت به دیجی‌پی رسید`;
+    case "debt_forfeited":
+      return "بدهی با وام سوخته‌ی عضو تسویه شد";
     case "draw":
       return d.kind === "operator"
         ? `ماه ${formatNumber(d.month)}: سهم دیجی‌پی`
@@ -99,6 +109,10 @@ export const EVENT_KINDS = [
   ["wallet_failed", "کسر ناموفق"],
   ["guarantee", "ضمانت"],
   ["debt_settled", "تسویه‌ی بدهی"],
+  ["late_fee", "جریمه‌ی تأخیر"],
+  ["held", "امانت"],
+  ["held_claimed", "دریافت امانت"],
+  ["forfeit", "سوخت امانت"],
   ["draw", "قرعه"],
   ["payout", "واریز"],
   ["refund", "بازگشت وجه"],
@@ -113,6 +127,9 @@ export const eventTone = (kind) =>
     guarantee: "danger",
     refund: "gold",
     circle_expired: "gold",
+    held: "gold",
+    forfeit: "gold",
+    late_fee: "brand",
     payout: "brand",
     draw: "brand",
   })[kind] ?? "";

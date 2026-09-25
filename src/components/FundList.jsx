@@ -43,14 +43,23 @@ function crowdOf(tab, circles, pay) {
   if (tab === "family")
     return { title: "صندوق فامیلی، بدون دفترچه", text: "سهم‌ها، قرعه و وام‌ها را آنلاین با هم ببینید." };
   const active = circles?.filter((c) => c.status === "active") ?? [];
-  // An unpaid installment comes first: the banner goes red and the crowd is cross.
-  const late = active.find((c) => c.owed > 0) ?? active.find((c) => c.dueNow > 0);
+  // An unpaid installment comes first: the banner goes red and the crowd is
+  // cross. A debt outlives the plan, so a finished one counts too.
+  const late = circles?.find((c) => c.owed > 0 && c.status !== "expired") ?? active.find((c) => c.dueNow > 0);
+  const heldForMe = late?.held > 0 && !late.wonMonth;
   if (late)
     return {
-      title: late.owed > 0 ? "قسطتان عقب افتاده!" : "قسط این ماهتان را نپرداخته‌اید!",
+      title:
+        late.owed > 0
+          ? heldForMe
+            ? "وامتان نزد دیجی‌پی امانت است!"
+            : "قسطتان عقب افتاده!"
+          : "قسط این ماهتان را نپرداخته‌اید!",
       text:
         late.owed > 0
-          ? `${formatCompact(late.owed)} تومان بدهی دارید؛ تا تسویه نکنید در قرعه شرکت داده نمی‌شوید.`
+          ? `${formatCompact(late.owed)} تومان بدهی${
+              late.lateFee ? ` و ${formatCompact(late.lateFee)} تومان جریمه‌ی تأخیر` : ""
+            } دارید؛ ${heldForMe ? "با تسویه، وامتان همان لحظه واریز می‌شود." : "تا تسویه نکنید در قرعه شرکت داده نمی‌شوید."}`
           : `قسط ${formatCompact(late.dueNow)} تومانی ${planById(late.planId)?.title ?? "طرحتان"} منتظر پرداخت شماست.`,
       count: late.size,
       done: late.received,
@@ -58,7 +67,7 @@ function crowdOf(tab, circles, pay) {
       angry: true,
       action: (
         <button className="btn crowd-action" onClick={() => pay(late)}>
-          <WalletCards size={18} /> پرداخت قسط
+          <WalletCards size={18} /> {late.owed > 0 ? "تسویه‌ی بدهی" : "پرداخت قسط"}
         </button>
       ),
     };

@@ -6,9 +6,15 @@
 // per cycle. Each month every member owes one share and one member receives
 // the pot (size × share):
 //   month 1      → the operator (position 1), always;
-//   last month   → whoever hasn't received yet;
+//   last month   → whoever hasn't received yet, if they owe nothing;
 //   other months → a provably fair lottery among members who haven't
 //                  received yet and don't owe anything.
+// A member who owes the guarantee takes no pot until they settle. If the
+// only ones still waiting owe, the month's pot is held by the operator;
+// whoever settles first (the debt plus a late fee of 5% a month, pro rata)
+// is paid a held pot at once. Pots still held a grace period (30 days)
+// after the last draw are the operator's: they cover the debt, and the
+// member forfeits the share they paid on joining.
 // Installments are collected at the start of each month and paid straight
 // out to that month's recipient. Month 1 is everyone's first share, paid on
 // joining; it goes to the operator the moment the circle starts. Members
@@ -32,10 +38,18 @@ import { drawAt } from "../src/lib/schedule.js";
 const NONCE = /^[0-9a-f]{32,64}$/;
 
 const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
 
 // Every query takes a handle `d`: the database, or a transaction inside
 // db.transaction(). Inside a transaction only its own queries are awaited.
-export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs = HOUR }) {
+export function createCircleService({
+  db,
+  digipay,
+  now = Date.now,
+  formTimeoutMs = HOUR,
+  lateFeeMonthly = 0.05,
+  claimGraceMs = 30 * DAY,
+}) {
   const getCircle = (id, d = db) => d.get("SELECT * FROM circles WHERE id = ?", id);
   const membersOf = (circleId, d = db) =>
     d.all("SELECT * FROM circle_members WHERE circle_id = ? ORDER BY position", circleId);
@@ -45,6 +59,17 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     tx.get(`SELECT * FROM circles WHERE id = ?${tx.kind === "postgres" ? " FOR UPDATE" : ""}`, id);
   const countMembers = async (circleId, d = db) =>
     (await d.get("SELECT COUNT(*) AS n FROM circle_members WHERE circle_id = ?", circleId)).n;
+
+  // The late fee on a share the guarantee paid: 5% a month of it, pro rata
+  // for each whole day since it was covered, to the nearest thousand toman.
+  const lateFeeOf = (row) => {
+    if (row.status !== "covered" || row.settled_at) return 0;
+    const days = Math.floor(Math.max(0, now() - row.paid_at) / DAY);
+    return Math.round((row.amount * lateFeeMonthly * days) / 30 / 1000) * 1000;
+  };
+  const lateFees = (rows) => rows.reduce((t, r) => t + lateFeeOf(r), 0);
+  // When unclaimed held pots become the operator's.
+  const claimDeadline = (circle) => drawAt(circle.started_at, circle.months) + claimGraceMs;
 
   // The audit trail behind the operator's reports: one row per money
   // movement or lifecycle step.
@@ -322,6 +347,140 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
         circle = await getCircle(circle.id);
       }
     }
+    await forfeitUnclaimed(circleId);
+  }
+
+  // Sends a month's pot to its recipient and records the payout.
+  async function payOut(circleId, month, recipient, pot) {
+    const payout = await digipay.payouts.send({
+      phone: recipient.phone,
+      operator: Boolean(recipient.is_operator),
+      amount: pot,
+      ref: `${circleId}:${month}`,
+    });
+    await db.run(
+      "UPDATE circle_draws SET payout_ref = ? WHERE circle_id = ? AND month = ?",
+      payout.ref,
+      circleId,
+      month,
+    );
+    await log(db, "payout", {
+      circleId,
+      memberId: recipient.id,
+      phone: recipient.phone,
+      amount: pot,
+      detail: { month, operator: Boolean(recipient.is_operator), ref: payout.ref },
+    });
+  }
+
+  // A member who has just settled everything they owed takes a held pot, if
+  // there is one, straight away: it's recorded as that month's recipient.
+  async function claimHeld(circleId, memberId) {
+    const claim = await db.transaction(async (tx) => {
+      await lockCircle(tx, circleId);
+      const member = await tx.get("SELECT * FROM circle_members WHERE id = ?", memberId);
+      if (!member || member.won_month !== null) return null;
+      if ((await outstandingOf(circleId, memberId, tx)).length) return null;
+      const held = await tx.get(
+        "SELECT * FROM held_pots WHERE circle_id = ? AND status = 'held' ORDER BY month LIMIT 1",
+        circleId,
+      );
+      if (!held) return null;
+      await tx.run(
+        "UPDATE held_pots SET status = 'claimed', member_id = ?, resolved_at = ? WHERE circle_id = ? AND month = ?",
+        memberId,
+        now(),
+        circleId,
+        held.month,
+      );
+      await tx.run(
+        `INSERT INTO circle_draws (circle_id, month, kind, eligible, winner_member_id, pot, created_at)
+         VALUES (?, ?, 'last', ?, ?, ?, ?)`,
+        circleId,
+        held.month,
+        JSON.stringify([memberId]),
+        memberId,
+        held.pot,
+        now(),
+      );
+      await tx.run("UPDATE circle_members SET won_month = ? WHERE id = ?", held.month, memberId);
+      await log(tx, "held_claimed", {
+        circleId,
+        memberId,
+        phone: member.phone,
+        amount: held.pot,
+        detail: { month: held.month, position: member.position },
+      });
+      return { member, held };
+    });
+    if (claim) await payOut(circleId, claim.held.month, claim.member, claim.held.pot);
+    return claim ? { month: claim.held.month, pot: claim.held.pot } : null;
+  }
+
+  // Past the grace period after the last draw, pots nobody settled for are
+  // the operator's. They cover the debts of those still waiting, who lose
+  // the share they paid on joining.
+  async function forfeitUnclaimed(circleId) {
+    const circles = circleId
+      ? [await getCircle(circleId)].filter((c) => c?.status === "completed")
+      : await db.all(
+          "SELECT DISTINCT c.* FROM circles c JOIN held_pots h ON h.circle_id = c.id WHERE c.status = 'completed' AND h.status = 'held'",
+        );
+    for (const circle of circles) {
+      if (now() < claimDeadline(circle)) continue;
+      const taken = await db.transaction(async (tx) => {
+        await lockCircle(tx, circle.id);
+        const held = await tx.all(
+          "SELECT * FROM held_pots WHERE circle_id = ? AND status = 'held' ORDER BY month",
+          circle.id,
+        );
+        if (!held.length) return null;
+        const members = await membersOf(circle.id, tx);
+        const operator = members.find((m) => m.is_operator);
+        for (const h of held) {
+          await tx.run(
+            "UPDATE held_pots SET status = 'forfeited', resolved_at = ? WHERE circle_id = ? AND month = ?",
+            now(),
+            circle.id,
+            h.month,
+          );
+          await tx.run(
+            `INSERT INTO circle_draws (circle_id, month, kind, eligible, winner_member_id, pot, created_at)
+             VALUES (?, ?, 'operator', ?, ?, ?, ?)`,
+            circle.id,
+            h.month,
+            JSON.stringify([operator.id]),
+            operator.id,
+            h.pot,
+            now(),
+          );
+          await log(tx, "forfeit", { circleId: circle.id, amount: h.pot, detail: { month: h.month } });
+        }
+        // Their debts are paid off by the pots the operator kept.
+        for (const m of members.filter((x) => x.won_month === null && !x.is_operator)) {
+          const debt = await tx.all(
+            "SELECT amount FROM contributions WHERE circle_id = ? AND member_id = ? AND status = 'covered' AND settled_at IS NULL",
+            circle.id,
+            m.id,
+          );
+          if (!debt.length) continue;
+          await tx.run(
+            "UPDATE contributions SET settled_at = ?, method = 'forfeit' WHERE circle_id = ? AND member_id = ? AND status = 'covered' AND settled_at IS NULL",
+            now(),
+            circle.id,
+            m.id,
+          );
+          await log(tx, "debt_forfeited", {
+            circleId: circle.id,
+            memberId: m.id,
+            phone: m.phone,
+            amount: debt.reduce((t, d) => t + d.amount, 0),
+          });
+        }
+        return { operator, held };
+      });
+      if (taken) for (const h of taken.held) await payOut(circle.id, h.month, taken.operator, h.pot);
+    }
   }
 
   async function closeMonth(circleId) {
@@ -379,8 +538,19 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
         }
       }
 
-      // 2. Pick this month's recipient.
+      // 2. Pick this month's recipient: never someone who owes the guarantee.
       const waiting = members.filter((m) => m.won_month === null);
+      const owing = new Set(
+        (
+          await db.all(
+            `SELECT DISTINCT member_id FROM contributions WHERE circle_id = ?
+             AND ((status = 'covered' AND settled_at IS NULL) OR (month = ? AND status = 'due'))`,
+            circleId,
+            month,
+          )
+        ).map((r) => r.member_id),
+      );
+      const clear = waiting.filter((m) => !owing.has(m.id));
       let draw;
       if (month === 1) {
         const operator = members.find((m) => m.is_operator);
@@ -389,25 +559,18 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
           winner: operator.id,
           eligible: [operator.id],
         };
+      } else if (clear.length === 0) {
+        // Everyone still waiting owes: no draw; the operator holds the pot
+        // until one of them settles.
+        draw = { kind: "held" };
       } else if (waiting.length === 1) {
         draw = {
           kind: "last",
-          winner: waiting[0].id,
-          eligible: [waiting[0].id],
+          winner: clear[0].id,
+          eligible: [clear[0].id],
         };
       } else {
-        const owing = new Set(
-          (
-            await db.all(
-              `SELECT DISTINCT member_id FROM contributions WHERE circle_id = ?
-               AND ((status = 'covered' AND settled_at IS NULL) OR (month = ? AND status = 'due'))`,
-              circleId,
-              month,
-            )
-          ).map((r) => r.member_id),
-        );
-        let eligible = waiting.filter((m) => !owing.has(m.id)).map((m) => m.id);
-        if (eligible.length === 0) eligible = waiting.map((m) => m.id);
+        const eligible = clear.map((m) => m.id);
         const drawNo =
           (await db.get("SELECT COUNT(*) AS n FROM circle_draws WHERE circle_id = ? AND kind = 'lottery'", circleId))
             .n + 1;
@@ -447,29 +610,40 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
             detail: { month },
           });
         }
-        await tx.run(
-          `INSERT INTO circle_draws (circle_id, month, kind, draw_no, reveal, seed, eligible, winner_member_id, pot, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          circleId,
-          month,
-          draw.kind,
-          draw.drawNo ?? null,
-          draw.reveal ?? null,
-          draw.seed ?? null,
-          JSON.stringify(draw.eligible),
-          draw.winner,
-          pot,
-          now(),
-        );
-        await tx.run("UPDATE circle_members SET won_month = ? WHERE id = ?", month, draw.winner);
-        const winner = members.find((m) => m.id === draw.winner);
-        await log(tx, "draw", {
-          circleId,
-          memberId: draw.winner,
-          phone: winner.phone,
-          amount: pot,
-          detail: { month, kind: draw.kind, eligible: draw.eligible.length, position: winner.position },
-        });
+        if (draw.kind === "held") {
+          await tx.run(
+            "INSERT INTO held_pots (circle_id, month, pot, held_at, status) VALUES (?, ?, ?, ?, 'held')",
+            circleId,
+            month,
+            pot,
+            now(),
+          );
+          await log(tx, "held", { circleId, amount: pot, detail: { month, owing: waiting.length } });
+        } else {
+          await tx.run(
+            `INSERT INTO circle_draws (circle_id, month, kind, draw_no, reveal, seed, eligible, winner_member_id, pot, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            circleId,
+            month,
+            draw.kind,
+            draw.drawNo ?? null,
+            draw.reveal ?? null,
+            draw.seed ?? null,
+            JSON.stringify(draw.eligible),
+            draw.winner,
+            pot,
+            now(),
+          );
+          await tx.run("UPDATE circle_members SET won_month = ? WHERE id = ?", month, draw.winner);
+          const winner = members.find((m) => m.id === draw.winner);
+          await log(tx, "draw", {
+            circleId,
+            memberId: draw.winner,
+            phone: winner.phone,
+            amount: pot,
+            detail: { month, kind: draw.kind, eligible: draw.eligible.length, position: winner.position },
+          });
+        }
         if (month === circle.months) {
           await tx.run("UPDATE circles SET status = 'completed', closing = 0 WHERE id = ?", circleId);
         } else {
@@ -479,26 +653,13 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       });
 
       // 4. Pay the pot out. A failed payout can be retried; the draw stands.
-      const recipient = members.find((m) => m.id === draw.winner);
-      const payout = await digipay.payouts.send({
-        phone: recipient.phone,
-        operator: Boolean(recipient.is_operator),
-        amount: pot,
-        ref: `${circleId}:${month}`,
-      });
-      await db.run(
-        "UPDATE circle_draws SET payout_ref = ? WHERE circle_id = ? AND month = ?",
-        payout.ref,
+      if (draw.kind === "held") return { month, kind: "held", winner: null, pot };
+      await payOut(
         circleId,
         month,
+        members.find((m) => m.id === draw.winner),
+        pot,
       );
-      await log(db, "payout", {
-        circleId,
-        memberId: recipient.id,
-        phone: recipient.phone,
-        amount: pot,
-        detail: { month, operator: Boolean(recipient.is_operator), ref: payout.ref },
-      });
       return { month, kind: draw.kind, winner: draw.winner, pot };
     } catch (error) {
       await db.run("UPDATE circles SET closing = 0 WHERE id = ?", circleId);
@@ -514,9 +675,9 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     return member;
   }
 
-  const outstandingOf = (circleId, memberId) =>
-    db.all(
-      `SELECT month, amount, status FROM contributions WHERE circle_id = ? AND member_id = ?
+  const outstandingOf = (circleId, memberId, d = db) =>
+    d.all(
+      `SELECT month, amount, status, paid_at, settled_at FROM contributions WHERE circle_id = ? AND member_id = ?
        AND (status = 'due' OR (status = 'covered' AND settled_at IS NULL)) ORDER BY month`,
       circleId,
       memberId,
@@ -526,7 +687,8 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     const member = await memberFor(phone, circleId);
     const items = await outstandingOf(circleId, member.id);
     if (items.length === 0) throw new HttpError(400, "پرداخت معوقی ندارید.");
-    const amount = items.reduce((t, i) => t + i.amount, 0);
+    // What's owed, plus the late fee on shares the guarantee paid.
+    const amount = items.reduce((t, i) => t + i.amount, 0) + lateFees(items);
     const id = newId();
     const checkout = await digipay.payments.createCheckout({
       phone,
@@ -552,10 +714,25 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
   async function getCheckout(phone, id) {
     const checkout = await db.get("SELECT * FROM checkouts WHERE id = ? AND phone = ?", id, phone);
     if (!checkout) throw new HttpError(404, "پرداخت پیدا نشد.");
+    // The late fee is whatever the checkout asks beyond the shares themselves.
+    const months = JSON.parse(checkout.items);
+    const shares =
+      checkout.kind === "dues" && months.length
+        ? (
+            await db.get(
+              `SELECT COALESCE(SUM(amount), 0) AS total FROM contributions
+               WHERE circle_id = ? AND member_id = ? AND month IN (${months.map(() => "?").join(", ")})`,
+              checkout.circle_id,
+              checkout.member_id,
+              ...months,
+            )
+          ).total
+        : checkout.amount;
     return {
       id: checkout.id,
       kind: checkout.kind,
       amount: checkout.amount,
+      lateFee: Math.max(0, checkout.amount - shares),
       status: checkout.status,
       months: JSON.parse(checkout.items),
       circleId: checkout.circle_id,
@@ -608,8 +785,12 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       const who = { circleId: checkout.circle_id, memberId: checkout.member_id, phone: checkout.phone };
       if (paid) await log(tx, "gateway_payment", { ...who, amount: paid });
       if (settled) await log(tx, "debt_settled", { ...who, amount: settled });
+      const fee = checkout.amount - paid - settled;
+      if (fee > 0) await log(tx, "late_fee", { ...who, amount: fee });
     });
-    return { ok: result.ok, circleId: checkout.circle_id };
+    // All settled: a pot held for the members who owed is theirs now.
+    const claimed = result.ok ? await claimHeld(checkout.circle_id, checkout.member_id) : null;
+    return { ok: result.ok, circleId: checkout.circle_id, claimed };
   }
 
   async function completeEntry(checkout, result) {
@@ -685,6 +866,11 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       "SELECT COUNT(*) AS n FROM circle_draws WHERE circle_id = ? AND payout_ref IS NOT NULL",
       circle.id,
     );
+    // Pots Digipay is holding because everyone still waiting owes.
+    const { n: held } = await db.get(
+      "SELECT COUNT(*) AS n FROM held_pots WHERE circle_id = ? AND status = 'held'",
+      circle.id,
+    );
     return {
       id: circle.id,
       planId: circle.plan_id,
@@ -703,7 +889,11 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       wonMonth: member.won_month,
       received,
       owed,
+      lateFee: lateFees(outstanding),
       dueNow,
+      held,
+      // A held pot unclaimed by then is Digipay's.
+      claimBy: held && circle.started_at ? claimDeadline(circle) : null,
     };
   }
 
@@ -774,6 +964,10 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
         paidOut: Boolean(d.payout_ref),
         createdAt: d.created_at,
       })),
+      // Months whose pot Digipay is holding (or held, until claimed or kept).
+      heldMonths: (await db.all("SELECT month FROM held_pots WHERE circle_id = ? AND status = 'held'", circleId)).map(
+        (h) => h.month,
+      ),
       contributions: contributions.map((c) => ({
         month: c.month,
         amount: c.amount,

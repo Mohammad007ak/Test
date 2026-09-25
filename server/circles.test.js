@@ -76,8 +76,20 @@ test("a circle starts when full, the operator takes month 1, and everyone receiv
 
   for (let m = 2; m <= 12; m++) await service.closeMonth(circleId);
 
-  view = await service.circleView(phone(1), circleId);
+  // Seat 5's wallet is empty in the simulator: it never paid, so it was left
+  // out of every draw and month 12's pot is held for it, not handed over.
+  const debtor = phone(5);
+  view = await service.circleView(debtor, circleId);
   assert.equal(view.circle.status, "completed");
+  assert.equal(view.circle.held, 1);
+  assert.equal(view.members.find((m) => m.isMe).wonMonth, null);
+  assert.equal(payouts.length, 11);
+  // Once it settles everything it owes, the held pot is paid to it.
+  const { checkoutId } = await service.startCheckout({ phone: debtor, circleId });
+  const { claimed } = await service.completeCheckout({ phone: debtor, id: checkoutId, action: "pay" });
+  assert.deepEqual(claimed, { month: 12, pot: 60_000_000 });
+
+  view = await service.circleView(phone(1), circleId);
   assert.deepEqual(
     view.members.map((m) => m.wonMonth).sort((a, b) => a - b),
     Array.from({ length: 12 }, (_, i) => i + 1),
@@ -311,4 +323,53 @@ test("members can leave while waiting, get their first share back, and seats beh
   await assert.rejects(service.leave({ phone: phone(1), circleId: full }), {
     status: 400,
   });
+});
+
+test("when only debtors are left, pots are held; settling with the late fee claims one, the rest go to Digipay after the grace period", async () => {
+  const clock = { t: new Date("2026-10-07T14:00:00+03:30").getTime() };
+  const { service, payouts } = await setup({ clock });
+  const DAY = 24 * 60 * 60 * 1000;
+  // Second-to-last digit 5: an empty wallet, so these three never pay after joining.
+  const debtors = [phone(15), phone(25), phone(35)];
+  let circleId;
+  for (const p of [1, 2, 3, 4, 6, 7, 8, 9].map(phone).concat(debtors))
+    ({ circleId } = await join(service, { phone: p, planId: "p12-5" }));
+  for (let m = 2; m <= 12; m++) await service.closeMonth(circleId);
+
+  // Months 2–9 went to the eight who paid; 10–12 had nobody clear to draw.
+  let view = await service.circleView(debtors[0], circleId);
+  assert.equal(view.circle.status, "completed");
+  assert.equal(view.circle.held, 3);
+  assert.equal(payouts.length, 9);
+  assert.ok(view.draws.every((d) => d.month <= 9));
+  assert.equal(view.circle.owed, 55_000_000); // months 2–12, all paid by the guarantee
+
+  // A month later: 5% late fee on the 55M, then settling claims the first held pot.
+  clock.t += 30 * DAY;
+  const { checkoutId } = await service.startCheckout({ phone: debtors[0], circleId });
+  const checkout = await service.getCheckout(debtors[0], checkoutId);
+  assert.equal(checkout.lateFee, 2_750_000);
+  assert.equal(checkout.amount, 57_750_000);
+  const { claimed } = await service.completeCheckout({ phone: debtors[0], id: checkoutId, action: "pay" });
+  assert.deepEqual(claimed, { month: 10, pot: 60_000_000 });
+  assert.equal(payouts.length, 10);
+  assert.equal(payouts.at(-1).operator, false);
+
+  // Past the grace period the two unclaimed pots are Digipay's, and they pay
+  // off the other two's debts; those two forfeit what they paid to join.
+  view = await service.circleView(debtors[1], circleId);
+  clock.t = view.circle.claimBy + DAY;
+  await service.runDueDraws();
+  assert.equal(payouts.length, 12);
+  assert.ok(payouts.slice(-2).every((p) => p.operator && p.amount === 60_000_000));
+  for (const p of debtors.slice(1)) {
+    view = await service.circleView(p, circleId);
+    assert.equal(view.circle.held, 0);
+    assert.equal(view.circle.owed, 0);
+    assert.equal(view.members.find((m) => m.isMe).wonMonth, null);
+  }
+  assert.deepEqual(
+    view.draws.map((d) => d.kind),
+    ["operator", ...Array(8).fill("lottery"), "last", "operator", "operator"],
+  );
 });

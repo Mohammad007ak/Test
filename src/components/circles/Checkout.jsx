@@ -3,7 +3,7 @@ import { CreditCard, FlaskConical, ShieldCheck } from "lucide-react";
 import { Money, PageSkeleton, Spinner } from "../../ui/bits.jsx";
 import { useToast } from "../../ui/feedback.jsx";
 import { api } from "../../lib/api.js";
-import { formatNumber } from "../../lib/format.js";
+import { formatCompact, formatNumber } from "../../lib/format.js";
 import { planById } from "../../lib/plans.js";
 
 // Stands in for Digipay's payment page while the app runs on the simulator.
@@ -63,7 +63,9 @@ export default function Checkout({ checkoutId, done }) {
           <small>
             {checkout.kind === "entry"
               ? `قسط اول ${planById(checkout.planId)?.title ?? ""}`
-              : `بابت ماه ${checkout.months.map((m) => formatNumber(m)).join("، ")}`}
+              : `بابت ماه ${checkout.months.map((m) => formatNumber(m)).join("، ")}${
+                  checkout.lateFee ? `، به‌علاوه‌ی ${formatCompact(checkout.lateFee)} تومان جریمه‌ی تأخیر` : ""
+                }`}
           </small>
         </div>
         {checkout.status === "pending" ? (

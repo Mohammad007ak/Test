@@ -34,7 +34,21 @@ const METHOD_LABEL = {
   wallet: "از کیف پول",
   auto: "از کیف پول",
   guarantee: "با ضمانت دیجی‌پی",
+  forfeit: "از وام سوخته",
 };
+
+// What a member who owes the guarantee needs to know: how much, and what
+// settling it does for them.
+function debtLine(circle) {
+  const debt = `${formatCompact(circle.owed)} تومان بدهی${
+    circle.lateFee ? ` و ${formatCompact(circle.lateFee)} تومان جریمه‌ی تأخیر` : ""
+  } دارید.`;
+  if (circle.held && !circle.wonMonth)
+    return `${debt} وام شما نزد دیجی‌پی امانت است و با تسویه همان لحظه واریز می‌شود.${
+      circle.claimBy ? ` تا ${formatDay(circle.claimBy)} فرصت دارید؛ پس از آن وام و قسط اولتان به دیجی‌پی می‌رسد.` : ""
+    }`;
+  return `${debt} تا تسویه در قرعه شرکت داده نمی‌شوید.`;
+}
 
 const short = (hex) => (hex ? `${hex.slice(0, 10)}…${hex.slice(-6)}` : "—");
 
@@ -183,7 +197,8 @@ export default function CircleView({ circleId, back, open }) {
   const current = circle.status === "active" ? schedule[circle.currentMonth - 1] : null;
   const paymentOf = new Map(contributions.map((c) => [c.month, c]));
   const recipientOf = new Map(draws.map((d) => [d.month, members.find((m) => m.id === d.winner)]));
-  const payable = circle.owed + circle.dueNow;
+  const payable = circle.owed + circle.lateFee + circle.dueNow;
+  const heldMonths = new Set(view.heldMonths ?? []);
   const thisMonthPaid = paymentOf.get(circle.currentMonth)?.status === "paid";
 
   const pay = async () => {
@@ -231,7 +246,9 @@ export default function CircleView({ circleId, back, open }) {
         </div>
         <p className="hero-sub">
           {circle.owed
-            ? `${formatCompact(circle.owed)} تومان بدهی دارید که دیجی‌پی ضمانت کرده؛ تا تسویه در قرعه شرکت داده نمی‌شوید.`
+            ? current
+              ? debtLine(circle)
+              : "برای دریافت وامتان، بدهی را تسویه کنید."
             : current
               ? `${formatNumber(daysUntil(current.drawAt))} روز مانده؛ ${formatNumber(
                   members.filter((m) => !m.wonMonth).length,
@@ -249,6 +266,22 @@ export default function CircleView({ circleId, back, open }) {
       {header}
       <div className="page">
         {hero}
+
+        {!current && me && payable > 0 && (
+          <section className="card">
+            <div className="section-title">
+              <h2>
+                <CreditCard size={17} /> تسویه‌ی بدهی
+              </h2>
+            </div>
+            <div className="split">
+              <span className="muted small">{debtLine(circle)}</span>
+              <button className="btn primary" onClick={pay} disabled={paying}>
+                {paying ? <Spinner /> : <CreditCard size={17} />} پرداخت {formatCompact(payable)}
+              </button>
+            </div>
+          </section>
+        )}
 
         {current && me && (
           <section className="card">
@@ -317,6 +350,8 @@ export default function CircleView({ circleId, back, open }) {
                       <>
                         {who.isMe && <Trophy size={13} />} {seatName(who)}
                       </>
+                    ) : heldMonths.has(s.month) ? (
+                      <span className="muted">امانت نزد دیجی‌پی</span>
                     ) : (
                       <span className="muted">قرعه {formatDay(s.drawAt)}</span>
                     )}
