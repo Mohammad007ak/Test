@@ -4,3 +4,6 @@ data
 .env
 .DS_Store
 BUILT_AT
+promo/*.html
+promo/*.wav
+promo/*.mp4
