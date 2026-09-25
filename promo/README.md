@@ -7,6 +7,6 @@ ffmpeg به MP4 تبدیل می‌شود. موسیقی و افکت‌ها با `
 
 ```sh
 node promo/build.mjs          # promo.html  (متن زیرنویس‌ها و صحنه‌ها این‌جاست)
-python3 promo/music.py        # music.wav   (نیاز به numpy)
+python3 promo/music.py        # music.wav   (نیاز به numpy و scipy)
 FFMPEG=/path/to/ffmpeg node promo/render.mjs   # digigharz-promo.mp4 (نیاز به playwright)
 ```
