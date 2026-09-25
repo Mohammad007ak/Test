@@ -14,7 +14,7 @@ function formatPhone(phone) {
   return toPersianDigits(phone.replace(/^(\d{4})(\d{3})(\d{4})$/, "$1 $2 $3"));
 }
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onTour }) {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState("phone");
@@ -168,6 +168,9 @@ export default function Login({ onLogin }) {
           </p>
           <nav className="auth-links" aria-label="درباره‌ی دیجی قرض">
             <a href="/welcome/">دیجی قرض چیست؟</a>
+            <button type="button" className="link-btn" onClick={onTour}>
+              راهنمای اپ
+            </button>
             <a href="/welcome/#plans">طرح‌ها</a>
             <a href="/terms/">قوانین و حریم خصوصی</a>
           </nav>

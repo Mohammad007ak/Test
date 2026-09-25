@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, CloudUpload, LogOut, Plus, Sparkles, Users, WalletCards } from "lucide-react";
+import { ChevronLeft, CircleHelp, CloudUpload, LogOut, Plus, Sparkles, Users, WalletCards } from "lucide-react";
 import CreateFundWizard from "./CreateFundWizard.jsx";
 import PlansSection from "./circles/PlansSection.jsx";
 import { Logo } from "../ui/Logo.jsx";
@@ -99,7 +99,7 @@ function crowdOf(tab, circles, pay) {
   };
 }
 
-export default function FundList({ phone, tab, setTab, open, onLogout }) {
+export default function FundList({ phone, tab, setTab, open, onLogout, onTour }) {
   const [funds, setFunds] = useState(null);
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -157,6 +157,9 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
       <header className="appbar">
         <Logo />
         <div className="appbar-title" />
+        <button className="btn sm outline" onClick={onTour}>
+          <CircleHelp size={16} /> راهنما
+        </button>
         <span className="muted small desktop-only" dir="ltr">
           {toPersianDigits(phone)}
         </span>

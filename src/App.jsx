@@ -23,6 +23,7 @@ import MemberView from "./components/MemberView.jsx";
 import CircleView from "./components/circles/CircleView.jsx";
 import Checkout from "./components/circles/Checkout.jsx";
 import AdminPanel from "./components/admin/AdminPanel.jsx";
+import Tour, { tourSeen } from "./components/Tour.jsx";
 import { Logo, LogoMark } from "./ui/Logo.jsx";
 import { PageSkeleton } from "./ui/bits.jsx";
 import { FeedbackProvider, useDialog } from "./ui/feedback.jsx";
@@ -242,6 +243,9 @@ function ManageFund({ fundId, tab: routeTab, go, back, phone, onLogout }) {
 export default function App() {
   const [phone, setPhone] = useState(undefined);
   const [route, go, back] = useRoute();
+  // A newcomer gets the tour on their first visit; it can be opened again.
+  const [touring, setTouring] = useState(() => !tourSeen());
+  const openTour = () => setTouring(true);
 
   useEffect(() => {
     // Opened inside the Digipay app: sign in with the host's launch token.
@@ -278,7 +282,7 @@ export default function App() {
   if (route.page === "ops")
     content = <AdminPanel section={route.id} itemId={route.tab} back={() => back("home")} go={go} goBack={back} />;
   else if (phone === undefined) content = <div className="home" />;
-  else if (phone === null) content = <Login onLogin={setPhone} />;
+  else if (phone === null) content = <Login onLogin={setPhone} onTour={openTour} />;
   else if (route.page === "manage")
     content = (
       <ManageFund
@@ -323,8 +327,14 @@ export default function App() {
         setTab={(tab) => go(tab === "family" ? "family" : "home", undefined, undefined, { replace: true })}
         open={go}
         onLogout={logout}
+        onTour={openTour}
       />
     );
 
-  return <FeedbackProvider>{content}</FeedbackProvider>;
+  return (
+    <FeedbackProvider>
+      {content}
+      {touring && route.page !== "ops" && <Tour onClose={() => setTouring(false)} />}
+    </FeedbackProvider>
+  );
 }

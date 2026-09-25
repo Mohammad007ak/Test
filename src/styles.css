@@ -4529,3 +4529,512 @@ body {
     height: 330px; /* room for the pay button; a computer's banner is full-screen */
   }
 }
+
+/* ==========================================================================
+   First-visit tour: Digi Gharz walks a newcomer through the app, one small
+   animated scene per idea, with typed-out captions in a speech bubble.
+   ========================================================================== */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(8 10 28 / 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fade-in 0.25s ease-out;
+}
+.tour-card {
+  position: relative;
+  width: min(100%, 460px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+  padding: 14px 14px 16px;
+  border: var(--line-w) solid var(--line);
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: var(--pop);
+}
+.tour-skip {
+  position: absolute;
+  top: 22px;
+  inset-inline-end: 22px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 2px solid #111126;
+  border-radius: 999px;
+  background: #fff;
+  color: #111126;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.tour-stage {
+  position: relative;
+  height: 250px;
+  border: var(--line-w) solid var(--line);
+  border-radius: 20px;
+  background: #0000ff;
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+}
+.tour-talk {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.tour-guide {
+  flex: none;
+  animation: fig-bob 1.6s ease-in-out infinite;
+}
+.tour-bubble {
+  position: relative;
+  flex: 1;
+  min-height: 118px;
+  padding: 12px 14px;
+  border: var(--line-w) solid var(--line);
+  /* The pointed corner faces the guide, on the right in RTL. */
+  border-radius: 18px 18px 6px 18px;
+  background: var(--surface-2);
+}
+.tour-bubble strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+.tour-bubble p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: var(--ink-2);
+}
+.tour-bubble .caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-inline-start: 2px;
+  vertical-align: -2px;
+  background: var(--ink);
+  animation: caret 0.8s steps(2) infinite;
+}
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+.tour-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tour-dots {
+  display: flex;
+  gap: 6px;
+}
+.tour-dots button {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  transition: width 0.25s var(--ease-out);
+}
+.tour-dots button.on {
+  width: 24px;
+  background: var(--brand);
+}
+
+/* Scene building blocks */
+.scene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+}
+.scene-tag {
+  position: absolute;
+  bottom: 14px;
+  padding: 3px 14px;
+  border: 2px solid #111126;
+  border-radius: 999px;
+  background: #ffc53d;
+  color: #111126;
+  font-size: 0.9rem;
+}
+.hop-in {
+  animation: hop-in 0.9s var(--ease-spring) both;
+}
+@keyframes hop-in {
+  from {
+    transform: translateY(160px);
+  }
+  60% {
+    transform: translateY(-14px);
+  }
+}
+.pop-in {
+  display: inline-block;
+  animation: pop-in 0.45s var(--ease-spring) both;
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.3) translateY(20px);
+  }
+}
+.fade-in {
+  animation: fade-in 0.5s ease-out both;
+}
+.slide-in {
+  animation: slide-in 0.7s var(--ease-out) both;
+}
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-140px);
+  }
+}
+.coin {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #111126;
+  border-radius: 50%;
+  background: #ffc53d;
+  box-shadow: inset -3px 0 0 #e09a00;
+}
+
+/* 1. hello */
+.spark {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffc53d;
+  border: 2px solid #111126;
+  animation: spark 1.6s ease-in-out infinite;
+}
+.spark.s1 {
+  top: 40px;
+  left: 22%;
+}
+.spark.s2 {
+  top: 70px;
+  right: 20%;
+  animation-delay: -0.5s;
+}
+.spark.s3 {
+  bottom: 60px;
+  left: 30%;
+  animation-delay: -1s;
+}
+@keyframes spark {
+  50% {
+    transform: translateY(-10px) scale(1.25);
+  }
+}
+
+/* 2. group */
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(6, auto);
+  gap: 4px 10px;
+  margin-bottom: 26px;
+}
+
+/* 3. pot: coins fly from each giver down into the pot */
+.scene-pot {
+  align-content: space-between;
+  padding: 58px 0 14px;
+}
+.pot-row {
+  display: flex;
+  gap: 6px;
+}
+.pot-giver {
+  position: relative;
+}
+.pot-giver .coin.fly {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  margin-left: -11px;
+  animation: coin-fly 0.9s ease-in both;
+}
+@keyframes coin-fly {
+  from {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(0, -24px);
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--dx), 96px) scale(0.8);
+  }
+}
+.pot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  border: 2px solid #111126;
+  border-radius: 999px;
+  background: #fff;
+  color: #111126;
+  font-size: 1.1rem;
+  animation: pot-fill 2s ease-out both;
+}
+.pot .coin.big {
+  width: 34px;
+  height: 34px;
+}
+@keyframes pot-fill {
+  0%,
+  60% {
+    transform: scale(0.85);
+  }
+  75% {
+    transform: scale(1.12);
+  }
+}
+
+/* 4. draw: a gold light runs round the ring twice and stops on the winner */
+.draw-ring {
+  position: relative;
+  width: 230px;
+  height: 230px;
+}
+.draw-seat {
+  position: absolute;
+  transform: translate(-50%, -60%);
+}
+.draw-seat::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  width: 46px;
+  height: 46px;
+  margin-left: -23px;
+  border-radius: 50%;
+  background: #ffc53d;
+  opacity: 0;
+  filter: blur(6px);
+  animation: seat-light 1.44s linear 2;
+  animation-delay: inherit;
+}
+@keyframes seat-light {
+  0%,
+  14% {
+    opacity: 0.95;
+  }
+  15%,
+  100% {
+    opacity: 0;
+  }
+}
+.draw-seat.winner::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px #ffc53d;
+  opacity: 0;
+  animation: angry-in 0.4s ease-out 3s forwards;
+}
+.win-check {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  line-height: 0;
+  opacity: 0;
+  transform-origin: bottom center;
+  animation: win-in 0.5s var(--ease-spring) 3s forwards;
+}
+.win-check .figure {
+  display: block;
+}
+@keyframes win-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.draw-lock {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border: 2px solid #111126;
+  border-radius: 50%;
+  background: #fff;
+  color: #111126;
+}
+
+/* 5. calendar: the month fills from due date to draw day */
+.scene-calendar {
+  align-content: center;
+  gap: 18px;
+  padding: 0 18px;
+}
+.cal-track {
+  width: 100%;
+  height: 14px;
+  border: 2px solid #111126;
+  border-radius: 999px;
+  background: #fff;
+  overflow: hidden;
+}
+.cal-fill {
+  display: block;
+  height: 100%;
+  background: #ffc53d;
+  transform-origin: right;
+  animation: cal-fill 2.4s ease-in-out both;
+}
+@keyframes cal-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+.cal-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cal-steps li {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  border: 2px solid #111126;
+  border-radius: 14px;
+  background: #fff;
+  color: #111126;
+  text-align: center;
+}
+.cal-steps li span {
+  font-size: 0.75rem;
+  color: #3a3f5c;
+}
+.cal-steps li:last-child {
+  background: #ffc53d;
+}
+
+/* 6. guarantee: someone skips a payment and gets cross; Digi Gharz covers */
+.scene-guarantee {
+  grid-auto-flow: column;
+  gap: 16px;
+  align-content: end;
+  padding-bottom: 12px;
+  animation: stage-red 3s ease-in-out both;
+}
+@keyframes stage-red {
+  30%,
+  55% {
+    background: #e0242f;
+  }
+}
+.late {
+  position: relative;
+}
+.late-calm {
+  display: block;
+  animation: fade-in 0.4s ease-out 0.9s forwards reverse;
+}
+.late-angry {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: angry-in 0.4s ease-out 0.9s forwards;
+}
+@keyframes angry-in {
+  to {
+    opacity: 1;
+  }
+}
+.cover {
+  position: relative;
+}
+.shield {
+  position: absolute;
+  top: -6px;
+  inset-inline-start: -8px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 2px solid #111126;
+  border-radius: 50%;
+  background: #3ddc84;
+  color: #111126;
+}
+
+/* 7. family */
+.fam {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 22px;
+}
+
+/* 8. go: everyone cheers */
+.scene-go {
+  grid-auto-flow: column;
+  align-content: end;
+  justify-content: center;
+  padding-bottom: 12px;
+}
+.cheer {
+  display: block;
+  margin-inline: -4px;
+  animation: cheer 0.7s ease-in-out infinite alternate;
+}
+@keyframes cheer {
+  to {
+    transform: translateY(-12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour *,
+  .tour *::before,
+  .tour *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+  }
+}
+.draw-seat.winner > .figure {
+  animation: vanish 0.01s linear 3s forwards;
+}
+@keyframes vanish {
+  to {
+    opacity: 0;
+  }
+}
