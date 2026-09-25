@@ -4098,13 +4098,10 @@ body {
 /* ---------- home banner: the coin-headed crowd ---------- */
 .crowd {
   position: relative;
-  height: 200px;
+  height: 280px;
   border-radius: 24px;
   overflow: hidden;
-  background:
-    radial-gradient(120% 90% at 85% 0%, rgba(255, 255, 255, 0.18), transparent 60%),
-    linear-gradient(160deg, #0000ff, #0a0ad1 55%, #10106e);
-  box-shadow: 0 14px 40px -18px rgba(0, 0, 255, 0.6);
+  background: #ffd23f;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -4124,45 +4121,45 @@ body {
 }
 .crowd-text {
   position: absolute;
-  top: 18px;
-  inset-inline: 20px;
+  top: 20px;
+  inset-inline: 22px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  color: #fff;
+  color: #15152b;
   pointer-events: none;
 }
 .crowd-text strong {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 800;
 }
 .crowd-text span {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.88rem;
+  color: #3b3a2a;
 }
-.crowd-hint {
-  position: absolute;
-  bottom: 12px;
-  inset-inline-start: 20px;
-  padding: 4px 10px;
+.crowd-text .crowd-hint {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 5px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  border: 2px solid #15152b;
+  background: #fff;
+  color: #15152b;
   font-size: 0.75rem;
-  pointer-events: none;
+  font-weight: 700;
   animation: crowd-hint 2.4s ease-in-out infinite;
 }
 @keyframes crowd-hint {
   50% {
-    opacity: 0.55;
+    transform: translateY(-3px);
   }
 }
 @media (min-width: 760px) {
   .crowd {
-    height: 240px;
+    height: 340px;
   }
   .crowd-text strong {
-    font-size: 1.5rem;
+    font-size: 1.7rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {
