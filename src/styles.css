@@ -4154,12 +4154,27 @@ body {
     transform: translateY(-3px);
   }
 }
+/* On a computer the banner fills the screen edge to edge below the top bar,
+   like a landing page's first screen; its text lines up with the page. */
 @media (min-width: 760px) {
   .crowd {
-    height: 340px;
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    height: calc(100svh - 98px); /* the space under the top bar */
+    min-height: 480px;
+    border-radius: 0;
+  }
+  .crowd-text {
+    top: 40px;
+    inset-inline: max(24px, calc(50vw - 344px));
+    gap: 8px;
   }
   .crowd-text strong {
-    font-size: 1.7rem;
+    font-size: 2.6rem;
+    line-height: 1.3;
+  }
+  .crowd-text span {
+    font-size: 1.1rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {

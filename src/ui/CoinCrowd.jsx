@@ -191,7 +191,7 @@ export default function CoinCrowd({ title, text, count = 12, done = 0, present =
       el.width = Math.round(width * dpr);
       el.height = Math.round(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      base = Math.max(64, Math.min(120, height * 0.34));
+      base = Math.max(64, Math.min(210, height * 0.34)); // bigger on a full-screen banner
       // The hint may sit over the crowd's heads; only the title and subtitle can't.
       const hintEl = textBox.current.querySelector(".crowd-hint");
       const textEnd = hintEl ? hintEl.offsetTop : textBox.current.offsetHeight;
