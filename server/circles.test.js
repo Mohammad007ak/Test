@@ -250,8 +250,8 @@ test("each draw runs by itself on the sixth day after its due date, and its reve
   // If the server was down for months, the missed draws all run, in order.
   clock.t = drawAt(view.circle.startedAt, 5);
   assert.deepEqual(
-    (await service.myCircles(phone(1))).map((c) => c.currentMonth),
-    [6],
+    (await service.myCircles(phone(1))).map((c) => [c.currentMonth, c.received]),
+    [[6, 5]], // five pots paid out: Digipay's month 1 and four draws
   );
 });
 

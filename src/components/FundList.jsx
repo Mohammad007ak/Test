@@ -10,6 +10,7 @@ import { api } from "../lib/api.js";
 import { createDemoState } from "../lib/demo.js";
 import { clearLegacyState, loadLegacyState } from "../lib/storage.js";
 import { formatCompact, formatNumber } from "../lib/format.js";
+import { planById } from "../lib/plans.js";
 import { toPersianDigits } from "../lib/jalali.js";
 
 function greeting() {
@@ -22,15 +23,43 @@ function greeting() {
   return "عصر بخیر";
 }
 
+// The banner's crowd is the member's own group: one figure per seat of their
+// running plan (or the one still filling up), a check over each who's been paid.
+function crowdOf(tab, circles) {
+  if (tab === "family")
+    return { title: "صندوق فامیلی، بدون دفترچه", text: "سهم‌ها، قرعه و وام‌ها را آنلاین با هم ببینید." };
+  const circle = circles?.find((c) => c.status === "active") ?? circles?.find((c) => c.status === "forming");
+  if (!circle) return { title: "با هم، زودتر به پول برسید", text: "هر ماه یکی از جمع، کل مبلغ را یک‌جا می‌گیرد." };
+  const title = planById(circle.planId)?.title ?? "طرح شما";
+  if (circle.status === "forming")
+    return {
+      title,
+      text: `${formatNumber(circle.taken)} نفر از ${formatNumber(circle.size)} نفر آمده‌اند؛ گروه در حال تکمیل است.`,
+      count: circle.size,
+      present: circle.taken,
+    };
+  return {
+    title,
+    text: `${formatNumber(circle.received)} نفر از ${formatNumber(circle.size)} نفر وامشان را گرفته‌اند.`,
+    count: circle.size,
+    done: circle.received,
+  };
+}
+
 export default function FundList({ phone, tab, setTab, open, onLogout }) {
   const [funds, setFunds] = useState(null);
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [circles, setCircles] = useState(null);
   const [legacy, setLegacy] = useState(loadLegacyState);
   const toast = useToast();
 
   useEffect(() => {
     api("GET", "/api/funds").then(setFunds, setError);
+    api("GET", "/api/circles").then(
+      (r) => setCircles(r.circles),
+      () => setCircles([]),
+    );
   }, []);
 
   const create = async (data, message = "صندوق ساخته شد") => {
@@ -68,14 +97,7 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
       </header>
 
       <div className="page">
-        <CoinCrowd
-          title={tab === "plans" ? "با هم، زودتر به پول برسید" : "صندوق فامیلی، بدون دفترچه"}
-          text={
-            tab === "plans"
-              ? "هر ماه یکی از جمع، کل مبلغ را یک‌جا می‌گیرد."
-              : "سهم‌ها، قرعه و وام‌ها را آنلاین با هم ببینید."
-          }
-        />
+        <CoinCrowd {...crowdOf(tab, circles)} />
         <div className="page-head">
           <div>
             <h1>{greeting()} 👋</h1>

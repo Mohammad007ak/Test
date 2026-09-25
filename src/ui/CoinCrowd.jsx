@@ -8,38 +8,42 @@ const HINT_KEY = "dg:crowd-hint-seen";
 const INK = "#111126";
 
 // One figure, drawn once as line art: a tilted white coin for a head with
-// its ridged rim showing, a soft white body with the arms in front, and a
-// shadow. viewBox 100×150; the feet stand at y 141. `pose` is "stand", or
+// its ridged rim showing, a white body whose arms and legs show as creases
+// inside one outline, and a shadow. viewBox 100×150; the feet stand at y 141. `pose` is "stand", or
 // "a" / "b" for the two steps of the walk (stride, then passing).
 function figureSvg(pose) {
-  // Coin: face ellipse, rim = same ellipse shifted left; both tilted.
-  const [cx, cy, rx, ry, shift] = [56, 45, 29, 32, 12];
+  const [cx, cy, rx, ry, shift] = [53, 39, 27, 29, 10];
   const ridges = [];
-  for (let a = 98; a <= 262; a += 13) {
+  for (let a = 106; a <= 254; a += 16) {
     const t = (a * Math.PI) / 180;
     const x = Math.cos(t) * rx;
     const y = Math.sin(t) * ry;
-    ridges.push(`M${(cx + x).toFixed(1)} ${(cy + y).toFixed(1)}L${(cx - shift + x).toFixed(1)} ${(cy + y).toFixed(1)}`);
+    ridges.push(`M${(cx + x).toFixed(1)} ${(cy + y).toFixed(1)}H${(cx - shift + x).toFixed(1)}`);
   }
   const P = {
     stand: { l: 0, r: 0, al: 0, ar: 0, lean: 0 },
-    a: { l: 24, r: -24, al: 34, ar: -30, lean: 4 },
-    b: { l: 6, r: -4, al: 8, ar: -6, lean: 2 },
+    a: { l: 18, r: -18, al: 24, ar: -22, lean: 3 },
+    b: { l: 5, r: -4, al: 7, ar: -6, lean: 1.5 },
   }[pose];
-  const leg = (x, turn) =>
-    `<path transform="rotate(${turn} ${x + 6} 108)" d="M${x} 104 L${x + 0.5} 134 C${x + 0.5} 140 ${x + 12} 140 ${x + 12} 134 L${x + 12} 104 Z" fill="#fff"/>`;
-  const armL = `<path transform="rotate(${P.al} 39 83)" d="M40 81 C33 85 31 95 32 106 C32 111 38 111 38 106 C38 99 39 93 41 89" fill="#fff"/>`;
-  const armR = `<path transform="rotate(${P.ar} 63 83)" d="M62 81 C69 85 71 95 70 106 C70 111 64 111 64 106 C64 99 63 93 61 89" fill="#fff"/>`;
+  // Legs hang from the hips; the body's fill covers their tops, so body and
+  // legs read as one shape with only the line between the legs showing.
+  const legL = `<path transform="rotate(${P.l} 44 114)" d="M35 108V135.5C35 140.5 51.5 140.5 51.5 135.5V108" fill="#fff"/>`;
+  const legR = `<path transform="rotate(${P.r} 60 114)" d="M52.5 108V135.5C52.5 140.5 69 140.5 69 135.5V108" fill="#fff"/>`;
+  const body = "M44 66C38 70 35 79 35 89V119H69V89C69 79 66 70 60 66Z";
+  const bodyEdge = "M44 66C38 70 35 79 35 89V117M60 66C66 70 69 79 69 89V117";
+  // Arms hug the body: their inner edge reads as a crease inside the outline.
+  const armL = `<path transform="rotate(${P.al} 39 82)" d="M41 79C35.5 81 33 86 33 93V111C33 115.5 40 115.5 40 111V93" fill="#fff"/>`;
+  const armR = `<path transform="rotate(${P.ar} 65 82)" d="M63 79C68.5 81 71 86 71 93V111C71 115.5 64 115.5 64 111V93" fill="#fff"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 150">
-<ellipse cx="51" cy="141" rx="21" ry="5.5" fill="${INK}"/>
-<g stroke="${INK}" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round" transform="rotate(${P.lean} 51 141)">
-${leg(39, P.l)}${leg(51, P.r)}
-<path d="M46 73 C40 75 38 84 38 94 L37 108 C37 114 42 117 51 117 C60 117 65 114 65 108 L64 94 C64 84 62 75 56 73 Z" fill="#fff"/>
-<path d="M51 109 L51 116" stroke-width="3"/>
+<ellipse cx="52" cy="141" rx="25" ry="6" fill="${INK}"/>
+<g stroke="${INK}" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round" transform="rotate(${P.lean} 52 141)">
+${legL}${legR}
+<path d="${body}" fill="#fff" stroke="none"/>
+<path d="${bodyEdge}" fill="none"/>
 ${armL}${armR}
-<g transform="rotate(-10 ${cx} ${cy})">
+<g transform="rotate(9 ${cx} ${cy})">
 <ellipse cx="${cx - shift}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fff"/>
-<path d="M${cx - shift} ${cy - ry} L${cx} ${cy - ry} M${cx - shift} ${cy + ry} L${cx} ${cy + ry}"/>
+<path d="M${cx - shift} ${cy - ry}H${cx}M${cx - shift} ${cy + ry}H${cx}"/>
 <path d="${ridges.join("")}" stroke-width="3.6"/>
 <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fff"/>
 </g>
@@ -62,13 +66,20 @@ async function makeSprites(px) {
   return out;
 }
 
-function makePeople(width, height, base, floor) {
-  const count = Math.max(16, Math.min(70, Math.round(width / (base * 0.2))));
+// `count` people: `done` of them (picked at random) wear a check mark, and
+// seats past `present` are still empty and drawn faded.
+function makePeople(width, height, base, floor, count, done, present) {
+  const checked = new Set(
+    Array.from({ length: count }, (_, i) => i)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, done),
+  );
   // Feet no higher than `floor`, so heads stay clear of the banner's text.
   const top = Math.max(height * 0.5, floor);
-  const bottom = height + base * 0.3; // the front row is cut off, like a crowd
+  const bottom = height - 6; // everyone fully in view, so they can be counted
   return Array.from({ length: count }, (_, i) => {
-    const x = ((i + 0.5) / count) * width + (Math.random() - 0.5) * base * 0.4;
+    const edge = base * 0.35;
+    const x = edge + ((i + 0.5) / count) * (width - 2 * edge) + (Math.random() - 0.5) * base * 0.3;
     const y = top + Math.random() * (bottom - top);
     return {
       homeX: x,
@@ -81,6 +92,8 @@ function makePeople(width, height, base, floor) {
       speed: 0.7 + Math.random() * 0.6,
       phase: Math.random() * Math.PI * 2,
       facing: Math.random() < 0.5 ? -1 : 1,
+      checked: checked.has(i),
+      empty: i < count - present, // the ones who came fill in from the right (RTL)
       slot: 0,
     };
   });
@@ -95,14 +108,43 @@ function drawPerson(ctx, sprites, base, p) {
   const w = h * (100 / 150);
   const bob = moving < 0.35 ? 0 : Math.abs(Math.sin(p.phase)) * h * 0.035;
   ctx.save();
+  if (p.empty) ctx.globalAlpha = 0.3;
   ctx.translate(p.x, p.y - bob);
   ctx.scale(p.facing, 1);
   // The sprite's feet sit at 141/150 of its height.
   ctx.drawImage(sprites[pose], -w / 2, -h * (141 / 150), w, h);
   ctx.restore();
+  if (p.checked) drawCheck(ctx, p.x, p.y - bob - h * (133 / 150), h);
 }
 
-export default function CoinCrowd({ title, text }) {
+// A green badge with a check, floating over the head of someone who has
+// already been paid their loan.
+function drawCheck(ctx, x, headTop, h) {
+  const r = h * 0.1;
+  const y = headTop - r - h * 0.03;
+  ctx.save();
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.fillStyle = "#3ddc84";
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = Math.max(1.5, h * 0.028);
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.lineWidth = Math.max(2, h * 0.034);
+  ctx.beginPath();
+  ctx.moveTo(x - r * 0.45, y + r * 0.02);
+  ctx.lineTo(x - r * 0.1, y + r * 0.38);
+  ctx.lineTo(x + r * 0.5, y - r * 0.35);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// `count` is how many people to show (the member's plan size), `done` how
+// many of them have already received their loan, and `present` how many
+// seats are taken while the group is still filling up.
+export default function CoinCrowd({ title, text, count = 12, done = 0, present = count }) {
   const wrap = useRef(null);
   const canvas = useRef(null);
   const textBox = useRef(null);
@@ -143,8 +185,8 @@ export default function CoinCrowd({ title, text }) {
       // The hint may sit over the crowd's heads; only the title and subtitle can't.
       const hintEl = textBox.current.querySelector(".crowd-hint");
       const textEnd = hintEl ? hintEl.offsetTop : textBox.current.offsetHeight;
-      floor = textBox.current.offsetTop + textEnd + 8 + base * 1.05;
-      people = makePeople(width, height, base, floor);
+      floor = textBox.current.offsetTop + textEnd + 8 + base * 1.2; // room for a check mark too
+      people = makePeople(width, height, base, floor, count, Math.min(done, count), present);
       makeSprites(base * 1.1 * dpr).then((made) => {
         if (!alive) return;
         sprites = made;
@@ -290,7 +332,7 @@ export default function CoinCrowd({ title, text }) {
       el.removeEventListener("pointerleave", leave);
       el.removeEventListener("contextmenu", noMenu);
     };
-  }, []);
+  }, [count, done, present]);
 
   return (
     <div className="crowd" ref={wrap}>

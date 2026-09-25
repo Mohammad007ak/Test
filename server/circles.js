@@ -680,6 +680,11 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
     // Debt is only what the guarantee paid for; this month's share isn't late yet.
     const owed = outstanding.filter((i) => i.status === "covered").reduce((t, i) => t + i.amount, 0);
     const dueNow = outstanding.filter((i) => i.status === "due").reduce((t, i) => t + i.amount, 0);
+    // How many seats have been paid their pot so far (Digipay's month 1 included).
+    const { n: received } = await db.get(
+      "SELECT COUNT(*) AS n FROM circle_draws WHERE circle_id = ? AND payout_ref IS NOT NULL",
+      circle.id,
+    );
     return {
       id: circle.id,
       planId: circle.plan_id,
@@ -696,6 +701,7 @@ export function createCircleService({ db, digipay, now = Date.now, formTimeoutMs
       position: member.position,
       payMethod: member.pay_method,
       wonMonth: member.won_month,
+      received,
       owed,
       dueNow,
     };
