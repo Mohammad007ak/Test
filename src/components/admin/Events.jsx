@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { ScrollText } from "lucide-react";
 import { EmptyState, PageSkeleton } from "../../ui/bits.jsx";
 import { api } from "../../lib/api.js";
 import { formatCompact } from "../../lib/format.js";
@@ -36,7 +35,7 @@ export default function Events({ open }) {
         <PageSkeleton />
       ) : events.length === 0 ? (
         <section className="card">
-          <EmptyState icon={ScrollText} title="رویدادی نیست" text="با فعالیت کاربران، رویدادها اینجا ثبت می‌شوند." />
+          <EmptyState title="رویدادی نیست" text="با فعالیت کاربران، رویدادها اینجا ثبت می‌شوند." />
         </section>
       ) : (
         <section className="card">

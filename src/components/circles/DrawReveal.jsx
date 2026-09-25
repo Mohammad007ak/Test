@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BadgeCheck, CheckCircle2, Trophy, X, XCircle } from "lucide-react";
 import Confetti from "../../ui/Confetti.jsx";
-import Pattern from "../../ui/Pattern.jsx";
+import { Figure } from "../../ui/Figure.jsx";
 import { Spinner } from "../../ui/bits.jsx";
 import { verifyDraw } from "../../lib/fairness.js";
 import { formatCompact, formatNumber } from "../../lib/format.js";
@@ -10,8 +10,8 @@ import { toPersianDigits } from "../../lib/jalali.js";
 const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 // Replays a draw that already happened on the server, the first time a
-// member opens the circle after it: the entrants' seats sit in a ring, a
-// light runs around it and slows down onto the winner. The result is fixed
+// member opens the circle after it: the entrants stand in a ring, a gold
+// light runs over their coin heads and slows down onto the winner. The result is fixed
 // before the animation starts; the "check" button proves it on this phone.
 export default function DrawReveal({ draw, members, digest, onClose }) {
   const seats = useMemo(
@@ -79,7 +79,6 @@ export default function DrawReveal({ draw, members, digest, onClose }) {
 
   return (
     <div className="reveal" role="dialog" aria-modal="true" aria-label={`قرعه‌کشی ماه ${draw.month}`}>
-      <Pattern />
       {phase === "done" && iWon && <Confetti count={48} />}
       <button className="reveal-close" onClick={onClose} aria-label="بستن">
         <X size={20} />
@@ -105,7 +104,12 @@ export default function DrawReveal({ draw, members, digest, onClose }) {
                 top: radius + Math.sin(angle) * radius,
               }}
             >
-              {label(m)}
+              <Figure
+                size={size * 1.5}
+                label={label(m)}
+                face={i === lit ? "#ffc53d" : m.isMe ? "#ffe29a" : "#fff"}
+                check={phase === "done" && i === winnerIndex}
+              />
             </span>
           );
         })}

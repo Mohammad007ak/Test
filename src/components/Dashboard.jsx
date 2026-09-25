@@ -4,7 +4,6 @@ import {
   Copy,
   Dices,
   MessageSquareText,
-  PartyPopper,
   UserPlus,
   Wallet,
   WalletCards,
@@ -159,7 +158,7 @@ export default function Dashboard({ state, currentMonth, goTo, openMember }) {
           {late.length > 0 && <span className="badge danger">{formatNumber(late.length)} نفر</span>}
         </div>
         {late.length === 0 ? (
-          <EmptyState icon={PartyPopper} title="همه به‌روزند" text="هیچ پرداخت عقب‌افتاده‌ای وجود ندارد." />
+          <EmptyState title="همه به‌روزند" text="هیچ پرداخت عقب‌افتاده‌ای وجود ندارد." />
         ) : (
           <ul className="rows">
             {late.map(({ member, amount, months }) => (

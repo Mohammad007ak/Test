@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { LogOut, TimerOff, Users } from "lucide-react";
-import { LogoMark } from "../../ui/Logo.jsx";
+import { Figure } from "../../ui/Figure.jsx";
 import { Spinner } from "../../ui/bits.jsx";
 import { useDialog, useToast } from "../../ui/feedback.jsx";
 import { api } from "../../lib/api.js";
@@ -21,6 +21,18 @@ function clock(ms) {
   const m = Math.floor(total / 60);
   const s = total % 60;
   return toPersianDigits(`${m}:${String(s).padStart(2, "0")}`);
+}
+
+// One seat of the group as a little figure: Digipay's in blue, yours in gold,
+// a taken one with its number, an empty one as a dashed outline; `check`
+// floats a green check over one who has been paid.
+export function Seat({ member: m, size = 54, check = false }) {
+  if (!m) return <Figure size={size} empty title="جای خالی" />;
+  const paid = check ? "، وامش را گرفته" : "";
+  if (m.isOperator) return <Figure size={size} face="#0000ff" check={check} title={`جایگاه ۱: دیجی‌پی${paid}`} />;
+  if (m.isMe) return <Figure size={size} face="#ffc53d" label="شما" check={check} title={`شما${paid}`} />;
+  const n = toPersianDigits(m.position);
+  return <Figure size={size} label={n} check={check} title={`عضو ${n}${paid}`} />;
 }
 
 // Shown while a circle is filling up. The parent polls the circle, so the
@@ -82,10 +94,10 @@ export default function WaitingRoom({ view, ops, onLeft, onRetry, reload }) {
 
   return (
     <section className="waiting">
-      <div className="waiting-orb" aria-hidden="true">
-        <span className="pulse" />
-        <span className="pulse delay" />
-        <Users size={40} />
+      <div className="waiting-group" aria-hidden="true">
+        <Figure pose="a" size={86} />
+        <Figure size={100} face="#ffc53d" label="شما" />
+        <Figure pose="b" size={86} />
       </div>
       <h2>در حال تکمیل گروه شما…</h2>
       <p>
@@ -95,9 +107,7 @@ export default function WaitingRoom({ view, ops, onLeft, onRetry, reload }) {
 
       <div className="waiting-seats" aria-label={`${circle.taken} از ${circle.size} جا پر شده`}>
         {seats.map((m, i) => (
-          <span key={i} className={`wseat ${m ? "on" : ""} ${m?.isMe ? "me" : ""} ${m?.isOperator ? "op" : ""}`}>
-            {m?.isOperator ? <LogoMark size={20} /> : m?.isMe ? "شما" : m ? toPersianDigits(m.position) : ""}
-          </span>
+          <Seat key={i} member={m} />
         ))}
       </div>
 

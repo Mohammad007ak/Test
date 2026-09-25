@@ -14,8 +14,7 @@ import {
 } from "lucide-react";
 import AppBar from "../../ui/AppBar.jsx";
 import Pattern from "../../ui/Pattern.jsx";
-import { LogoMark } from "../../ui/Logo.jsx";
-import WaitingRoom from "./WaitingRoom.jsx";
+import WaitingRoom, { Seat } from "./WaitingRoom.jsx";
 import DrawReveal from "./DrawReveal.jsx";
 import { PageSkeleton, Spinner } from "../../ui/bits.jsx";
 import { useToast } from "../../ui/feedback.jsx";
@@ -335,19 +334,14 @@ export default function CircleView({ circleId, back, open }) {
         <section className="card">
           <div className="section-title">
             <h2>اعضا</h2>
-            <span className="muted small">فقط شماره‌ی جایگاه نمایش داده می‌شود</span>
+            <span className="muted small">تیک سبز: وامش را گرفته</span>
           </div>
           <div className="seats">
             {members.map((m) => (
-              <span
-                key={m.id}
-                className={`seat ${m.isOperator ? "op" : ""} ${m.isMe ? "me" : ""} ${m.wonMonth ? "won" : ""}`}
-              >
-                {m.isOperator ? <LogoMark size={22} /> : toPersianDigits(m.position)}
-                {m.wonMonth && <Trophy size={11} className="seat-badge" />}
-              </span>
+              <Seat key={m.id} member={m} size={58} check={Boolean(m.wonMonth)} />
             ))}
           </div>
+          <p className="muted small">فقط شماره‌ی جایگاه نمایش داده می‌شود؛ جایگاه آبی مال دیجی‌پی است.</p>
         </section>
 
         <section className="card">

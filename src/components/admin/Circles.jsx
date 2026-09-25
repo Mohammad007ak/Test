@@ -104,7 +104,7 @@ export default function Circles({ open }) {
 
       {shown.length === 0 ? (
         <section className="card">
-          <EmptyState icon={Users} title="دوره‌ای با این فیلتر نیست" text="فیلترها را عوض کنید." />
+          <EmptyState title="دوره‌ای با این فیلتر نیست" text="فیلترها را عوض کنید." />
         </section>
       ) : (
         <section className="card flush">

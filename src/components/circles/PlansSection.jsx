@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, Hourglass, ShieldCheck, Trophy, Users, Wrench } from "lucide-react";
 import JoinSheet from "./JoinSheet.jsx";
+import { Figure } from "../../ui/Figure.jsx";
 import { Skeleton } from "../../ui/bits.jsx";
 import { api } from "../../lib/api.js";
 import { planById } from "../../lib/plans.js";
@@ -87,6 +88,11 @@ export default function PlansSection({ open }) {
             {plans.map((p, i) => (
               <article key={p.id} className={`plan-card ${i === 1 ? "featured" : ""}`}>
                 {i === 1 && <span className="plan-flag">پرطرفدار</span>}
+                <div className="plan-figs" aria-hidden="true">
+                  <Figure size={44} pose="b" />
+                  <Figure size={52} face={i === 1 ? "#ffc53d" : "#fff"} />
+                  <Figure size={44} pose="a" />
+                </div>
                 <h3>{p.title}</h3>
                 <div className="plan-pot">
                   <span>دریافت یک‌جا</span>

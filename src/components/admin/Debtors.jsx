@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
 import { EmptyState, PageSkeleton } from "../../ui/bits.jsx";
 import { api } from "../../lib/api.js";
 import { formatCompact, formatNumber } from "../../lib/format.js";
@@ -20,7 +19,7 @@ export default function Debtors({ open }) {
   if (debtors.length === 0) {
     return (
       <section className="card">
-        <EmptyState icon={CheckCircle2} title="بدهی بازی نیست" text="همه‌ی اقساط ضمانت‌شده تسویه شده‌اند." />
+        <EmptyState title="بدهی بازی نیست" text="همه‌ی اقساط ضمانت‌شده تسویه شده‌اند." />
       </section>
     );
   }

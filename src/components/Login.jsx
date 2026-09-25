@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Fingerprint, Landmark, MessageSquareText, Phone, ShieldCheck } from "lucide-react";
-import Pattern from "../ui/Pattern.jsx";
+import { ArrowRight, MessageSquareText, Phone, ShieldCheck } from "lucide-react";
+import CoinCrowd from "../ui/CoinCrowd.jsx";
 import OtpInput from "../ui/OtpInput.jsx";
 import { Spinner } from "../ui/bits.jsx";
 import { Logo } from "../ui/Logo.jsx";
@@ -73,45 +73,12 @@ export default function Login({ onLogin }) {
   return (
     <div className="auth">
       <aside className="auth-art">
-        <Pattern />
-        <Logo light />
-        <div>
-          <h1>
-            قرض بی‌دردسر، <em>شفاف</em> و تضمینی
-          </h1>
-          <p className="lede">
-            در طرح‌های تضمینی دیجی‌پی عضو شوید و یک‌جا وام بگیرید، یا صندوق خانوادگی‌تان را آنلاین مدیریت کنید.
-          </p>
-        </div>
-        <ul className="value-props">
-          <li>
-            <span className="vp-icon">
-              <Fingerprint size={20} />
-            </span>
-            <div>
-              <strong>قرعه‌کشی قابل اثبات</strong>
-              <span>هر قرعه ثبت می‌شود و هر عضو می‌تواند نتیجه را خودش بررسی کند.</span>
-            </div>
-          </li>
-          <li>
-            <span className="vp-icon">
-              <ShieldCheck size={20} />
-            </span>
-            <div>
-              <strong>ضمانت دیجی‌پی</strong>
-              <span>در طرح‌های تضمینی، دیجی‌پی مدیر گروه است و اقساط را ضمانت می‌کند.</span>
-            </div>
-          </li>
-          <li>
-            <span className="vp-icon">
-              <Landmark size={20} />
-            </span>
-            <div>
-              <strong>صندوق خانوادگی رایگان</strong>
-              <span>حساب‌وکتاب صندوق فامیلی؛ پول در حساب مدیر صندوق می‌ماند.</span>
-            </div>
-          </li>
-        </ul>
+        <CoinCrowd
+          title="قرض بی‌دردسر، شفاف و تضمینی"
+          text="در طرح‌های تضمینی دیجی‌پی عضو شوید و یک‌جا وام بگیرید، یا صندوق خانوادگی‌تان را آنلاین مدیریت کنید."
+        >
+          <Logo light />
+        </CoinCrowd>
       </aside>
 
       <main className="auth-panel">

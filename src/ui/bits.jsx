@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toPersianDigits } from "../lib/jalali.js";
+import { Figure } from "./Figure.jsx";
 
 const AVATAR_TONES = 6;
 
@@ -86,14 +87,14 @@ export function Ring({ value, size = 56, stroke = 6, label, done = false }) {
   );
 }
 
-export function EmptyState({ icon: Icon, title, text, action }) {
+// Nothing here yet: one of our coin people, with an empty seat beside them.
+export function EmptyState({ title, text, action }) {
   return (
     <div className="empty">
-      {Icon && (
-        <span className="e-icon">
-          <Icon size={26} strokeWidth={1.75} />
-        </span>
-      )}
+      <span className="e-figs" aria-hidden="true">
+        <Figure size={76} />
+        <Figure size={76} empty />
+      </span>
       <h3>{title}</h3>
       {text && <p>{text}</p>}
       {action}

@@ -4157,14 +4157,14 @@ body {
 /* On a computer the banner fills the screen edge to edge below the top bar,
    like a landing page's first screen; its text lines up with the page. */
 @media (min-width: 760px) {
-  .crowd {
+  .home .crowd {
     width: 100vw;
     margin-inline: calc(50% - 50vw);
     height: calc(100svh - 98px); /* the space under the top bar */
     min-height: 480px;
     border-radius: 0;
   }
-  .crowd-text {
+  .home .crowd-text {
     top: 40px;
     inset-inline: max(24px, calc(50vw - 344px));
     gap: 8px;
@@ -4181,4 +4181,289 @@ body {
   .crowd-hint {
     animation: none;
   }
+}
+
+/* ---------- the coin character ---------- */
+.figure {
+  display: inline-block;
+  height: var(--fig-h);
+  line-height: 0;
+  flex: none;
+}
+.figure svg {
+  height: 100%;
+  width: auto;
+  overflow: visible;
+}
+
+/* ==========================================================================
+   Line-art skin
+   The whole app speaks the coin character's language: flat colors, a dark
+   ink outline on everything you can touch, and a hard "sticker" shadow
+   that presses flat when tapped. No gradients, no background patterns.
+   ========================================================================== */
+
+:root {
+  --line: #111126;
+  --line-w: 2px;
+  --pop: 0 4px 0 var(--line);
+  --pop-sm: 0 3px 0 var(--line);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --line: #c9ccf2;
+  }
+}
+
+/* Surfaces */
+.card,
+.fund-card,
+.plan-card,
+.auth-card,
+.kpi,
+.waiting,
+.banner {
+  border: var(--line-w) solid var(--line);
+  box-shadow: var(--pop);
+}
+.plan-card.featured {
+  border: var(--line-w) solid var(--line);
+  box-shadow: 0 4px 0 var(--brand);
+}
+.fund-card:hover,
+.plan-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--line);
+}
+.fund-card,
+.plan-card {
+  transition:
+    transform 0.15s var(--ease-out),
+    box-shadow 0.15s var(--ease-out);
+}
+/* Cards inside cards stay flat, or the page turns into a stack of stickers. */
+.card .card,
+.card .kpi,
+.waiting .card {
+  box-shadow: none;
+}
+
+/* Buttons: outlined, with a shadow that presses flat. */
+.btn {
+  border: var(--line-w) solid var(--line);
+  box-shadow: var(--pop-sm);
+  font-weight: 700;
+  transition:
+    background 0.15s,
+    transform 0.08s,
+    box-shadow 0.08s,
+    opacity 0.15s;
+}
+.btn.primary {
+  box-shadow: var(--pop-sm);
+}
+.btn.outline {
+  background: var(--surface);
+  border-color: var(--line);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--line);
+}
+.btn.ghost,
+.btn.reveal-ghost {
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn.ghost:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  box-shadow: none;
+}
+
+/* Fields */
+.input {
+  border: var(--line-w) solid var(--line);
+  box-shadow: var(--pop-sm);
+}
+.input:focus-within {
+  border-color: var(--brand);
+  box-shadow: 0 3px 0 var(--brand);
+}
+
+/* Tabs and chips */
+.segmented {
+  border: var(--line-w) solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--pop-sm);
+}
+.segmented button.active {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: none;
+}
+.segmented button.active .count {
+  color: rgb(255 255 255 / 0.8);
+}
+.badge {
+  border: 1.5px solid currentColor;
+}
+.plan-flag {
+  border: var(--line-w) solid var(--line);
+}
+
+/* Flat brand blue instead of gradients and hex patterns */
+.hero,
+.auth-art,
+.reveal {
+  background: #0000ff;
+  box-shadow: none;
+}
+.hero {
+  border: var(--line-w) solid var(--line);
+  box-shadow: var(--pop);
+}
+.hero.warn {
+  background: #c2410c;
+  box-shadow: var(--pop);
+}
+.hero .pattern,
+.auth-art .pattern,
+.reveal .pattern,
+.stage .pattern,
+.pay-card .pattern {
+  display: none;
+}
+
+/* Waiting room: a little group waiting with you, and every seat a figure. */
+.waiting-group {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.waiting-group .figure {
+  animation: fig-bob 2.2s ease-in-out infinite;
+}
+.waiting-group .figure:nth-child(2) {
+  animation-delay: -0.7s;
+}
+.waiting-group .figure:nth-child(3) {
+  animation-delay: -1.4s;
+}
+@keyframes fig-bob {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+.waiting-seats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 6px;
+  max-width: 330px;
+  margin: 8px auto 4px;
+}
+.waiting-seats .figure:not(:has(svg [stroke-dasharray])) {
+  animation: seat-in 0.4s var(--ease-spring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .waiting-group .figure,
+  .waiting-seats .figure {
+    animation: none;
+  }
+}
+
+/* Members of a running plan: figures, a check over each who has been paid. */
+.seats {
+  gap: 10px 6px;
+  align-items: flex-end;
+  margin-bottom: 10px;
+}
+
+/* Plan cards: a little group in the corner; progress bars get an outline. */
+.plan-figs {
+  position: absolute;
+  top: 12px;
+  inset-inline-end: 14px;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+}
+.plan-figs .figure + .figure {
+  margin-inline-start: -8px;
+}
+.plan-card h3 {
+  min-height: 52px;
+  padding-inline-end: 110px;
+}
+.bar,
+.plan-fill .bar {
+  height: 12px;
+  border: var(--line-w) solid var(--line);
+  background: var(--surface);
+}
+
+.empty .e-figs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+/* Login: the crowd fills the brand panel (on top on phones, beside the
+   form on a computer). */
+.auth-art {
+  display: block;
+  padding: 0;
+}
+.auth-art .crowd {
+  height: 380px;
+  border-radius: 0;
+}
+.auth-art .crowd-text .brand {
+  margin-bottom: 14px;
+}
+@media (min-width: 960px) {
+  .auth-art .crowd {
+    height: 100%;
+    min-height: 100dvh;
+  }
+  .auth-art .crowd-text {
+    top: 48px;
+    inset-inline: 48px;
+  }
+  .auth-art .crowd-text strong {
+    font-size: 2.4rem;
+    line-height: 1.3;
+  }
+  .auth-art .crowd-text span {
+    font-size: 1.05rem;
+  }
+}
+.waiting-stats {
+  border: var(--line-w) solid var(--line);
+}
+.waiting-stats div + div {
+  border-color: var(--line);
+}
+
+/* Draw reveal: the entrants are figures; the light is a gold coin head. */
+.rseat,
+.rseat.me,
+.rseat.lit {
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+.rseat .figure {
+  margin-top: -40%;
+}
+.rseat.lit {
+  transform: scale(1.12);
+}
+.reveal-center {
+  z-index: 0;
 }

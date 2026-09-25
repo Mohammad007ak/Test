@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, MessageSquareText, Pencil, Phone, Search, Trash2, UserPlus, Users } from "lucide-react";
+import { ChevronLeft, MessageSquareText, Pencil, Phone, Search, Trash2, UserPlus } from "lucide-react";
 import Sheet from "../ui/Sheet.jsx";
 import { Avatar, EmptyState, Money } from "../ui/bits.jsx";
 import { useDialog, useToast } from "../ui/feedback.jsx";
@@ -241,7 +241,6 @@ export default function Members({ state, currentMonth, openMember, editMember })
       <section className="card flush">
         {members.length === 0 ? (
           <EmptyState
-            icon={Users}
             title="هنوز عضوی ندارید"
             text="اعضا را با شماره موبایل اضافه کنید تا هر کدام وضعیت خودش را ببیند."
             action={

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, CloudUpload, Landmark, LogOut, Plus, Sparkles, Users, WalletCards } from "lucide-react";
+import { ChevronLeft, CloudUpload, LogOut, Plus, Sparkles, Users, WalletCards } from "lucide-react";
 import CreateFundWizard from "./CreateFundWizard.jsx";
 import PlansSection from "./circles/PlansSection.jsx";
 import { Logo } from "../ui/Logo.jsx";
@@ -146,7 +146,6 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
             {nothingYet && (
               <div className="card">
                 <EmptyState
-                  icon={Landmark}
                   title="اولین صندوقتان را بسازید"
                   text="در کمتر از یک دقیقه صندوق را تعریف کنید، اعضا را اضافه کنید و قرعه‌کشی را شروع کنید."
                   action={

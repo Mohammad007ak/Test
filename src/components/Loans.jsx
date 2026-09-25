@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Landmark } from "lucide-react";
 import { Avatar, EmptyState, Money, Ring, Segmented } from "../ui/bits.jsx";
 import { installmentAmount, loanProgress, matchesDue } from "../lib/fund.js";
 import { formatCompact, formatNumber } from "../lib/format.js";
@@ -44,7 +43,6 @@ export default function Loans({ state, currentMonth, openMember }) {
       {shown.length === 0 ? (
         <section className="card">
           <EmptyState
-            icon={Landmark}
             title={filter === "active" ? "وام فعالی نیست" : "هنوز وامی تسویه نشده"}
             text={filter === "active" ? "بعد از قرعه‌کشی، وام برنده اینجا دنبال می‌شود." : undefined}
           />

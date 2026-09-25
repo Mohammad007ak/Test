@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, CheckCheck, ChevronLeft, ChevronRight, Search, SearchX } from "lucide-react";
+import { Check, CheckCheck, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Avatar, EmptyState, Money, Segmented } from "../ui/bits.jsx";
 import { useDialog, useToast } from "../ui/feedback.jsx";
 import { duesForMonth, matchesDue, paymentForDue, sum } from "../lib/fund.js";
@@ -118,7 +118,7 @@ export default function Payments({ state, update, currentMonth, openMember }) {
         {rows.length === 0 ? (
           <EmptyState title="پرداختی برای این ماه نیست" text="اعضایی که از این ماه عضو شده‌اند اینجا دیده می‌شوند." />
         ) : visible.length === 0 ? (
-          <EmptyState icon={SearchX} title="چیزی پیدا نشد" text="فیلتر یا جست‌وجو را تغییر دهید." />
+          <EmptyState title="چیزی پیدا نشد" text="فیلتر یا جست‌وجو را تغییر دهید." />
         ) : (
           <ul className="rows">
             {visible.map(({ member, dues: memberDues }) => (
