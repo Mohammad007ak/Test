@@ -1,35 +1,48 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-// A crowd of little people with coin heads. Press and hold anywhere on it
-// (mouse or finger) and they walk over and gather round; let go and they
-// wander back. Drawn on a canvas; idle when nothing moves or it's off screen.
+// A crowd of little people with coin heads. Move the mouse over it, or hold
+// a finger on it, and they walk over and gather round; move away or let go
+// and they wander back. Drawn on a canvas; idle when nothing moves or it's off screen.
 
 const HINT_KEY = "dg:crowd-hint-seen";
-const INK = "#15152b";
+const INK = "#111126";
 
-// One figure, drawn once as line art: a white coin for a head (its ridged
-// edge showing on the right), a small white body, stubby legs and a shadow.
-// viewBox 100×150; the feet stand at y 140. `legs` picks the walk pose.
-function figureSvg(legs) {
+// One figure, drawn once as line art: a tilted white coin for a head with
+// its ridged rim showing, a soft white body with the arms in front, and a
+// shadow. viewBox 100×150; the feet stand at y 141. `pose` is "stand", or
+// "a" / "b" for the two steps of the walk (stride, then passing).
+function figureSvg(pose) {
+  // Coin: face ellipse, rim = same ellipse shifted left; both tilted.
+  const [cx, cy, rx, ry, shift] = [56, 45, 29, 32, 12];
   const ridges = [];
-  for (let a = -78; a <= 78; a += 13) {
-    const r = (a * Math.PI) / 180;
-    const c = Math.cos(r) * 33;
-    const d = Math.sin(r) * 33;
-    ridges.push(`M${(49 + c).toFixed(1)} ${(46 + d).toFixed(1)}L${(59 + c).toFixed(1)} ${(46 + d).toFixed(1)}`);
+  for (let a = 98; a <= 262; a += 13) {
+    const t = (a * Math.PI) / 180;
+    const x = Math.cos(t) * rx;
+    const y = Math.sin(t) * ry;
+    ridges.push(`M${(cx + x).toFixed(1)} ${(cy + y).toFixed(1)}L${(cx - shift + x).toFixed(1)} ${(cy + y).toFixed(1)}`);
   }
+  const P = {
+    stand: { l: 0, r: 0, al: 0, ar: 0, lean: 0 },
+    a: { l: 24, r: -24, al: 34, ar: -30, lean: 4 },
+    b: { l: 6, r: -4, al: 8, ar: -6, lean: 2 },
+  }[pose];
   const leg = (x, turn) =>
-    `<path transform="rotate(${turn} ${x + 5} 112)" d="M${x} 108v24a5 5 0 0 0 10 0v-24z" fill="#fff"/>`;
-  const [l, r] = { stand: [0, 0], a: [16, -12], b: [-12, 16] }[legs];
+    `<path transform="rotate(${turn} ${x + 6} 108)" d="M${x} 104 L${x + 0.5} 134 C${x + 0.5} 140 ${x + 12} 140 ${x + 12} 134 L${x + 12} 104 Z" fill="#fff"/>`;
+  const armL = `<path transform="rotate(${P.al} 39 83)" d="M40 81 C33 85 31 95 32 106 C32 111 38 111 38 106 C38 99 39 93 41 89" fill="#fff"/>`;
+  const armR = `<path transform="rotate(${P.ar} 63 83)" d="M62 81 C69 85 71 95 70 106 C70 111 64 111 64 106 C64 99 63 93 61 89" fill="#fff"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 150">
-<g stroke="${INK}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-<ellipse cx="50" cy="141" rx="23" ry="5" fill="${INK}" stroke="none"/>
-${leg(36, l)}${leg(54, r)}
-<path d="M30 118V92c0-10 8-16 20-16s20 6 20 16v26c0 4-3 6-6 6H36c-3 0-6-2-6-6z" fill="#fff"/>
-<path d="M36 94c-3 8-3 16 0 22M64 94c3 8 3 16 0 22" fill="none" stroke-width="3"/>
-<circle cx="59" cy="46" r="33" fill="#fff"/>
-<path d="${ridges.join("")}" stroke-width="3"/>
-<circle cx="49" cy="46" r="33" fill="#fff"/>
+<ellipse cx="51" cy="141" rx="21" ry="5.5" fill="${INK}"/>
+<g stroke="${INK}" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round" transform="rotate(${P.lean} 51 141)">
+${leg(39, P.l)}${leg(51, P.r)}
+<path d="M46 73 C40 75 38 84 38 94 L37 108 C37 114 42 117 51 117 C60 117 65 114 65 108 L64 94 C64 84 62 75 56 73 Z" fill="#fff"/>
+<path d="M51 109 L51 116" stroke-width="3"/>
+${armL}${armR}
+<g transform="rotate(-10 ${cx} ${cy})">
+<ellipse cx="${cx - shift}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fff"/>
+<path d="M${cx - shift} ${cy - ry} L${cx} ${cy - ry} M${cx - shift} ${cy + ry} L${cx} ${cy + ry}"/>
+<path d="${ridges.join("")}" stroke-width="3.6"/>
+<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fff"/>
+</g>
 </g></svg>`;
 }
 
@@ -84,8 +97,8 @@ function drawPerson(ctx, sprites, base, p) {
   ctx.save();
   ctx.translate(p.x, p.y - bob);
   ctx.scale(p.facing, 1);
-  // The sprite's feet sit at 140/150 of its height.
-  ctx.drawImage(sprites[pose], -w / 2, -h * (140 / 150), w, h);
+  // The sprite's feet sit at 141/150 of its height.
+  ctx.drawImage(sprites[pose], -w / 2, -h * (141 / 150), w, h);
   ctx.restore();
 }
 
@@ -93,6 +106,7 @@ export default function CoinCrowd({ title, text }) {
   const wrap = useRef(null);
   const canvas = useRef(null);
   const textBox = useRef(null);
+  const hover = useMemo(() => window.matchMedia("(hover: hover) and (pointer: fine)").matches, []);
   const [hint, setHint] = useState(() => {
     try {
       return !localStorage.getItem(HINT_KEY);
@@ -202,31 +216,40 @@ export default function CoinCrowd({ title, text }) {
       pointer.x = e.clientX - rect.left;
       pointer.y = e.clientY - rect.top;
     };
-    const down = (e) => {
-      if (e.button > 0) return;
+    // The crowd follows the mouse as soon as it's over the banner; on a touch
+    // screen, a finger held down.
+    const gather = (e) => {
       at(e);
+      if (pointer.down) return wake();
       pointer.down = true;
-      // Everyone gets a place in rings around the finger, nearest first.
+      // Everyone gets a place in rings around the pointer, nearest first.
       people
         .map((p) => [p, Math.hypot(p.x - pointer.x, p.y - pointer.y)])
         .sort((a, b) => a[1] - b[1])
         .forEach(([p], rank) => (p.slot = rank));
-      el.setPointerCapture?.(e.pointerId);
       setHint(false);
       try {
         localStorage.setItem(HINT_KEY, "1");
       } catch {
         // Private mode: the hint just shows again next time.
       }
-      if (still) return;
       wake();
+    };
+    const down = (e) => {
+      if (e.button > 0) return;
+      if (e.pointerType !== "mouse") el.setPointerCapture?.(e.pointerId);
+      gather(e);
     };
     const move = (e) => {
-      if (!pointer.down) return;
-      at(e);
+      if (e.pointerType === "mouse" || pointer.down) gather(e);
+    };
+    const up = (e) => {
+      if (e.pointerType === "mouse") return; // still hovering: keep following
+      pointer.down = false;
       wake();
     };
-    const up = () => {
+    const leave = (e) => {
+      if (e.pointerType !== "mouse") return;
       pointer.down = false;
       wake();
     };
@@ -237,6 +260,7 @@ export default function CoinCrowd({ title, text }) {
     el.addEventListener("pointerup", up);
     el.addEventListener("pointercancel", up);
     el.addEventListener("lostpointercapture", up);
+    el.addEventListener("pointerleave", leave);
     el.addEventListener("contextmenu", noMenu);
 
     const observer = new IntersectionObserver(([entry]) => {
@@ -263,6 +287,7 @@ export default function CoinCrowd({ title, text }) {
       el.removeEventListener("pointerup", up);
       el.removeEventListener("pointercancel", up);
       el.removeEventListener("lostpointercapture", up);
+      el.removeEventListener("pointerleave", leave);
       el.removeEventListener("contextmenu", noMenu);
     };
   }, []);
@@ -273,7 +298,9 @@ export default function CoinCrowd({ title, text }) {
       <div className="crowd-text" ref={textBox}>
         <strong>{title}</strong>
         {text && <span>{text}</span>}
-        {hint && <span className="crowd-hint">انگشتتان را جایی نگه دارید 👆</span>}
+        {hint && (
+          <span className="crowd-hint">{hover ? "موس را روی این‌جا ببرید" : "انگشتتان را جایی نگه دارید 👆"}</span>
+        )}
       </div>
     </div>
   );
