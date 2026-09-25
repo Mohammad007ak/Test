@@ -347,7 +347,7 @@ export default function CoinCrowd({
         <strong>{title}</strong>
         {text && <span>{text}</span>}
         {action}
-        {hint && !action && (
+        {hint && !action && count > 0 && (
           <span className="crowd-hint">{hover ? "موس را روی این‌جا ببرید" : "انگشتتان را جایی نگه دارید 👆"}</span>
         )}
       </div>

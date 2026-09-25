@@ -13,12 +13,33 @@ import { formatCompact, formatNumber } from "../lib/format.js";
 import { planById } from "../lib/plans.js";
 import { toPersianDigits } from "../lib/jalali.js";
 
+// The member's plans as last seen on this device, per phone number.
+const cacheKey = (phone) => `dg:circles:${phone}`;
+function loadCachedCircles(phone) {
+  try {
+    return JSON.parse(localStorage.getItem(cacheKey(phone))) ?? null;
+  } catch {
+    return null;
+  }
+}
+function saveCachedCircles(phone, circles) {
+  try {
+    if (circles === null) localStorage.removeItem(cacheKey(phone));
+    else localStorage.setItem(cacheKey(phone), JSON.stringify(circles));
+  } catch {
+    // Private mode or full storage: the banner just waits for the server.
+  }
+}
+
 // Seat 1 is always Digi Gharz; seats fill in from the right, so it goes last.
 const seatsCast = (size) => Array.from({ length: size }, (_, i) => (i === size - 1 ? "logo" : "plain"));
 
 // The banner's crowd is the member's own group: one figure per seat of their
 // running plan (or the one still filling up), a check over each who's been paid.
 function crowdOf(tab, circles, pay) {
+  // Still asking the server (and nothing remembered): an empty banner rather
+  // than a guess that's wrong a second later.
+  if (tab === "plans" && circles === null) return { title: "", count: 0 };
   if (tab === "family")
     return { title: "صندوق فامیلی، بدون دفترچه", text: "سهم‌ها، قرعه و وام‌ها را آنلاین با هم ببینید." };
   const active = circles?.filter((c) => c.status === "active") ?? [];
@@ -73,7 +94,9 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
   const [funds, setFunds] = useState(null);
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
-  const [circles, setCircles] = useState(null);
+  // Last known plans, so the banner is right from the first frame; the
+  // server's answer replaces them a moment later.
+  const [circles, setCircles] = useState(() => loadCachedCircles(phone));
   const [legacy, setLegacy] = useState(loadLegacyState);
   const toast = useToast();
 
@@ -91,8 +114,11 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
   useEffect(() => {
     api("GET", "/api/funds").then(setFunds, setError);
     api("GET", "/api/circles").then(
-      (r) => setCircles(r.circles),
-      () => setCircles([]),
+      (r) => {
+        setCircles(r.circles);
+        saveCachedCircles(phone, r.circles);
+      },
+      () => setCircles((known) => known ?? []),
     );
   }, []);
 
@@ -125,7 +151,16 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
         <span className="muted small desktop-only" dir="ltr">
           {toPersianDigits(phone)}
         </span>
-        <button className="icon-btn" onClick={onLogout} aria-label="خروج" title="خروج">
+        <button
+          className="icon-btn"
+          onClick={() => {
+            // Don't leave this member's plans on a shared device.
+            saveCachedCircles(phone, null);
+            onLogout();
+          }}
+          aria-label="خروج"
+          title="خروج"
+        >
           <LogOut size={20} />
         </button>
       </header>
