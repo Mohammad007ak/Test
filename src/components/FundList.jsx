@@ -3,6 +3,7 @@ import { ChevronLeft, CloudUpload, Landmark, LogOut, Plus, Sparkles, Users, Wall
 import CreateFundWizard from "./CreateFundWizard.jsx";
 import PlansSection from "./circles/PlansSection.jsx";
 import { Logo } from "../ui/Logo.jsx";
+import CoinCrowd from "../ui/CoinCrowd.jsx";
 import { EmptyState, Segmented, Skeleton } from "../ui/bits.jsx";
 import { useToast } from "../ui/feedback.jsx";
 import { api } from "../lib/api.js";
@@ -67,6 +68,14 @@ export default function FundList({ phone, tab, setTab, open, onLogout }) {
       </header>
 
       <div className="page">
+        <CoinCrowd
+          title={tab === "plans" ? "با هم، زودتر به پول برسید" : "صندوق فامیلی، بدون دفترچه"}
+          text={
+            tab === "plans"
+              ? "هر ماه یکی از جمع، کل مبلغ را یک‌جا می‌گیرد."
+              : "سهم‌ها، قرعه و وام‌ها را آنلاین با هم ببینید."
+          }
+        />
         <div className="page-head">
           <div>
             <h1>{greeting()} 👋</h1>
