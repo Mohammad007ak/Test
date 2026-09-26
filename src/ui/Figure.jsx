@@ -10,11 +10,23 @@ export const INK = "#111126";
 // "stand", or "a" / "b" for the two steps of the walk (stride, then passing).
 // `face` colors the coin, `label` writes on it, `check` floats a green check
 // over the head, `empty` draws a dashed outline for a seat nobody holds, and
-// `logo` makes it Digi Gharz itself, the logo for a face, and `angry` gives
-// it a frown and an anger mark (someone's installment is unpaid).
+// `logo` makes it Digi Gharz itself, the logo for a face, `angry` gives
+// it a frown and an anger mark (someone's installment is unpaid), `me`
+// makes it the member themself (a gold coin), and `worried` gives it raised
+// brows, a wobbly mouth and a bead of sweat (their own installment is unpaid).
 export function figureSvg(
   pose = "stand",
-  { face = "#fff", label = "", labelColor = INK, check = false, empty = false, logo = false, angry = false } = {},
+  {
+    face = "#fff",
+    label = "",
+    labelColor = INK,
+    check = false,
+    empty = false,
+    logo = false,
+    angry = false,
+    me = false,
+    worried = false,
+  } = {},
 ) {
   const P = {
     stand: { l: 0, r: 0, lift: 0, arm: 0, lean: 0 },
@@ -54,6 +66,7 @@ export function figureSvg(
   // Digi Gharz itself: the logo for a face, Digipay's white chevron and the
   // gold coin under it on a blue coin.
   if (logo) face = "#0000ff";
+  else if (me && face === "#fff") face = "#ffc53d";
   const mark = logo
     ? `<path d="M${cx - 12.8} ${cy + 2.4}L${cx} ${cy - 10.4}L${cx + 12.8} ${cy + 2.4}" fill="none" stroke="#fff" stroke-width="7"/><circle cx="${cx}" cy="${cy + 12.8}" r="4.4" fill="#ffc53d" stroke="none"/>`
     : "";
@@ -61,6 +74,13 @@ export function figureSvg(
   // an ink outline, so it shows on the red banner too).
   const mood = angry
     ? `<g stroke="${INK}" stroke-width="4" fill="none"><path d="M${cx - 15} ${cy - 11}L${cx - 5} ${cy - 5}M${cx + 15} ${cy - 11}L${cx + 5} ${cy - 5}"/><path d="M${cx - 9} ${cy + 15}Q${cx} ${cy + 7} ${cx + 9} ${cy + 15}"/></g><circle cx="${cx - 8}" cy="${cy + 2}" r="3.2" fill="${INK}" stroke="none"/><circle cx="${cx + 8}" cy="${cy + 2}" r="3.2" fill="${INK}" stroke="none"/>`
+    : "";
+  const fret = worried
+    ? `<g stroke="${INK}" stroke-width="3.6" fill="none"><path d="M${cx - 16} ${cy - 6}L${cx - 5} ${cy - 12}M${cx + 16} ${cy - 6}L${cx + 5} ${cy - 12}"/><path d="M${cx - 10} ${cy + 15}q2.5-4 5 0t5 0t5 0t5 0"/></g><circle cx="${cx - 8}" cy="${cy + 2}" r="4" fill="${INK}" stroke="none"/><circle cx="${cx + 8}" cy="${cy + 2}" r="4" fill="${INK}" stroke="none"/><circle cx="${cx - 6.8}" cy="${cy + 0.6}" r="1.4" fill="#fff" stroke="none"/><circle cx="${cx + 9.2}" cy="${cy + 0.6}" r="1.4" fill="#fff" stroke="none"/>`
+    : "";
+  // A bead of sweat by the head.
+  const sweat = worried
+    ? `<path transform="translate(${cx + 30} ${cy - 16})" d="M0 -11C4 -4 7 0 7 4a7 7 0 0 1-14 0C-7 0-4-4 0-11Z" fill="#8fd0ff" stroke="${INK}" stroke-width="3"/>`
     : "";
   const vein = angry
     ? `<g stroke-linecap="round" fill="none" transform="translate(${cx + 22} ${cy - 32}) scale(1.3)">${[INK, "#fff"].map((c, i) => `<path d="M-7 -2q4 0 5-5M2 -7q1 5 5 5M7 2q-4 0-5 5M-2 7q-1-5-5-5" stroke="${c}" stroke-width="${i ? 2.6 : 6}"/>`).join("")}</g>`
@@ -83,8 +103,8 @@ ${empty ? "" : `<path d="${creases}" fill="none" stroke-width="3"/>`}
 ${empty ? "" : `<circle cx="${cx - dx}" cy="${cy + dy}" r="${r}" stroke-width="4" fill="${face}"/>`}
 ${empty ? "" : `<path d="${ridges.join("")}" fill="none" stroke-width="3.2"/>`}
 <circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="4" ${empty ? "" : `fill="${face}"`}/>
-${text}${mark}${mood}
-</g>${vein}
+${text}${mark}${mood}${fret}
+</g>${vein}${sweat}
 </g>${badge}</svg>`;
 }
 

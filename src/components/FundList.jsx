@@ -32,7 +32,9 @@ function saveCachedCircles(phone, circles) {
 }
 
 // Seat 1 is always Digi Gharz; seats fill in from the right, so it goes last.
-const seatsCast = (size) => Array.from({ length: size }, (_, i) => (i === size - 1 ? "logo" : "plain"));
+// The member's own seat is them.
+const seatsCast = (size, position) =>
+  Array.from({ length: size }, (_, i) => (i === size - 1 ? "logo" : i === size - position ? "me" : "plain"));
 
 // The banner's crowd is the member's own group: one figure per seat of their
 // running plan (or the one still filling up), a check over each who's been paid.
@@ -63,7 +65,8 @@ function crowdOf(tab, circles, pay) {
           : `قسط ${formatCompact(late.dueNow)} تومانی ${planById(late.planId)?.title ?? "طرحتان"} منتظر پرداخت شماست.`,
       count: late.size,
       done: late.received,
-      cast: seatsCast(late.size),
+      cast: seatsCast(late.size, late.position),
+      meDone: Boolean(late.wonMonth),
       angry: true,
       action: (
         <button className="btn crowd-action" onClick={() => pay(late)}>
@@ -78,10 +81,10 @@ function crowdOf(tab, circles, pay) {
       title: "با هم، زودتر به پول برسید",
       text: "هر ماه یکی از جمع، کل مبلغ را یک‌جا می‌گیرد.",
       count: 2,
-      cast: ["plain", "logo"],
+      cast: ["me", "logo"],
     };
   const title = planById(circle.planId)?.title ?? "طرح شما";
-  const cast = seatsCast(circle.size);
+  const cast = seatsCast(circle.size, circle.position);
   if (circle.status === "forming")
     return {
       title,
@@ -95,6 +98,7 @@ function crowdOf(tab, circles, pay) {
     text: `${formatNumber(circle.received)} نفر از ${formatNumber(circle.size)} نفر وامشان را گرفته‌اند.`,
     count: circle.size,
     done: circle.received,
+    meDone: Boolean(circle.wonMonth),
     cast,
   };
 }

@@ -7,9 +7,17 @@ import { INK, figureSvg } from "./Figure.jsx";
 
 const HINT_KEY = "dg:crowd-hint-seen";
 
-// The kinds of figure in a crowd: an ordinary member (calm or angry), or
-// Digi Gharz itself.
-const KINDS = { plain: {}, logo: { logo: true }, angry: { angry: true } };
+// The kinds of figure in a crowd: an ordinary member (calm or angry), Digi
+// Gharz itself, or the member looking at the screen (calm, or worried when
+// their own installment is unpaid).
+const KINDS = {
+  plain: {},
+  logo: { logo: true },
+  angry: { angry: true },
+  me: { me: true },
+  worried: { me: true, worried: true },
+};
+const isMe = (kind) => kind === "me" || kind === "worried";
 
 // Rasterize each kind in each pose once, sharp for this screen, then just
 // stamp them.
@@ -31,15 +39,20 @@ async function makeSprites(px) {
 
 // `count` people of the kinds in `cast` (plain when it doesn't say): `done`
 // of them wear a check mark (Digi Gharz first, as it's always paid first,
-// then at random), and seats past `present` are still empty, drawn faded.
-function makePeople(width, height, base, floor, count, done, present, cast, angry) {
+// the member themself if `meDone`, the rest at random), and seats past
+// `present` are still empty, drawn faded. When `angry`, the others are cross
+// and the member is worried.
+function makePeople(width, height, base, floor, count, done, present, cast, angry, meDone) {
   const kind = (i) => {
     const k = cast?.[i] ?? "plain";
-    return angry && k === "plain" ? "angry" : k;
+    if (!angry) return k;
+    return k === "plain" ? "angry" : k === "me" ? "worried" : k;
   };
   const order = Array.from({ length: count }, (_, i) => i).sort(() => Math.random() - 0.5);
   order.sort((a, b) => (kind(b) === "logo") - (kind(a) === "logo"));
-  const checked = new Set(order.slice(0, done));
+  const mine = order.filter((i) => isMe(kind(i)));
+  const others = order.filter((i) => !isMe(kind(i)));
+  const checked = new Set(meDone && mine.length ? [...mine, ...others.slice(0, done - 1)] : others.slice(0, done));
   // Feet no higher than `floor`, so heads stay clear of the banner's text.
   const top = Math.max(height * 0.5, floor);
   const bottom = height - 6; // everyone fully in view, so they can be counted
@@ -48,8 +61,11 @@ function makePeople(width, height, base, floor, count, done, present, cast, angr
     const edge = base * 0.35;
     const x = few
       ? width / 2 + (i - (count - 1) / 2) * base * 0.75
-      : edge + ((i + 0.5) / count) * (width - 2 * edge) + (Math.random() - 0.5) * base * 0.3;
-    const y = few ? bottom - base * 0.1 : top + Math.random() * (bottom - top);
+      : isMe(kind(i))
+        ? width * 0.42 // front and centre (a little off the middle, clear of the text)
+        : edge + ((i + 0.5) / count) * (width - 2 * edge) + (Math.random() - 0.5) * base * 0.3;
+    const front = isMe(kind(i)) && !few; // the member stands in the front row
+    const y = few ? bottom - base * 0.1 : front ? bottom - base * 0.08 : top + Math.random() * (bottom - top);
     return {
       homeX: x,
       homeY: y,
@@ -57,11 +73,12 @@ function makePeople(width, height, base, floor, count, done, present, cast, angr
       y,
       vx: 0,
       vy: 0,
-      size: 0.78 + ((y - top) / (bottom - top)) * 0.3, // nearer is bigger
+      size: (0.78 + ((y - top) / (bottom - top)) * 0.3) * (isMe(kind(i)) ? 1.1 : 1), // nearer is bigger
       speed: 0.7 + Math.random() * 0.6,
       phase: Math.random() * Math.PI * 2,
       facing: Math.random() < 0.5 ? -1 : 1,
       kind: kind(i),
+      me: isMe(kind(i)),
       checked: checked.has(i),
       empty: i < count - present, // the ones who came fill in from the right (RTL)
       slot: 0,
@@ -85,6 +102,21 @@ function drawPerson(ctx, sprites, base, p, t) {
     bob = Math.max(0, stamp) * h * 0.05;
     shake = Math.sin(t * 0.06 + p.phase * 3) * h * 0.012;
   }
+  // Worried: a nervous shiver, and a flinch when a tomato lands.
+  if (p.kind === "worried") {
+    shake = Math.sin(t * 0.09 + p.phase) * h * 0.008;
+    const hit = p.hitT ? (t - p.hitT) / 380 : 1;
+    if (hit < 1) {
+      shake += Math.sin(hit * 30) * h * 0.05 * (1 - hit);
+      bob = -h * 0.03 * (1 - hit);
+      pose = "b";
+    }
+  }
+  // Winding up and throwing.
+  if (p.throwT && t - p.throwT < 320) {
+    pose = "a";
+    bob = Math.sin(((t - p.throwT) / 320) * Math.PI) * h * 0.09;
+  }
   ctx.save();
   if (p.empty) ctx.globalAlpha = 0.3;
   ctx.translate(p.x + shake, p.y - bob);
@@ -92,7 +124,100 @@ function drawPerson(ctx, sprites, base, p, t) {
   // The sprite's feet sit at 150/160 of its height.
   ctx.drawImage(sprites[`${p.kind}:${pose}`], -w / 2, -h * (150 / 160), w, h);
   ctx.restore();
-  if (p.checked) drawCheck(ctx, p.x, p.y - bob - h * (136 / 160), h);
+  const headTop = p.y - bob - h * (136 / 160);
+  if (p.me) drawYou(ctx, p.x + shake, headTop, h, p.checked);
+  else if (p.checked) drawCheck(ctx, p.x, headTop, h);
+}
+
+// A little "you" tag with a pointer over the member's own head (green, with
+// a check, once they've been paid).
+function drawYou(ctx, x, headTop, h, paid) {
+  const fs = Math.max(11, h * 0.13);
+  const label = paid ? "✓ شما" : "شما";
+  ctx.save();
+  ctx.font = `800 ${fs}px "Estedad Variable", "Vazirmatn Variable", Tahoma, sans-serif`;
+  ctx.direction = "rtl";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const w = ctx.measureText(label).width + fs * 1.1;
+  const ph = fs * 1.6;
+  const y = headTop - ph / 2 - h * 0.08;
+  ctx.lineWidth = Math.max(1.5, h * 0.022);
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = INK;
+  ctx.fillStyle = paid ? "#3ddc84" : "#fff";
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2, y - ph / 2, w, ph, ph / 2);
+  ctx.moveTo(x - fs * 0.35, y + ph / 2);
+  ctx.lineTo(x, y + ph / 2 + fs * 0.45);
+  ctx.lineTo(x + fs * 0.35, y + ph / 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = INK;
+  ctx.fillText(label, x, y + fs * 0.06);
+  ctx.restore();
+}
+
+// A tomato in flight: red, an ink outline, a green top, spinning.
+function drawTomato(ctx, x, y, r, spin) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(spin);
+  ctx.lineWidth = Math.max(1.5, r * 0.22);
+  ctx.strokeStyle = INK;
+  ctx.fillStyle = "#ff4b3e";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 1.08, r, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "rgb(255 255 255 / 0.75)";
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.4, -r * 0.2, r * 0.22, r * 0.13, -0.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#3ddc84";
+  ctx.beginPath();
+  for (let k = 0; k < 10; k++) {
+    const a = (k / 10) * Math.PI * 2 - Math.PI / 2;
+    const rr = k % 2 ? r * 0.18 : r * 0.55;
+    ctx.lineTo(Math.cos(a) * rr, -r * 0.8 + Math.sin(a) * rr * 0.6);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, r * 0.14);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// A tomato after it lands: a red splat with drips and seeds, fading away.
+function drawSplat(ctx, x, y, r, s, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.rotate(s.rot);
+  ctx.lineWidth = Math.max(1.5, r * 0.14);
+  ctx.strokeStyle = INK;
+  ctx.fillStyle = "#ff5b45";
+  ctx.beginPath();
+  s.lobes.forEach((k, i) => {
+    const a = (i / s.lobes.length) * Math.PI * 2;
+    const rr = r * k;
+    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  });
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  for (const d of s.drips) {
+    ctx.beginPath();
+    ctx.ellipse(d.x * r, r * 0.6 + d.len * r * s.age, r * 0.16, r * (0.2 + d.len * s.age * 0.6), 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = "#ffc53d";
+  for (const d of s.seeds) {
+    ctx.beginPath();
+    ctx.ellipse(d.x * r, d.y * r, r * 0.1, r * 0.06, d.a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 // A green badge with a check, floating over the head of someone who has
@@ -133,6 +258,7 @@ export default function CoinCrowd({
   present = count,
   cast,
   angry = false,
+  meDone = false,
   action,
   children,
 }) {
@@ -164,6 +290,11 @@ export default function CoinCrowd({
     let alive = true;
     let visible = true;
     const pointer = { down: false, x: 0, y: 0 };
+    // When the member's installment is unpaid, every few seconds one of the
+    // cross members lobs a tomato at them.
+    let tomatoes = [];
+    let splats = [];
+    let nextThrow = 0;
 
     const resize = () => {
       const rect = box.getBoundingClientRect();
@@ -178,7 +309,9 @@ export default function CoinCrowd({
       const hintEl = textBox.current.querySelector(".crowd-hint");
       const textEnd = hintEl ? hintEl.offsetTop : textBox.current.offsetHeight;
       floor = textBox.current.offsetTop + textEnd + 8 + base * 1.2; // room for a check mark too
-      people = makePeople(width, height, base, floor, count, Math.min(done, count), present, cast, angry);
+      people = makePeople(width, height, base, floor, count, Math.min(done, count), present, cast, angry, meDone);
+      tomatoes = [];
+      splats = [];
       makeSprites(base * 1.1 * dpr).then((made) => {
         if (!alive) return;
         sprites = made;
@@ -192,6 +325,64 @@ export default function CoinCrowd({
       if (!sprites) return;
       // Nearer (lower) people are drawn last so they overlap the ones behind.
       for (const p of [...people].sort((a, b) => a.y - b.y)) drawPerson(ctx, sprites, base, p, t);
+      const r = base * 0.1;
+      for (const s of splats) {
+        const h = base * s.who.size;
+        s.age = Math.min(1, (t - s.t) / 1800);
+        const alpha = s.age < 0.6 ? 1 : 1 - (s.age - 0.6) / 0.4;
+        drawSplat(ctx, s.who.x + s.ox * h, s.who.y - h * 0.72 + s.oy * h, r * 1.7, s, alpha);
+      }
+      for (const m of tomatoes) drawTomato(ctx, m.x, m.y, r, m.spin);
+    };
+
+    const throwTomatoes = (t) => {
+      const me = people.find((p) => p.me && !p.empty);
+      const throwers = people.filter((p) => p.kind === "angry" && !p.empty);
+      if (!me || !throwers.length) return;
+      if (!nextThrow) nextThrow = t + 1400;
+      if (t >= nextThrow) {
+        const from = throwers[Math.floor(Math.random() * throwers.length)];
+        const h = base * from.size;
+        from.throwT = t;
+        from.facing = me.x > from.x ? 1 : -1;
+        const dist = Math.hypot(me.x - from.x, me.y - from.y);
+        tomatoes.push({ x0: from.x + from.facing * h * 0.25, y0: from.y - h * 0.62, t0: t, dur: 520 + dist * 0.9 });
+        nextThrow = t + 2400 + Math.random() * 1800;
+      }
+      const h = base * me.size;
+      // Head for where the member's head is now, even if they've moved.
+      const tx = me.x;
+      const ty = me.y - h * 0.8;
+      tomatoes = tomatoes.filter((m) => {
+        const k = (t - m.t0) / m.dur;
+        if (k >= 1) {
+          me.hitT = t;
+          splats.push({
+            who: me,
+            t,
+            ox: (Math.random() - 0.5) * 0.2,
+            oy: (Math.random() - 0.5) * 0.12,
+            rot: Math.random() * Math.PI,
+            lobes: Array.from({ length: 12 }, (_, i) => (i % 2 ? 0.6 : 0.9) + Math.random() * 0.35),
+            drips: Array.from({ length: 3 }, () => ({
+              x: (Math.random() - 0.5) * 1.1,
+              len: 0.4 + Math.random() * 0.8,
+            })),
+            seeds: Array.from({ length: 4 }, () => ({
+              x: (Math.random() - 0.5) * 0.9,
+              y: (Math.random() - 0.5) * 0.9,
+              a: Math.random() * Math.PI,
+            })),
+            age: 0,
+          });
+          return false;
+        }
+        m.x = m.x0 + (tx - m.x0) * k;
+        m.y = m.y0 + (ty - m.y0) * k - base * 0.9 * 4 * k * (1 - k);
+        m.spin = k * Math.PI * 3;
+        return true;
+      });
+      splats = splats.filter((s) => t - s.t < 1800);
     };
 
     const tick = (t) => {
@@ -231,9 +422,11 @@ export default function CoinCrowd({
           const ox = p.x - q.x;
           const oy = (p.y - q.y) * 1.6;
           const d = Math.hypot(ox, oy);
-          if (d > 0 && d < space) {
-            push += (ox / d) * (space - d) * 0.05;
-            pushY += (oy / d) * (space - d) * 0.03;
+          // Everyone keeps clear of the member, so they're easy to spot.
+          const room = p.me || q.me ? space * 2.2 : space;
+          if (d > 0 && d < room) {
+            push += (ox / d) * (room - d) * 0.05;
+            pushY += (oy / d) * (room - d) * 0.03;
           }
         }
         p.vx = (p.vx + dx * pull + push) * 0.86;
@@ -249,6 +442,7 @@ export default function CoinCrowd({
         p.phase += v * 0.2;
         if (v > 0.05) busy = true; // settled: stop drawing until the next touch
       }
+      if (angry) throwTomatoes(t);
       draw(t);
       if (busy && visible) frame = requestAnimationFrame(tick);
     };
@@ -337,7 +531,7 @@ export default function CoinCrowd({
       el.removeEventListener("contextmenu", noMenu);
     };
     // `cast` is compared by its contents (castKey), not the array's identity.
-  }, [count, done, present, castKey, angry]);
+  }, [count, done, present, castKey, angry, meDone]);
 
   return (
     <div className={`crowd ${angry ? "angry" : ""}`} ref={wrap}>
