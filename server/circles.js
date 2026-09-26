@@ -49,6 +49,9 @@ export function createCircleService({
   formTimeoutMs = HOUR,
   lateFeeMonthly = 0.05,
   claimGraceMs = 30 * DAY,
+  // Debit a member's Digipay wallet for a share they didn't pay by the end of
+  // the payment days. Off for now: unpaid shares go straight to the guarantee.
+  walletDebit = false,
 }) {
   const getCircle = (id, d = db) => d.get("SELECT * FROM circles WHERE id = ?", id);
   const membersOf = (circleId, d = db) =>
@@ -265,12 +268,10 @@ export function createCircleService({
   // Step 2, once the first share is paid: take a seat in the plan's open
   // circle (a fresh one if none is open).
   async function seat({ phone, plan, nonce, entryRef }) {
-    // The wallet-debit fallback the member agrees to in the terms.
-    const mandate = await digipay.payments.createMandate({
-      phone,
-      monthlyAmount: plan.share,
-      months: plan.months,
-    });
+    // The wallet-debit fallback the member agrees to in the terms (when on).
+    const mandate = walletDebit
+      ? await digipay.payments.createMandate({ phone, monthlyAmount: plan.share, months: plan.months })
+      : { mandateId: null };
 
     for (let attempt = 0; attempt < 5; attempt++) {
       const circleId = await openCircleFor(plan);
@@ -497,7 +498,9 @@ export function createCircleService({
       const month = circle.current_month;
       const members = await membersOf(circleId);
 
-      // 1. Debit the wallet of anyone who hasn't paid through the gateway.
+      // 1. Debit the wallet of anyone who hasn't paid through the gateway
+      // (when wallet debits are on). Simulated members always pay by now:
+      // with debits off, as if through the gateway.
       const due = await db.all(
         "SELECT * FROM contributions WHERE circle_id = ? AND month = ? AND status = 'due'",
         circleId,
@@ -506,6 +509,8 @@ export function createCircleService({
       for (const d of due) {
         const member = members.find((m) => m.id === d.member_id);
         if (member.is_operator || !member.mandate_id) continue;
+        if (!walletDebit && !member.is_bot) continue;
+        const method = walletDebit ? "wallet" : "manual";
         const charge = await digipay.payments.charge({
           mandateId: member.mandate_id,
           amount: d.amount,
@@ -513,22 +518,24 @@ export function createCircleService({
         });
         if (charge.ok) {
           await db.run(
-            `UPDATE contributions SET status = 'paid', method = 'wallet', ref = ?, paid_at = ?
+            `UPDATE contributions SET status = 'paid', method = ?, ref = ?, paid_at = ?
              WHERE circle_id = ? AND member_id = ? AND month = ? AND status = 'due'`,
+            method,
             charge.ref,
             now(),
             circleId,
             member.id,
             month,
           );
-          await log(db, "wallet_debit", {
-            circleId,
-            memberId: member.id,
-            phone: member.phone,
-            amount: d.amount,
-            detail: { month },
-          });
-        } else {
+          if (walletDebit)
+            await log(db, "wallet_debit", {
+              circleId,
+              memberId: member.id,
+              phone: member.phone,
+              amount: d.amount,
+              detail: { month },
+            });
+        } else if (walletDebit) {
           await log(db, "wallet_failed", {
             circleId,
             memberId: member.id,
@@ -966,6 +973,7 @@ export function createCircleService({
         createdAt: d.created_at,
       })),
       // Months whose pot Digipay is holding (or held, until claimed or kept).
+      walletDebit,
       heldMonths: (await db.all("SELECT month FROM held_pots WHERE circle_id = ? AND status = 'held'", circleId)).map(
         (h) => h.month,
       ),
@@ -1019,6 +1027,7 @@ export function createCircleService({
     getCheckout,
     completeCheckout,
     planSummaries,
+    walletDebit,
     myCircles,
     circleView,
     fillWithBots,

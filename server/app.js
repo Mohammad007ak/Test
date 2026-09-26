@@ -61,6 +61,8 @@ export function createApp({
   adminUsername = null,
   adminPassword = null,
   formTimeoutMs,
+  // Debit wallets for unpaid shares (WALLET_DEBIT=true); off for now.
+  walletDebit = false,
   // Whether the database sits on a mounted disk (null when unknown).
   persistentStorage = null,
   // Where the database is and which disks are mounted (shown in demos only).
@@ -694,7 +696,7 @@ export function createApp({
     }),
   );
 
-  const circles = createCircleService({ db, digipay, now, formTimeoutMs });
+  const circles = createCircleService({ db, digipay, now, formTimeoutMs, walletDebit });
   // The hosting process calls this on a timer so draws happen on their day
   // even when nobody opens the app.
   app.locals.runScheduledJobs = () => circles.runDueDraws();

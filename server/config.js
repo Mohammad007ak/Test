@@ -90,6 +90,7 @@ export async function createAppFromEnv(env = process.env) {
     adminUsername: env.ADMIN_USERNAME || null,
     adminPassword: env.ADMIN_PASSWORD || null,
     formTimeoutMs,
+    walletDebit: env.WALLET_DEBIT === "true",
     persistentStorage,
     storageInfo: postgres
       ? { database: "postgres", startedAt: new Date().toISOString() }

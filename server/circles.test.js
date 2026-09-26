@@ -10,7 +10,7 @@ import { toJalali } from "../src/lib/jalali.js";
 // Phones ending 4–9 get a 25M monthly limit from the simulator's scoring.
 const phone = (i) => `0912000${String(i).padStart(3, "0")}9`;
 
-async function setup({ clock } = {}) {
+async function setup({ clock, walletDebit = true } = {}) {
   const db = await testDatabase();
   const digipay = createDigipaySimulator();
   const payouts = [];
@@ -33,6 +33,7 @@ async function setup({ clock } = {}) {
       digipay,
       now,
       formTimeoutMs: 60 * 60 * 1000,
+      walletDebit,
     }),
     payouts,
     refunds,
@@ -282,6 +283,27 @@ test("ops can fill a forming circle with simulated members to start it", async (
   await service.closeMonth(circleId);
   // Failing bots' month-2 shares were covered by the guarantee.
   assert.equal((await service.circleView(phone(1), circleId)).draws[2].pot, 60_000_000);
+});
+
+test("with wallet debits off, no mandate is taken and an unpaid share goes straight to the guarantee", async () => {
+  const { service, db } = await setup({ walletDebit: false });
+  const circleId = await fillPlan(service, "p12-5", 11);
+  const me = await db.get("SELECT * FROM circle_members WHERE phone = ? AND circle_id = ?", phone(3), circleId);
+  assert.equal(me.mandate_id, null);
+  // Everyone but phone(3) pays month 2 through the gateway.
+  for (let i = 1; i <= 11; i++) {
+    if (i === 3) continue;
+    const due = await service.startCheckout({ phone: phone(i), circleId });
+    await service.completeCheckout({ phone: phone(i), id: due.checkoutId, action: "pay" });
+  }
+  await service.closeMonth(circleId);
+  const rows = await db.all(
+    "SELECT member_id, status, method FROM contributions WHERE circle_id = ? AND month = 2",
+    circleId,
+  );
+  assert.ok(!rows.some((r) => r.method === "wallet"));
+  assert.equal(rows.find((r) => r.member_id === me.id).status, "covered");
+  assert.equal((await service.myCircles(phone(3)))[0].owed, 5_000_000);
 });
 
 test("a retired plan can't be joined, and the plan list offers only current plans", async () => {

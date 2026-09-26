@@ -82,9 +82,13 @@ export default function PlansSection({ open }) {
   const [mine, setMine] = useState(null);
   const [ops, setOps] = useState(false);
   const [joining, setJoining] = useState(null);
+  const [walletDebit, setWalletDebit] = useState(false);
 
   useEffect(() => {
-    api("GET", "/api/plans").then((r) => setPlans(r.plans));
+    api("GET", "/api/plans").then((r) => {
+      setPlans(r.plans);
+      setWalletDebit(Boolean(r.walletDebit));
+    });
     api("GET", "/api/circles").then((r) => {
       setMine(r.circles);
       setOps(r.ops);
@@ -152,6 +156,7 @@ export default function PlansSection({ open }) {
 
       <JoinSheet
         plan={joining}
+        walletDebit={walletDebit}
         onClose={() => setJoining(null)}
         onCheckout={(checkoutId) => {
           setJoining(null);

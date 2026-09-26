@@ -6,7 +6,9 @@ export function mountCircleRoutes(
 ) {
   app.get(
     "/api/plans",
-    route(async (req, res) => res.json({ plans: await service.planSummaries(), simulator })),
+    route(async (req, res) =>
+      res.json({ plans: await service.planSummaries(), simulator, walletDebit: service.walletDebit }),
+    ),
   );
 
   app.get(

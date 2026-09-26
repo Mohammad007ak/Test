@@ -10,7 +10,7 @@ import { formatCompact, formatNumber } from "../../lib/format.js";
 // fallback), then the gateway to pay the first share. The seat is taken, and
 // the waiting room opens, once that payment goes through. The credit check
 // happens on the server before the gateway.
-export default function JoinSheet({ plan, onClose, onCheckout }) {
+export default function JoinSheet({ plan, walletDebit = false, onClose, onCheckout }) {
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -107,10 +107,22 @@ export default function JoinSheet({ plan, onClose, onCheckout }) {
               قسط هر ماه، یک ماه بعد در همان روز سررسید می‌شود و <b>۵ روز</b> برای پرداخت از درگاه فرصت دارید. روز ششم
               قرعه‌کشی انجام و کل مبلغ به برنده پرداخت می‌شود.
             </li>
-            <li>
-              اگر تا پایان مهلت پرداخت نکنید، قسط همان ماه <b>روز قرعه‌کشی خودکار از کیف پول دیجی‌پی شما کسر می‌شود</b>.
-            </li>
-            <li>اگر موجودی کیف پول کافی نباشد، دیجی‌پی سهم را ضمانت می‌کند و تا تسویه در قرعه شرکت داده نمی‌شوید.</li>
+            {walletDebit ? (
+              <>
+                <li>
+                  اگر تا پایان مهلت پرداخت نکنید، قسط همان ماه{" "}
+                  <b>روز قرعه‌کشی خودکار از کیف پول دیجی‌پی شما کسر می‌شود</b>.
+                </li>
+                <li>
+                  اگر موجودی کیف پول کافی نباشد، دیجی‌پی سهم را ضمانت می‌کند و تا تسویه در قرعه شرکت داده نمی‌شوید.
+                </li>
+              </>
+            ) : (
+              <li>
+                اگر تا پایان مهلت پرداخت نکنید، دیجی‌پی قسط را ضمانت می‌کند؛ مبلغ آن <b>بدهی شما به دیجی‌پی</b> است و تا
+                تسویه در قرعه شرکت داده نمی‌شوید.
+              </li>
+            )}
             <li>مبلغ ماه اول (قسط اول همه) همان روز شروع به دیجی‌پی، مدیر و ضامن گروه، می‌رسد.</li>
             <li>
               اگر گروه در زمان مقرر تکمیل نشود یا پیش از شروع از صف خارج شوید، عضویت لغو و قسط اول{" "}

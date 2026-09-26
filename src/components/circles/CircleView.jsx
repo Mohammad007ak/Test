@@ -316,7 +316,10 @@ export default function CircleView({ circleId, back, open }) {
                 ) : (
                   <>
                     <Wallet size={13} style={{ verticalAlign: "-2px" }} /> اگر تا {formatDay(current.lastPayDay)} پرداخت
-                    نکنید، روز {formatDay(current.drawAt)} از کیف پولتان کسر می‌شود.
+                    نکنید،{" "}
+                    {view.walletDebit
+                      ? `روز ${formatDay(current.drawAt)} از کیف پولتان کسر می‌شود.`
+                      : "دیجی‌پی ضمانت می‌کند و تا تسویه در قرعه شرکت داده نمی‌شوید."}
                   </>
                 )}
               </span>
