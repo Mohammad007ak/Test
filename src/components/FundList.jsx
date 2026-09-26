@@ -68,6 +68,9 @@ function crowdOf(tab, circles, pay) {
       cast: seatsCast(late.size, late.position),
       meDone: Boolean(late.wonMonth),
       angry: true,
+      // Within the five payment days they're only cross; once it's overdue
+      // (the guarantee paid it), the tomatoes start flying.
+      pelting: late.owed > 0,
       action: (
         <button className="btn crowd-action" onClick={() => pay(late)}>
           <WalletCards size={18} /> {late.owed > 0 ? "تسویه‌ی بدهی" : "پرداخت قسط"}

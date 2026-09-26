@@ -158,13 +158,8 @@ function drawYou(ctx, x, headTop, h, paid) {
   ctx.restore();
 }
 
-// A tomato in flight: red, an ink outline, a green top, spinning.
-function drawTomato(ctx, x, y, r, spin) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(spin);
-  ctx.lineWidth = Math.max(1.5, r * 0.22);
-  ctx.strokeStyle = INK;
+// A tomato in flight: red, an ink outline, a shine and a green top.
+function drawTomato(ctx, r) {
   ctx.fillStyle = "#ff4b3e";
   ctx.beginPath();
   ctx.ellipse(0, 0, r * 1.08, r, 0, 0, Math.PI * 2);
@@ -183,40 +178,170 @@ function drawTomato(ctx, x, y, r, spin) {
   }
   ctx.closePath();
   ctx.fill();
-  ctx.lineWidth = Math.max(1, r * 0.14);
+  ctx.stroke();
+}
+
+// An egg in flight: a cream oval with a shine and a few speckles.
+function drawEgg(ctx, r) {
+  ctx.fillStyle = "#fff6e4";
+  ctx.beginPath();
+  ctx.ellipse(0, r * 0.05, r * 0.8, r * 1.05, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "rgb(255 255 255 / 0.9)";
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.3, -r * 0.35, r * 0.16, r * 0.26, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#d9b98a";
+  for (const [x, y] of [
+    [0.3, 0.1],
+    [-0.15, 0.45],
+    [0.2, 0.6],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(x * r, y * r, r * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawMissile(ctx, m, r) {
+  ctx.save();
+  ctx.translate(m.x, m.y);
+  ctx.rotate(m.spin);
+  ctx.lineWidth = Math.max(1.5, r * 0.2);
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = INK;
+  (m.egg ? drawEgg : drawTomato)(ctx, r);
+  ctx.restore();
+}
+
+const easeOutBack = (k) => 1 + 2.7 * (k - 1) ** 3 + 1.7 * (k - 1) ** 2;
+
+// What's left on the member's face: it pops out flat on impact, then slides
+// and drips down and fades. A tomato leaves red pulp and seeds; an egg, the
+// white with its yolk, which slowly runs.
+function drawSplat(ctx, x, y, r, s, t) {
+  const age = t - s.t;
+  const pop = Math.min(1, age / 140);
+  const grow = 0.35 + 0.65 * easeOutBack(pop);
+  const flat = 1 - pop;
+  const run = Math.min(1, age / 1600);
+  ctx.save();
+  ctx.globalAlpha = age < 1300 ? 1 : Math.max(0, 1 - (age - 1300) / 700);
+  ctx.translate(x, y + r * 0.35 * run);
+  ctx.lineWidth = Math.max(1.5, r * 0.12);
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = INK;
+  // Drips first, so the blob's outline sits over their tops.
+  ctx.fillStyle = s.egg ? "#fff6e4" : "#ff5b45";
+  for (const d of s.drips) {
+    const len = r * (0.3 + d.len * run * 1.3);
+    const w = r * 0.13;
+    ctx.beginPath();
+    ctx.roundRect(d.x * r - w, r * 0.2, w * 2, len, w);
+    ctx.arc(d.x * r, r * 0.2 + len, w * 1.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.save();
+  ctx.rotate(s.rot);
+  ctx.scale(grow * (1 + 0.35 * flat), grow * (1 - 0.3 * flat));
+  const blob = (scale) => {
+    ctx.beginPath();
+    s.lobes.forEach((k, i) => {
+      const a = (i / s.lobes.length) * Math.PI * 2;
+      const b = ((i + 0.5) / s.lobes.length) * Math.PI * 2;
+      const rr = r * k * scale;
+      ctx.quadraticCurveTo(
+        Math.cos(a) * rr * 1.15,
+        Math.sin(a) * rr * 1.15,
+        Math.cos(b) * rr * 0.8,
+        Math.sin(b) * rr * 0.8,
+      );
+    });
+    ctx.closePath();
+  };
+  ctx.fillStyle = s.egg ? "#fffdf6" : "#ff5b45";
+  blob(1);
+  ctx.fill();
+  ctx.stroke();
+  if (s.egg) {
+    ctx.restore();
+    // The yolk, sliding down a little faster than the white.
+    const yx = s.yolk.x * r;
+    const yy = s.yolk.y * r + r * 0.3 * run;
+    ctx.fillStyle = "#ffc53d";
+    ctx.beginPath();
+    ctx.roundRect(yx - r * 0.12, yy, r * 0.24, r * (0.1 + 0.9 * run), r * 0.12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(yx, yy, r * 0.42 * grow, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "rgb(255 255 255 / 0.85)";
+    ctx.beginPath();
+    ctx.ellipse(yx - r * 0.14, yy - r * 0.14, r * 0.1, r * 0.06, -0.6, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = "#ff8a73";
+    blob(0.55);
+    ctx.fill();
+    ctx.fillStyle = "#ffe08a";
+    for (const d of s.seeds) {
+      ctx.beginPath();
+      ctx.ellipse(d.x * r, d.y * r, r * 0.11, r * 0.065, d.a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// Bits thrown off by the impact: drops of pulp, or shell and yolk.
+function drawBit(ctx, b, r, t) {
+  const dt = t - b.t;
+  const x = b.x + b.vx * dt;
+  const y = b.y + b.vy * dt + 0.5 * b.g * dt * dt;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, 1 - dt / b.life);
+  ctx.translate(x, y);
+  ctx.rotate(b.rot + b.vr * dt);
+  ctx.lineWidth = Math.max(1, r * 0.09);
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = INK;
+  ctx.fillStyle = b.color;
+  ctx.beginPath();
+  if (b.shell) {
+    ctx.moveTo(-r * 0.3 * b.size, -r * 0.2 * b.size);
+    ctx.lineTo(r * 0.28 * b.size, -r * 0.26 * b.size);
+    ctx.lineTo(r * 0.05 * b.size, r * 0.3 * b.size);
+    ctx.closePath();
+  } else ctx.arc(0, 0, r * 0.2 * b.size, 0, Math.PI * 2);
+  ctx.fill();
   ctx.stroke();
   ctx.restore();
 }
 
-// A tomato after it lands: a red splat with drips and seeds, fading away.
-function drawSplat(ctx, x, y, r, s, alpha) {
+// A comic-book sound word by the impact.
+function drawWord(ctx, w, r, t) {
+  const dt = t - w.t;
+  const k = Math.min(1, dt / 120);
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(x, y);
-  ctx.rotate(s.rot);
-  ctx.lineWidth = Math.max(1.5, r * 0.14);
+  ctx.globalAlpha = dt < 520 ? 1 : Math.max(0, 1 - (dt - 520) / 200);
+  ctx.translate(w.x, w.y - r * 0.9 * Math.min(1, dt / 720));
+  ctx.rotate(w.rot);
+  ctx.scale(easeOutBack(k), easeOutBack(k));
+  ctx.font = `900 ${r * 1.9}px "Estedad Variable", "Vazirmatn Variable", Tahoma, sans-serif`;
+  ctx.direction = "rtl";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = r * 0.45;
   ctx.strokeStyle = INK;
-  ctx.fillStyle = "#ff5b45";
-  ctx.beginPath();
-  s.lobes.forEach((k, i) => {
-    const a = (i / s.lobes.length) * Math.PI * 2;
-    const rr = r * k;
-    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
-  });
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  for (const d of s.drips) {
-    ctx.beginPath();
-    ctx.ellipse(d.x * r, r * 0.6 + d.len * r * s.age, r * 0.16, r * (0.2 + d.len * s.age * 0.6), 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = "#ffc53d";
-  for (const d of s.seeds) {
-    ctx.beginPath();
-    ctx.ellipse(d.x * r, d.y * r, r * 0.1, r * 0.06, d.a, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  ctx.strokeText(w.text, 0, 0);
+  ctx.fillStyle = w.color;
+  ctx.fillText(w.text, 0, 0);
   ctx.restore();
 }
 
@@ -248,7 +373,8 @@ function drawCheck(ctx, x, headTop, h) {
 // many of them have already received their loan, and `present` how many
 // seats are taken while the group is still filling up. `cast` names each
 // figure's kind ("plain" or "logo"), by position. `angry` turns the banner
-// red and the crowd cross (an installment is unpaid); `action` is a button
+// red and the crowd cross (an installment is unpaid), `pelting` has them
+// throw tomatoes and eggs at the member (it's overdue); `action` is a button
 // shown under the text.
 export default function CoinCrowd({
   title,
@@ -259,6 +385,7 @@ export default function CoinCrowd({
   cast,
   angry = false,
   meDone = false,
+  pelting = false,
   action,
   children,
 }) {
@@ -290,10 +417,12 @@ export default function CoinCrowd({
     let alive = true;
     let visible = true;
     const pointer = { down: false, x: 0, y: 0 };
-    // When the member's installment is unpaid, every few seconds one of the
-    // cross members lobs a tomato at them.
-    let tomatoes = [];
+    // Once the member's installment is overdue, every few seconds one of the
+    // cross members lobs a tomato (now and then an egg) at them.
+    let missiles = [];
     let splats = [];
+    let bits = [];
+    let words = [];
     let nextThrow = 0;
 
     const resize = () => {
@@ -310,8 +439,10 @@ export default function CoinCrowd({
       const textEnd = hintEl ? hintEl.offsetTop : textBox.current.offsetHeight;
       floor = textBox.current.offsetTop + textEnd + 8 + base * 1.2; // room for a check mark too
       people = makePeople(width, height, base, floor, count, Math.min(done, count), present, cast, angry, meDone);
-      tomatoes = [];
+      missiles = [];
       splats = [];
+      bits = [];
+      words = [];
       makeSprites(base * 1.1 * dpr).then((made) => {
         if (!alive) return;
         sprites = made;
@@ -323,19 +454,68 @@ export default function CoinCrowd({
     const draw = (t = performance.now()) => {
       ctx.clearRect(0, 0, width, height);
       if (!sprites) return;
-      // Nearer (lower) people are drawn last so they overlap the ones behind.
-      for (const p of [...people].sort((a, b) => a.y - b.y)) drawPerson(ctx, sprites, base, p, t);
-      const r = base * 0.1;
+      // Nearer (lower) people are drawn last so they overlap the ones behind;
+      // the member always in front.
+      for (const p of [...people].sort((a, b) => a.me - b.me || a.y - b.y)) drawPerson(ctx, sprites, base, p, t);
+      const r = base * 0.12;
       for (const s of splats) {
         const h = base * s.who.size;
-        s.age = Math.min(1, (t - s.t) / 1800);
-        const alpha = s.age < 0.6 ? 1 : 1 - (s.age - 0.6) / 0.4;
-        drawSplat(ctx, s.who.x + s.ox * h, s.who.y - h * 0.72 + s.oy * h, r * 1.7, s, alpha);
+        drawSplat(ctx, s.who.x + s.ox * h, s.who.y - h * 0.72 + s.oy * h, r * 1.8, s, t);
       }
-      for (const m of tomatoes) drawTomato(ctx, m.x, m.y, r, m.spin);
+      for (const b of bits) drawBit(ctx, b, r, t);
+      for (const m of missiles) drawMissile(ctx, m, r);
+      for (const w of words) drawWord(ctx, w, r, t);
     };
 
-    const throwTomatoes = (t) => {
+    const splat = (me, egg, x, y, t) => {
+      const rnd = (a, b) => a + Math.random() * (b - a);
+      me.hitT = t;
+      splats.push({
+        who: me,
+        egg,
+        t,
+        ox: rnd(-0.1, 0.1),
+        oy: rnd(-0.06, 0.06),
+        rot: rnd(0, Math.PI),
+        lobes: Array.from({ length: egg ? 9 : 11 }, (_, i) => (i % 2 ? 0.7 : 0.95) + rnd(0, egg ? 0.45 : 0.3)),
+        drips: Array.from({ length: egg ? 2 : 3 }, () => ({ x: rnd(-0.6, 0.6), len: rnd(0.3, 1) })),
+        seeds: Array.from({ length: 6 }, () => ({ x: rnd(-0.7, 0.7), y: rnd(-0.6, 0.6), a: rnd(0, Math.PI) })),
+        yolk: { x: rnd(-0.25, 0.25), y: rnd(-0.2, 0.1) },
+      });
+      // Bits fly off, up and out, then fall.
+      const speed = base * 0.0028;
+      const g = base * 0.000014;
+      const n = egg ? 9 : 10;
+      for (let i = 0; i < n; i++) {
+        const a = -Math.PI / 2 + rnd(-1.4, 1.4);
+        const v = speed * rnd(0.5, 1.2);
+        const shell = egg && i < 5;
+        bits.push({
+          t,
+          x,
+          y,
+          vx: Math.cos(a) * v,
+          vy: Math.sin(a) * v,
+          g,
+          rot: rnd(0, 6),
+          vr: rnd(-0.02, 0.02),
+          size: rnd(0.6, 1.2),
+          life: rnd(450, 700),
+          shell,
+          color: shell ? "#fff6e4" : egg ? "#ffc53d" : "#ff4b3e",
+        });
+      }
+      words.push({
+        t,
+        x: x + (x < width / 2 ? 1 : -1) * base * 0.55,
+        y: y - base * 0.2,
+        rot: rnd(-0.25, 0.25),
+        text: egg ? "ترق!" : "شلپ!",
+        color: egg ? "#ffc53d" : "#fff",
+      });
+    };
+
+    const pelt = (t) => {
       const me = people.find((p) => p.me && !p.empty);
       const throwers = people.filter((p) => p.kind === "angry" && !p.empty);
       if (!me || !throwers.length) return;
@@ -346,43 +526,34 @@ export default function CoinCrowd({
         from.throwT = t;
         from.facing = me.x > from.x ? 1 : -1;
         const dist = Math.hypot(me.x - from.x, me.y - from.y);
-        tomatoes.push({ x0: from.x + from.facing * h * 0.25, y0: from.y - h * 0.62, t0: t, dur: 520 + dist * 0.9 });
+        missiles.push({
+          egg: Math.random() < 0.3,
+          x0: from.x + from.facing * h * 0.25,
+          y0: from.y - h * 0.62,
+          t0: t,
+          dur: 520 + dist * 0.9,
+          dir: from.facing,
+        });
         nextThrow = t + 2400 + Math.random() * 1800;
       }
       const h = base * me.size;
       // Head for where the member's head is now, even if they've moved.
       const tx = me.x;
       const ty = me.y - h * 0.8;
-      tomatoes = tomatoes.filter((m) => {
+      missiles = missiles.filter((m) => {
         const k = (t - m.t0) / m.dur;
         if (k >= 1) {
-          me.hitT = t;
-          splats.push({
-            who: me,
-            t,
-            ox: (Math.random() - 0.5) * 0.2,
-            oy: (Math.random() - 0.5) * 0.12,
-            rot: Math.random() * Math.PI,
-            lobes: Array.from({ length: 12 }, (_, i) => (i % 2 ? 0.6 : 0.9) + Math.random() * 0.35),
-            drips: Array.from({ length: 3 }, () => ({
-              x: (Math.random() - 0.5) * 1.1,
-              len: 0.4 + Math.random() * 0.8,
-            })),
-            seeds: Array.from({ length: 4 }, () => ({
-              x: (Math.random() - 0.5) * 0.9,
-              y: (Math.random() - 0.5) * 0.9,
-              a: Math.random() * Math.PI,
-            })),
-            age: 0,
-          });
+          splat(me, m.egg, tx, ty, t);
           return false;
         }
         m.x = m.x0 + (tx - m.x0) * k;
         m.y = m.y0 + (ty - m.y0) * k - base * 0.9 * 4 * k * (1 - k);
-        m.spin = k * Math.PI * 3;
+        m.spin = k * Math.PI * (m.egg ? 2 : 3) * m.dir;
         return true;
       });
-      splats = splats.filter((s) => t - s.t < 1800);
+      splats = splats.filter((s) => t - s.t < 2000);
+      bits = bits.filter((b) => t - b.t < b.life);
+      words = words.filter((w) => t - w.t < 720);
     };
 
     const tick = (t) => {
@@ -442,7 +613,7 @@ export default function CoinCrowd({
         p.phase += v * 0.2;
         if (v > 0.05) busy = true; // settled: stop drawing until the next touch
       }
-      if (angry) throwTomatoes(t);
+      if (angry && pelting) pelt(t);
       draw(t);
       if (busy && visible) frame = requestAnimationFrame(tick);
     };
@@ -531,7 +702,7 @@ export default function CoinCrowd({
       el.removeEventListener("contextmenu", noMenu);
     };
     // `cast` is compared by its contents (castKey), not the array's identity.
-  }, [count, done, present, castKey, angry, meDone]);
+  }, [count, done, present, castKey, angry, meDone, pelting]);
 
   return (
     <div className={`crowd ${angry ? "angry" : ""}`} ref={wrap}>
