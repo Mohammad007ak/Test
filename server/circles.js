@@ -30,7 +30,7 @@
 // leaves the queue).
 
 import { HttpError } from "./errors.js";
-import { planById, PLANS, potOf } from "../src/lib/plans.js";
+import { OFFERED_PLANS, planById, potOf } from "../src/lib/plans.js";
 import { buildChain, nonceDigest, pickWinner, randomHex } from "../src/lib/fairness.js";
 import { newId } from "../src/lib/fund.js";
 import { drawAt } from "../src/lib/schedule.js";
@@ -229,6 +229,7 @@ export function createCircleService({
   async function join({ phone, planId, nonce }) {
     const plan = planById(planId);
     if (!plan) throw new HttpError(404, "این طرح پیدا نشد.");
+    if (plan.retired) throw new HttpError(410, "این طرح دیگر ارائه نمی‌شود.");
     await expireStale();
     if (await seatIn(phone, plan.id)) throw new HttpError(409, "شما در یک دوره‌ی فعال از همین طرح عضو هستید.");
 
@@ -836,7 +837,7 @@ export function createCircleService({
   async function planSummaries() {
     await expireStale();
     const summaries = [];
-    for (const plan of PLANS) {
+    for (const plan of OFFERED_PLANS) {
       const open = await db.get(
         `SELECT c.id, COUNT(m.id) AS taken FROM circles c JOIN circle_members m ON m.circle_id = c.id
          WHERE c.plan_id = ? AND c.status = 'forming' GROUP BY c.id, c.created_at ORDER BY c.created_at LIMIT 1`,

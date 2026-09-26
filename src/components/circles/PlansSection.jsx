@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, Hourglass, ShieldCheck, Trophy, Users, Wrench } from "lucide-react";
+import { ChevronLeft, Hourglass, ShieldCheck, Sparkles, Trophy, Users, Wrench } from "lucide-react";
 import JoinSheet from "./JoinSheet.jsx";
 import { Figure } from "../../ui/Figure.jsx";
 import { Skeleton } from "../../ui/bits.jsx";
@@ -22,6 +22,58 @@ function CircleStatus({ c }) {
     <span className="badge brand">
       ماه {formatNumber(c.currentMonth)} از {formatNumber(c.months)}
     </span>
+  );
+}
+
+// One plan: the group itself up top (Digipay's seat first), then what you get.
+function PlanCard({ plan, onJoin }) {
+  const short = plan.months <= 6;
+  const premium = plan.share >= 10_000_000;
+  const figSize = plan.size <= 6 ? 50 : 30;
+  return (
+    <article className={`plan-card ${short ? "short" : "long"}`}>
+      <header className="plan-head">
+        <div className="plan-tags">
+          <span className="plan-chip">{formatNumber(plan.months)} ماهه</span>
+          {premium && (
+            <span className="plan-chip premium">
+              <Sparkles size={12} /> ویژه
+            </span>
+          )}
+          {plan.flag && <span className="plan-flag">{plan.flag}</span>}
+        </div>
+        <div className="plan-crowd" aria-hidden="true">
+          {Array.from({ length: plan.size }, (_, i) => (
+            <Figure key={i} size={figSize} pose={["stand", "a", "b"][i % 3]} logo={i === 0} />
+          ))}
+        </div>
+      </header>
+      <div className="plan-body">
+        <h3>{plan.title}</h3>
+        <div className="plan-pot">
+          <span>دریافت یک‌جا، بدون بهره</span>
+          <strong>{formatCompact(plan.pot)}</strong>
+          <small>تومان</small>
+        </div>
+        <div className="plan-tiles">
+          <div>
+            <small>قسط ماهانه</small>
+            <b>{formatCompact(plan.share)}</b>
+          </div>
+          <div>
+            <small>مدت</small>
+            <b>{formatNumber(plan.months)} ماه</b>
+          </div>
+          <div>
+            <small>اعضا</small>
+            <b>{formatNumber(plan.size)} نفر</b>
+          </div>
+        </div>
+        <button className={`btn ${short ? "gold" : "primary"} block`} onClick={onJoin}>
+          عضویت در این طرح
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -79,44 +131,14 @@ export default function PlansSection({ open }) {
         </p>
         {!plans ? (
           <div className="plan-grid">
-            <Skeleton height={220} radius={20} />
-            <Skeleton height={220} radius={20} />
-            <Skeleton height={220} radius={20} />
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} height={300} radius={24} />
+            ))}
           </div>
         ) : (
           <div className="plan-grid">
-            {plans.map((p, i) => (
-              <article key={p.id} className={`plan-card ${i === 1 ? "featured" : ""}`}>
-                {i === 1 && <span className="plan-flag">پرطرفدار</span>}
-                <div className="plan-figs" aria-hidden="true">
-                  <Figure size={44} pose="b" />
-                  <Figure size={52} face={i === 1 ? "#ffc53d" : "#fff"} />
-                  <Figure size={44} pose="a" />
-                </div>
-                <h3>{p.title}</h3>
-                <div className="plan-pot">
-                  <span>دریافت یک‌جا</span>
-                  <strong>{formatCompact(p.pot)}</strong>
-                  <small>تومان</small>
-                </div>
-                <ul className="plan-facts">
-                  <li>
-                    <span>سهم ماهانه</span>
-                    <b>{formatCompact(p.share)} تومان</b>
-                  </li>
-                  <li>
-                    <span>مدت</span>
-                    <b>{formatNumber(p.months)} ماه</b>
-                  </li>
-                  <li>
-                    <span>اعضا</span>
-                    <b>{formatNumber(p.size)} نفر</b>
-                  </li>
-                </ul>
-                <button className={`btn ${i === 1 ? "primary" : "outline"} block`} onClick={() => setJoining(p)}>
-                  دریافت
-                </button>
-              </article>
+            {plans.map((p) => (
+              <PlanCard key={p.id} plan={p} onJoin={() => setJoining(p)} />
             ))}
           </div>
         )}

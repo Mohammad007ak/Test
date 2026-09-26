@@ -271,17 +271,49 @@ test("ops can fill a forming circle with simulated members to start it", async (
   const { service } = await setup();
   const { circleId } = await join(service, {
     phone: phone(1),
-    planId: "p24-10",
+    planId: "p6-10",
   });
   await service.fillWithBots(circleId);
   const view = await service.circleView(phone(1), circleId);
   assert.equal(view.circle.status, "active");
-  assert.equal(view.members.length, 24);
+  assert.equal(view.members.length, 6);
   await service.closeMonth(circleId);
   await service.closeMonth(circleId);
   await service.closeMonth(circleId);
   // Failing bots' month-2 shares were covered by the guarantee.
-  assert.equal((await service.circleView(phone(1), circleId)).draws[2].pot, 240_000_000);
+  assert.equal((await service.circleView(phone(1), circleId)).draws[2].pot, 60_000_000);
+});
+
+test("a retired plan can't be joined, and the plan list offers only current plans", async () => {
+  const { service } = await setup();
+  await assert.rejects(service.join({ phone: phone(1), planId: "p24-10" }), { status: 410 });
+  const ids = (await service.planSummaries()).map((p) => p.id);
+  assert.deepEqual(ids, ["p6-5", "p6-10", "p12-5", "p12-10"]);
+});
+
+test("a six-month circle runs its six months and pays out every seat", async () => {
+  const { service, db } = await setup();
+  const { circleId } = await join(service, { phone: phone(1), planId: "p6-5" });
+  await service.fillWithBots(circleId);
+  // Everyone pays, so every month has a winner (some bots otherwise "forget").
+  await db.run(
+    "UPDATE circle_members SET mandate_id = 'sim-mandate-' || id WHERE circle_id = ? AND mandate_id LIKE 'sim-mandate-failing-%'",
+    circleId,
+  );
+  let view = await service.circleView(phone(1), circleId);
+  while (view.circle.status === "active") {
+    const due = await service.startCheckout({ phone: phone(1), circleId }).catch(() => null);
+    if (due) await service.completeCheckout({ phone: phone(1), id: due.checkoutId, action: "pay" });
+    await service.closeMonth(circleId);
+    view = await service.circleView(phone(1), circleId);
+  }
+  assert.equal(view.circle.status, "completed");
+  assert.deepEqual(
+    view.draws.map((d) => d.month),
+    [1, 2, 3, 4, 5, 6],
+  );
+  assert.ok(view.draws.every((d) => d.pot === 30_000_000));
+  assert.equal(new Set(view.draws.map((d) => d.winner)).size, 6);
 });
 
 test("a circle that doesn't fill before its deadline expires, releasing and refunding its members", async () => {

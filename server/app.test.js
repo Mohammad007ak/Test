@@ -273,7 +273,7 @@ test("joining a guaranteed plan needs explicit acceptance and the first share, t
   const call = client();
   await call("POST", "/api/auth/digipay", { token: "sim-09120000066" });
   const plans = await call("GET", "/api/plans");
-  assert.equal(plans.body.plans.length, 3);
+  assert.equal(plans.body.plans.length, 4);
 
   const refused = await call("POST", "/api/circles/join", { planId: "p12-5" });
   assert.equal(refused.status, 400);
