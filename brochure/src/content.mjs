@@ -425,7 +425,8 @@ export const products = {
     en: "Early Settlement",
     matrixSub: "دریافت وجه فروش پیش از موعد تسویه",
     seg: { corp: "none", comm: "full", guild: "full", retail: "none" },
-    panel: { icon: "clock", en: ["Early", "Settlement"] },
+    photo: "earlysettlement.jpg",
+    photoPos: "62% center",
     lead: "با تسویه زودهنگام، پذیرندگان و فروشندگان طرف قرارداد دیجی‌پی مطالبات حاصل از فروش خود را پیش از موعد تسویه دریافت می‌کنند؛ تا نقدینگی کسب‌وکار در چرخه تسویه حبس نشود و سریع‌تر صرف خرید موجودی و رشد شود.",
     features: [
       { icon: "clock", t: "دریافت مطالبات فروش پیش از موعد تسویه" },
