@@ -1,0 +1,321 @@
+/* Digipay × Bank Tejarat — product brochure
+   Design tokens follow the Digipay enterprise catalogs:
+   navy #15479E, bright #0037FE, light blue #879FCF, pale #F0F5FB. */
+
+@font-face { font-family: "Vazirmatn"; src: url("../assets/fonts/Vazirmatn-Light.woff2") format("woff2"); font-weight: 300; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets/fonts/Vazirmatn-ExtraBold.woff2") format("woff2"); font-weight: 800; }
+@font-face { font-family: "Vazirmatn"; src: url("../assets/fonts/Vazirmatn-Black.woff2") format("woff2"); font-weight: 900; }
+@font-face { font-family: "Outfit"; src: url("../assets/fonts/Outfit-Variable.woff2") format("woff2"); font-weight: 100 900; }
+
+:root {
+  --navy: #15479e;
+  --navy-deep: #0f3a85;
+  --bright: #0037fe;
+  --sky: #879fcf;
+  --mist: #c9d6ee;
+  --pale: #f0f5fb;
+  --paper: #ffffff;
+  --ink: #1b2440;
+  --ink-2: #4a5575;
+  --ink-3: #7c86a2;
+  --line: #dde5f3;
+  --ghost: rgba(255, 255, 255, 0.16);
+}
+
+@page { size: 297mm 210mm; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #8a93a8; }
+body {
+  font-family: "Vazirmatn", sans-serif;
+  color: var(--ink);
+  direction: rtl;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  font-feature-settings: "ss01";
+}
+.en { font-family: "Outfit", sans-serif; direction: ltr; }
+
+.page {
+  width: 297mm; height: 210mm;
+  position: relative; overflow: hidden;
+  background: var(--paper);
+  page-break-after: always; break-after: page;
+  margin: 0 auto 8mm;
+}
+@media print { .page { margin: 0; } html, body { background: none; } }
+
+.page.navy { background: var(--navy); color: #fff; }
+.page.bright { background: var(--bright); color: #fff; }
+.page.pale { background: var(--pale); }
+.page.dark { background: #0d0f14; color: #fff; }
+
+/* ---------- footer (same rhythm as the catalogs) ---------- */
+.footer {
+  position: absolute; left: 14mm; right: 14mm; bottom: 9mm;
+  display: flex; align-items: center; gap: 5mm; direction: ltr;
+  font-size: 6.5pt; color: var(--navy);
+}
+.footer .num {
+  width: 5.6mm; height: 5.6mm; border-radius: 50%;
+  background: var(--navy); color: #fff;
+  display: grid; place-items: center;
+  font-family: "Outfit"; font-weight: 600; font-size: 6.5pt;
+}
+.footer .rule { flex: 1; height: 0.25mm; background: currentColor; opacity: .55; }
+.footer .brand { font-family: "Outfit"; font-weight: 400; letter-spacing: .02em; opacity: .85; }
+.navy .footer, .bright .footer, .dark .footer, .photo .footer { color: #fff; }
+.navy .footer .num, .bright .footer .num, .dark .footer .num, .photo .footer .num { background: #fff; color: var(--navy); }
+.footer.half { right: 50%; }
+
+/* ---------- cover ---------- */
+.cover { display: grid; place-items: center; text-align: center; }
+.cover .mark { position: absolute; inset: 0; pointer-events: none; }
+.cover .inner { position: relative; z-index: 2; }
+.cover .logo { width: 92mm; }
+.cover h1 { font-weight: 800; font-size: 22pt; margin-top: 11mm; line-height: 1.5; }
+.cover .sub { font-size: 12.5pt; font-weight: 400; opacity: .85; margin-top: 2mm; }
+.cover .partner {
+  margin: 12mm auto 0; display: inline-flex; align-items: center; gap: 5mm;
+  background: rgba(255,255,255,.12); border-radius: 4mm; padding: 3.2mm 7mm;
+  font-size: 9pt;
+}
+.cover .partner img { height: 8mm; }
+.cover .partner .sep { width: .3mm; height: 7mm; background: rgba(255,255,255,.4); }
+.cover .date { position: absolute; bottom: 12mm; left: 0; right: 0; font-size: 9pt; opacity: .75; }
+
+/* ---------- divider pages ---------- */
+.divider .title-block { position: absolute; top: 20mm; right: 20mm; text-align: right; }
+.divider .title-block.low { top: auto; bottom: 30mm; }
+.divider .kicker { font-size: 10pt; opacity: .7; margin-bottom: 2mm; }
+.divider h2 { font-size: 24pt; font-weight: 800; }
+.divider .ghost {
+  font-family: "Outfit"; font-weight: 300; font-size: 50pt; line-height: 1.02;
+  color: var(--ghost); color: rgba(255,255,255,.2);
+  direction: ltr; text-align: right; margin-top: 7mm; letter-spacing: -.02em;
+  text-transform: uppercase;
+}
+.divider .desc { max-width: 120mm; font-size: 10pt; line-height: 2; opacity: .88; margin-top: 8mm; }
+.divider .bignum {
+  position: absolute; left: 20mm; bottom: 30mm;
+  font-family: "Outfit"; font-weight: 200; font-size: 120pt; line-height: 1; opacity: .18;
+}
+
+/* ---------- TOC ---------- */
+.toc { padding: 22mm 22mm 0; }
+.toc h2 { font-size: 20pt; font-weight: 800; margin-bottom: 12mm; }
+.toc .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20mm; }
+.toc .row { display: flex; align-items: center; gap: 4mm; font-size: 10pt; padding: 2.6mm 0; }
+.toc .row .n { font-family: "Outfit"; font-weight: 600; min-width: 8mm; }
+.toc .row .dots { flex: 1; border-bottom: .3mm dashed rgba(255,255,255,.35); transform: translateY(1mm); }
+.toc .row .pg { font-family: "Outfit"; opacity: .8; min-width: 6mm; text-align: left; }
+.toc .row.sec { font-weight: 700; margin-top: 3mm; }
+.toc .row.sub { padding-right: 12mm; opacity: .85; font-size: 9pt; padding-top: 1.6mm; padding-bottom: 1.6mm; }
+
+/* ---------- generic content page ---------- */
+.content { position: absolute; inset: 16mm 18mm 20mm 18mm; }
+.h-title { font-size: 19pt; font-weight: 800; color: var(--navy); line-height: 1.35; }
+.navy .h-title, .dark .h-title, .bright .h-title { color: #fff; }
+.h-sub { font-size: 9.5pt; color: var(--ink-2); margin-top: 1.5mm; line-height: 1.8; }
+.navy .h-sub, .dark .h-sub { color: rgba(255,255,255,.8); }
+.num-badge {
+  display: inline-grid; place-items: center; width: 11mm; height: 11mm; border-radius: 2.5mm;
+  background: var(--bright); color: #fff; font-weight: 800; font-size: 15pt; margin-left: 3mm;
+  vertical-align: middle;
+}
+.title-row { display: flex; align-items: center; }
+
+/* decorative soft chevron in the background, as in the catalogs */
+.swoosh { position: absolute; pointer-events: none; }
+
+/* ---------- split product page ---------- */
+.split { display: grid; grid-template-columns: 1fr 1fr; height: 100%; }
+.split > .media { position: relative; overflow: hidden; }
+.split > .media img.cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.split > .body { position: relative; padding: 16mm 16mm 20mm 14mm; }
+.split.media-left { direction: ltr; }
+.split.media-left > * { direction: rtl; }
+
+.statbox {
+  position: absolute; background: #fff; color: var(--navy);
+  border-radius: 0 4mm 4mm 0; padding: 6mm 8mm 6mm 10mm; left: 0; top: 18mm;
+  box-shadow: 0 2mm 8mm rgba(10,30,80,.18);
+}
+.statbox .big { font-family: "Outfit"; font-weight: 600; font-size: 44pt; line-height: 1; direction: ltr; text-align: right; }
+.statbox .lbl { font-weight: 700; font-size: 10pt; line-height: 1.6; margin-top: 2mm; max-width: 55mm; }
+.statbox.right { left: auto; right: 0; border-radius: 4mm 0 0 4mm; }
+
+.lead { font-size: 10.5pt; line-height: 1.95; color: var(--ink-2); margin-top: 4mm; }
+.navy .lead, .dark .lead { color: rgba(255,255,255,.85); }
+
+.feat { list-style: none; margin-top: 6mm; display: grid; gap: 3.2mm; }
+.feat li { display: flex; align-items: center; gap: 3mm; font-size: 9.5pt; line-height: 1.6; }
+.feat .ic { flex: none; width: 8mm; height: 8mm; color: var(--navy); display: grid; place-items: center; }
+.dark .feat .ic, .navy .feat .ic { color: #fff; }
+.ic { display: inline-grid; place-items: center; flex: none; }
+.ic svg { width: 100%; height: 100%; stroke-width: 1.5; display: block; }
+
+.pills { display: grid; gap: 2.4mm; margin-top: 6mm; }
+.pill {
+  display: flex; align-items: center; gap: 3mm; border-radius: 3mm; padding: 3mm 4mm;
+  font-size: 9pt; line-height: 1.6; background: #fff; border: .3mm solid var(--line);
+}
+.pill.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+.pill .ic { width: 7mm; height: 7mm; flex: none; }
+.dark .pill { background: #fff; color: var(--ink); }
+.pale .pill { border-color: #fff; box-shadow: 0 .6mm 2mm rgba(21,71,158,.06); }
+
+/* offer cards (limits) */
+.offers { display: grid; gap: 3mm; }
+.offer {
+  background: var(--pale); border-radius: 4mm; padding: 4.5mm 6mm; display: flex; align-items: center; gap: 5mm;
+}
+.white-bg .offer { background: var(--pale); }
+.pale .offer { background: #fff; }
+.offer .tag { display: inline-block; font-size: 7pt; border: .3mm solid var(--mist); border-radius: 10mm; padding: .5mm 3mm; color: var(--ink-2); background: #fff; }
+.offer .amt { font-size: 15pt; font-weight: 400; color: var(--ink); margin-top: 1.5mm; }
+.offer .amt b { font-weight: 800; }
+.offer .term { font-size: 8pt; color: var(--ink-2); margin-top: .5mm; }
+.offer .term b { color: var(--ink); }
+.offer .glyph { width: 14mm; height: 14mm; border-radius: 3.5mm; background: linear-gradient(160deg, #e7e2ff, #cfc6f5); color: #5a44c9; display: grid; place-items: center; flex: none; }
+.offer .glyph.blue { background: linear-gradient(160deg, #e3ecff, #b9cdf5); color: var(--navy); }
+.offer .glyph svg { width: 7mm; height: 7mm; }
+
+/* segment chips */
+.segs { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 4mm; }
+.seg {
+  display: inline-flex; align-items: center; gap: 1.5mm; font-size: 7.5pt; font-weight: 600;
+  border-radius: 10mm; padding: 1mm 3mm 1mm 3.2mm; background: var(--pale); color: var(--navy);
+  border: .3mm solid var(--mist);
+}
+.seg .ic { width: 3.6mm; height: 3.6mm; }
+.seg.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.navy .seg, .dark .seg { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.3); }
+.navy .seg.on, .dark .seg.on { background: #fff; color: var(--navy); border-color: #fff; }
+
+/* ---------- guide page (target market by segment) ---------- */
+.guide-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 10mm; }
+.guide-head .eyebrow { font-size: 8.5pt; color: var(--bright); font-weight: 700; margin-bottom: 1mm; }
+.guide-grid { display: grid; gap: 4mm; margin-top: 6mm; }
+.guide-grid.c2 { grid-template-columns: 1fr 1fr; }
+.guide-grid.c3 { grid-template-columns: 1fr 1fr 1fr; }
+.gcard {
+  background: #fff; border-radius: 4mm; padding: 4.5mm 5mm 4mm; border: .3mm solid var(--line);
+  display: flex; flex-direction: column; gap: 2.6mm;
+}
+.pale .gcard { border-color: #fff; box-shadow: 0 .8mm 3mm rgba(21,71,158,.07); }
+.gcard .ghead { display: flex; align-items: center; gap: 2.5mm; padding-bottom: 2.6mm; border-bottom: .3mm solid var(--line); }
+.gcard .ghead .ic { width: 8mm; height: 8mm; padding: 1.6mm; border-radius: 2.2mm; background: var(--navy); color: #fff; }
+.gcard .ghead .name { font-weight: 800; font-size: 11pt; color: var(--navy); }
+.gcard .ghead .role { font-size: 7.5pt; color: var(--ink-3); margin-right: auto; }
+.gcard .blk .k { font-size: 7.5pt; font-weight: 700; color: var(--bright); margin-bottom: .6mm; }
+.gcard .blk .v { font-size: 8.3pt; line-height: 1.75; color: var(--ink); }
+.gcard ul.v { list-style: none; display: grid; gap: .8mm; }
+.gcard ul.v li { position: relative; padding-right: 3.2mm; }
+.gcard ul.v li::before { content: ""; position: absolute; right: 0; top: 2.1mm; width: 1.3mm; height: 1.3mm; border-radius: 50%; background: var(--sky); }
+.gcard .tags { display: flex; flex-wrap: wrap; gap: 1.2mm; }
+.gcard .tags span { font-size: 7.2pt; background: var(--pale); color: var(--navy); border-radius: 1.6mm; padding: .5mm 2mm; }
+.gcard .example { background: var(--pale); border-radius: 2.5mm; padding: 2.4mm 3mm; font-size: 8pt; line-height: 1.75; color: var(--ink-2); }
+.gcard .example b { color: var(--navy); }
+
+.pitch {
+  margin-top: 4mm; background: var(--navy); color: #fff; border-radius: 3.5mm;
+  padding: 3.4mm 5mm; display: flex; align-items: center; gap: 4mm; font-size: 9.5pt; font-weight: 600;
+}
+.pitch .ic { width: 7mm; height: 7mm; flex: none; }
+.pitch .k { font-size: 7.5pt; font-weight: 400; opacity: .75; white-space: nowrap; }
+
+/* ---------- stats ---------- */
+.statband {
+  background: var(--navy); color: #fff; border-radius: 5mm; padding: 6mm 10mm;
+  display: grid; grid-template-columns: repeat(3, 1fr); align-items: center;
+}
+.statband .s { display: flex; align-items: center; gap: 3mm; justify-content: center; }
+.statband .s .n { font-family: "Outfit"; font-weight: 500; font-size: 38pt; line-height: 1; direction: ltr; }
+.statband .s .t { font-size: 8.5pt; line-height: 1.6; }
+.partnerband {
+  margin-top: 2mm; background: #6a88c2; color: #fff; border-radius: 5mm; padding: 3.5mm 10mm;
+  display: flex; justify-content: space-around; align-items: center; font-size: 8.5pt;
+}
+.partnerband .p { display: flex; align-items: center; gap: 4mm; }
+.partnerband img { height: 7.5mm; }
+
+.svc-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3mm; margin-top: 5mm; }
+.svc { display: flex; align-items: center; gap: 2.4mm; font-size: 9pt; font-weight: 500; }
+.svc .ic { width: 8mm; height: 8mm; padding: 1.5mm; border-radius: 2.2mm; background: var(--pale); color: var(--navy); flex: none; }
+
+/* ---------- matrix ---------- */
+table.matrix { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 6mm; font-size: 8.6pt; }
+table.matrix th, table.matrix td { padding: 2.2mm 3mm; text-align: center; border-bottom: .3mm solid var(--line); }
+table.matrix thead th { background: var(--navy); color: #fff; font-weight: 700; font-size: 8.6pt; }
+table.matrix thead th:first-child { border-radius: 0 3mm 0 0; text-align: right; }
+table.matrix thead th:last-child { border-radius: 3mm 0 0 0; }
+table.matrix thead th .ic { width: 5mm; height: 5mm; display: inline-block; vertical-align: middle; margin-left: 1.5mm; }
+table.matrix td.p { text-align: right; font-weight: 700; color: var(--ink); }
+table.matrix td.p small { display: block; font-weight: 400; color: var(--ink-3); font-size: 7.3pt; }
+table.matrix td.grp { background: var(--pale); color: var(--navy); font-weight: 800; text-align: right; font-size: 8pt; padding: 1.6mm 3mm; }
+.dot { display: inline-block; width: 4mm; height: 4mm; border-radius: 50%; vertical-align: middle; }
+.dot.full { background: var(--navy); }
+.dot.half { border: .6mm solid var(--navy); background: linear-gradient(90deg, var(--navy) 50%, transparent 50%); }
+.dot.none { background: var(--line); width: 2mm; height: 2mm; }
+table.matrix td.pg { font-family: "Outfit"; color: var(--ink-3); }
+.legend { display: flex; gap: 6mm; font-size: 7.8pt; color: var(--ink-2); margin-top: 3mm; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 1.5mm; }
+
+/* ---------- welfare trio ---------- */
+.trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; margin-top: 6mm; }
+.trio .card { background: #fff; border-radius: 4mm; overflow: hidden; display: flex; flex-direction: column; border: .3mm solid var(--line); }
+.trio .card .img { height: 44mm; background-size: cover; background-position: center; }
+.trio .card .txt { padding: 4mm 5mm 4mm; }
+.trio .card h4 { font-size: 11.5pt; font-weight: 800; color: var(--navy); margin-bottom: 2mm; }
+.trio .card ul { list-style: none; display: grid; gap: 1.6mm; }
+.trio .card li { font-size: 8.2pt; line-height: 1.6; display: flex; gap: 2mm; align-items: flex-start; }
+.trio .card li .ic { width: 4.2mm; height: 4.2mm; color: var(--bright); flex: none; margin-top: .6mm; }
+
+/* ---------- toolkit table ---------- */
+table.kit { width: 100%; border-collapse: separate; border-spacing: 0 1.8mm; margin-top: 4mm; font-size: 8.3pt; }
+table.kit th { font-size: 7.8pt; color: var(--ink-3); font-weight: 600; text-align: right; padding: 0 3mm; }
+table.kit td { background: #fff; padding: 2.4mm 3mm; vertical-align: middle; line-height: 1.65; }
+table.kit td:first-child { border-radius: 0 2.5mm 2.5mm 0; }
+table.kit td:last-child { border-radius: 2.5mm 0 0 2.5mm; }
+table.kit td.n { width: 8mm; font-family: "Outfit"; font-weight: 600; color: #fff; background: var(--navy); text-align: center; }
+table.kit td.prod { font-weight: 700; color: var(--navy); width: 44mm; }
+table.kit td.q { color: var(--ink-2); font-style: normal; }
+table.kit td.seg-c { width: 30mm; }
+table.kit td.seg-c .seg { white-space: nowrap; }
+
+/* ---------- process ---------- */
+.steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4mm; margin-top: 12mm; position: relative; }
+.step { background: #fff; border-radius: 4mm; padding: 5mm 4.5mm; position: relative; border: .3mm solid var(--line); }
+.step .sn { width: 9mm; height: 9mm; border-radius: 2.4mm; background: var(--bright); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 12pt; }
+.step h5 { font-size: 10pt; color: var(--navy); font-weight: 800; margin: 3mm 0 1.5mm; }
+.step p { font-size: 8.2pt; line-height: 1.75; color: var(--ink-2); }
+.step .who { margin-top: 2.5mm; font-size: 7.3pt; color: var(--bright); font-weight: 700; }
+
+/* ---------- value grid ---------- */
+.vgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin-top: 8mm; }
+.vcard { background: rgba(255,255,255,.08); border: .3mm solid rgba(255,255,255,.18); border-radius: 4mm; padding: 5mm; }
+.vcard .ic { width: 9mm; height: 9mm; color: #fff; margin-bottom: 3mm; }
+.vcard h5 { font-size: 10.5pt; font-weight: 800; margin-bottom: 1.5mm; }
+.vcard p { font-size: 8.4pt; line-height: 1.8; opacity: .85; }
+
+.idea { background: #fff; border-radius: 4mm; padding: 4.5mm 5mm; border: .3mm solid var(--line); display: flex; gap: 4mm; }
+.idea > .ic { width: 10mm; height: 10mm; padding: 2mm; border-radius: 2.5mm; background: var(--pale); color: var(--navy); flex: none; }
+.idea h5 { font-size: 10pt; font-weight: 800; color: var(--navy); margin-bottom: 1mm; }
+.idea p { font-size: 8.3pt; line-height: 1.75; color: var(--ink-2); }
+.idea .segs { margin-top: 2mm; }
+
+/* ---------- contact ---------- */
+.contact-list { margin-top: 8mm; display: grid; gap: 3.5mm; font-size: 10pt; }
+.contact-list .r { display: flex; gap: 4mm; align-items: center; }
+.contact-list .r .ic { width: 6mm; height: 6mm; }
+.contact-list .r .k { opacity: .7; min-width: 22mm; }
+.contact-list .r .v { direction: ltr; font-family: "Outfit"; }
+
+.guide-grid.c2 .gcard .blk .v { font-size: 9pt; }
+.guide-grid.c2 .gcard .example { font-size: 8.6pt; }
+.guide-grid.c2 .gcard { gap: 3.4mm; padding: 5.5mm 6mm 5mm; }
+.steps .step { padding: 6mm 5mm; }
