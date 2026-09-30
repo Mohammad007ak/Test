@@ -262,7 +262,7 @@ function productPageHtml(n, key) {
   const dark = p.dark;
   const media = p.photo
     ? `<div class="media" style="position:relative;overflow:hidden">
-      <img class="cover-img" src="${img(p.photo)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="">
+      <img class="cover-img" src="${img(p.photo)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${p.photoPos || "center"}" alt="">
       ${p.stat ? `<div class="statbox"><div class="big">${p.stat.big}</div><div class="lbl">${p.stat.lbl}</div></div>` : ""}
     </div>`
     : `<div class="media panel">
