@@ -169,16 +169,35 @@ function glancePage(n) {
 }
 
 function networkPage(n) {
+  const pts = [
+    { icon: "store", t: "خرید آنلاین و حضوری از پذیرندگان در سراسر کشور" },
+    { icon: "calendar-clock", t: "پذیرش اعتبار BNPL و خرید اقساطی C-Credit" },
+    { icon: "qr-code", t: "پرداخت حضوری با دیجی‌کارت و QR Code" },
+    { icon: "layers", t: "۱۵ میلیون تنوع کالا و خدمت در ۱۲ گروه اصلی" },
+  ];
   return `<section class="page navy" style="display:grid;grid-template-columns:1fr 1fr">
-    <div style="position:relative;padding:18mm 16mm 20mm 14mm">
-      <div class="h-title">برخی از فروشگاه‌های طرف قرارداد دیجی‌پی</div>
-      <p class="lead" style="font-size:9.5pt">بیش از ۲۰ هزار پذیرنده آنلاین و حضوری در سراسر کشور؛ از دیجی‌کالا تا فروشگاه‌های تخصصی در هر شهر.</p>
-      <img src="${img("merchants.jpg")}" style="width:100%;margin-top:7mm;border-radius:3mm" alt="">
+    <div style="position:relative;padding:20mm 18mm 20mm 14mm">
+      <div class="h-title">شبکه پذیرندگان دیجی‌پی</div>
+      <p class="lead" style="font-size:10pt">بیش از ۲۰ هزار پذیرنده آنلاین و حضوری در سراسر کشور؛ از دیجی‌کالا تا فروشگاه‌های تخصصی در هر شهر. مشتریان دیجی‌پی در همه این پذیرندگان از کیف پول و اعتبار خود استفاده می‌کنند.</p>
+      <ul class="feat" style="margin-top:9mm;gap:4.5mm">${pts.map((x) => `<li style="font-size:10pt">${icon(x.icon)}<span>${x.t}</span></li>`).join("")}</ul>
     </div>
     <div style="position:relative;background:url(${img("map.jpg")}) center/cover">
-      <div class="statbox" style="top:auto;bottom:24mm"><div class="big">20K</div><div class="lbl">پذیرنده آنلاین و حضوری در شبکه دیجی‌پی</div></div>
+      <div class="statbox" style="top:auto;bottom:26mm"><div class="big">20K</div><div class="lbl">پذیرنده آنلاین و حضوری در شبکه دیجی‌پی</div></div>
     </div>
     ${footer(n, "half")}</section>`;
+}
+
+function merchantsPage(n) {
+  const list = JSON.parse(readFileSync(path.join(ROOT, "assets/merchants/merchants.json"), "utf8"));
+  return `<section class="page navy">
+    ${swoosh({ x: "-30mm", y: "130mm", w: 150, opacity: 0.05 })}
+    <div class="content" style="inset:15mm 18mm 20mm">
+      <div class="h-title">برخی از پذیرندگان طرف قرارداد دیجی‌پی</div>
+      <div class="h-sub">Selected Digipay Merchants</div>
+      <div class="mgrid">${list
+        .map((m) => `<div class="m"><div class="tile"><img src="assets/merchants/${m.id}.png" alt=""></div><span>${m.fa}</span></div>`)
+        .join("")}</div>
+    </div>${footer(n)}</section>`;
 }
 
 function matrixPage(n) {
@@ -281,7 +300,7 @@ function productPageHtml(n, key) {
     });
     if (p.example) cards.push(`<div class="gcard" style="padding:3.2mm 4mm;gap:1.6mm;color:var(--ink)"><div class="blk"><div class="k">نمونه کاربرد</div><div class="example">${p.example}</div></div></div>`);
     grid = `${top}
-      <div style="font-weight:800;color:${dark ? "#fff" : "var(--navy)"};font-size:10pt;margin:6mm 0 2.4mm">بازار هدف و شاخص شناسایی</div>
+      <div style="font-weight:800;color:${dark ? "#fff" : "var(--navy)"};font-size:10pt;margin:4.5mm 0 2.4mm">بازار هدف و شاخص شناسایی</div>
       <div style="display:grid;grid-template-columns:repeat(${Math.max(2, cards.length)},1fr);gap:3mm">${cards.join("")}</div>`;
   } else {
     grid = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:2mm;align-items:start">
@@ -425,7 +444,8 @@ add((n) => toc(n));
 add((n) => introPage(n), { label: "درباره این سند", level: "" });
 add((n) => divider(n, { title: "دیجی‌پی در یک نگاه", en: ["Digipay", "at a glance"] }), { label: "دیجی‌پی در یک نگاه", level: "sec" });
 add((n) => glancePage(n), { label: "آمار، خدمات و دنیای کالا", level: "sub" });
-add((n) => networkPage(n), { label: "شبکه فروشگاه‌های طرف قرارداد", level: "sub" });
+add((n) => networkPage(n), { label: "شبکه پذیرندگان دیجی‌پی", level: "sub" });
+add((n) => merchantsPage(n), { label: "برخی از پذیرندگان طرف قرارداد", level: "sub" });
 add((n) => matrixPage(n), { label: "نقشه محصولات به تفکیک حوزه بانکداری", level: "sec" });
 
 sections.forEach((sec, si) => {

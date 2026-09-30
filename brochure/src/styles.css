@@ -342,3 +342,23 @@ table.matrix td.grp { padding: 1.1mm 3mm; }
 .toc { padding-top: 18mm; }
 table.kit { border-spacing: 0 1.3mm; font-size: 8pt; }
 table.kit td { padding: 1.7mm 3mm; line-height: 1.55; }
+
+/* ---------- merchants grid ---------- */
+.mgrid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4.2mm 3mm; margin-top: 8mm; }
+.mgrid .m { display: flex; flex-direction: column; align-items: center; gap: 1.6mm; }
+.mgrid .tile { width: 17mm; height: 17mm; border-radius: 3.6mm; background: var(--navy-deep); display: grid; place-items: center; box-shadow: inset 0 0 0 .25mm rgba(255,255,255,.08); }
+.mgrid .tile img { max-width: 11mm; max-height: 9.5mm; object-fit: contain; }
+.mgrid span { font-size: 6.8pt; color: rgba(255,255,255,.85); white-space: nowrap; }
+
+/* ---------- spacing polish ---------- */
+.steps { margin-top: 16mm; gap: 5mm; }
+.steps .step { padding: 8mm 6mm 7mm; }
+.step h5 { font-size: 11pt; margin: 4mm 0 2mm; }
+.step p { font-size: 9pt; line-height: 1.85; }
+.steps + div { margin-top: 14mm !important; }
+.idea { padding: 6mm; gap: 4.5mm; }
+.idea h5 { font-size: 10.5pt; margin-bottom: 1.8mm; }
+.idea p { font-size: 8.8pt; line-height: 1.85; }
+.vgrid { gap: 5mm; margin-top: 10mm; }
+.vcard { padding: 6.5mm 6mm; }
+.vcard p { font-size: 8.8pt; line-height: 1.9; }
