@@ -10,6 +10,8 @@ import * as C from "./src/content.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const { SEGMENTS, products, sections } = C;
+const SEG_ORDER = Object.keys(SEGMENTS);
+const bySeg = (arr) => [...arr].sort((x, y) => SEG_ORDER.indexOf(x.seg) - SEG_ORDER.indexOf(y.seg));
 
 // ---------------------------------------------------------------- helpers
 const iconCache = {};
@@ -170,11 +172,11 @@ function networkPage(n) {
   return `<section class="page navy" style="display:grid;grid-template-columns:1fr 1fr">
     <div style="position:relative;padding:18mm 16mm 20mm 14mm">
       <div class="h-title">برخی از فروشگاه‌های طرف قرارداد دیجی‌پی</div>
-      <p class="lead" style="font-size:9.5pt">شبکه‌ای از ویترین‌های آنلاین و حضوری در سراسر کشور؛ از دیجی‌کالا تا فروشگاه‌های تخصصی در هر شهر.</p>
+      <p class="lead" style="font-size:9.5pt">بیش از ۲۰ هزار پذیرنده آنلاین و حضوری در سراسر کشور؛ از دیجی‌کالا تا فروشگاه‌های تخصصی در هر شهر.</p>
       <img src="${img("merchants.jpg")}" style="width:100%;margin-top:7mm;border-radius:3mm" alt="">
     </div>
     <div style="position:relative;background:url(${img("map.jpg")}) center/cover">
-      <div class="statbox" style="top:auto;bottom:24mm"><div class="big">500</div><div class="lbl">هزار ویترین فروش آنلاین و حضوری</div></div>
+      <div class="statbox" style="top:auto;bottom:24mm"><div class="big">20K</div><div class="lbl">پذیرنده آنلاین و حضوری در شبکه دیجی‌پی</div></div>
     </div>
     ${footer(n, "half")}</section>`;
 }
@@ -221,7 +223,7 @@ function welfarePage(n, key) {
           <div class="txt"><h4>${c.t}</h4><ul>${c.items.map((i) => `<li>${icon("circle-check")}<span>${i}</span></li>`).join("")}</ul></div></div>`
         )
         .join("")}</div>
-      <div class="pill primary" style="margin-top:4mm">${icon("store")}ده‌ها هزار فروشگاه آنلاین و حضوری طرف قرارداد دیجی‌پی برای خرید کارکنان</div>
+      <div class="pill primary" style="margin-top:4mm">${icon("store")}بیش از ۲۰ هزار پذیرنده آنلاین و حضوری طرف قرارداد دیجی‌پی برای خرید کارکنان</div>
     </div>${footer(n)}</section>`;
 }
 
@@ -270,7 +272,7 @@ function productPageHtml(n, key) {
     const top = side
       ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8mm;align-items:start"><div>${featList}${groups}</div><div style="margin-top:5mm">${side}</div></div>`
       : groups || featList.replace('class="feat"', 'class="feat" style="grid-template-columns:1fr 1fr;column-gap:8mm"');
-    const cards = p.compactGuide.map((g) => {
+    const cards = bySeg(p.compactGuide).map((g) => {
       const s = SEGMENTS[g.seg];
       return `<div class="gcard" style="padding:3.2mm 4mm;gap:1.6mm;color:var(--ink)">
         <div class="ghead" style="padding-bottom:1.6mm">${icon(s.icon)}<span class="name" style="font-size:9.5pt">${s.fa}</span></div>
@@ -307,7 +309,7 @@ function productPageHtml(n, key) {
 function guidePage(n, key) {
   const p = products[key];
   const G = p.guide;
-  const cards = G.cards
+  const cards = bySeg(G.cards)
     .map((c) => {
       const s = SEGMENTS[c.seg];
       return `<div class="gcard">
@@ -357,7 +359,7 @@ function processPage(n) {
         .join("")}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:10mm">
         <div class="pill primary" style="padding:4.5mm 5mm">${icon("mail")}<div><b>ارجاع مشتری</b><div style="font-size:8.5pt;opacity:.85;margin-top:.5mm">نام مشتری، حوزه، محصول موردنظر و اطلاعات تماس را به <span class="en">${C.contact.email}</span> ارسال کنید.</div></div></div>
-        <div class="pill" style="padding:4.5mm 5mm">${icon("phone")}<div><b style="color:var(--navy)">تماس با تیم فروش سازمانی</b><div style="font-size:8.5pt;color:var(--ink-2);margin-top:.5mm"><span class="en">${C.contact.phone}</span> — داخلی‌ها: <span class="en">${C.contact.ext}</span></div></div></div>
+        <div class="pill" style="padding:4.5mm 5mm">${icon("phone")}<div><b style="color:var(--navy)">تماس با دیجی‌پی</b><div style="font-size:8.5pt;color:var(--ink-2);margin-top:.5mm"><span class="en">${C.contact.phone}</span> — داخلی‌ها: <span class="en">${C.contact.ext}</span></div></div></div>
       </div>
     </div>${footer(n)}</section>`;
 }
@@ -387,7 +389,7 @@ function clientsPage(n) {
   return `<section class="page" style="display:grid;grid-template-columns:1fr 1.25fr;align-items:center">
     <div style="padding:0 20mm 0 6mm">
       <div class="h-title" style="font-size:24pt;color:var(--bright);line-height:1.5">سازمان‌های بزرگی که<br>به ما اعتماد کرده‌اند</div>
-      <p class="lead">برخی از سازمان‌های طرف قرارداد دیجی‌پی در ارائه راهکارهای سازمانی</p>
+      <p class="lead">برخی از سازمان‌ها و شرکت‌های همکار دیجی‌پی</p>
     </div>
     <div style="padding:0 6mm 0 16mm"><img src="${img("clients.png")}" style="width:100%" alt=""></div>
     ${footer(n)}</section>`;
@@ -397,7 +399,7 @@ function contactPage(n) {
   return `<section class="page navy" style="display:grid;grid-template-columns:1fr 1fr">
     <div style="position:relative;padding:0 20mm;display:flex;flex-direction:column;justify-content:center">
       <div class="h-title" style="font-size:22pt">راه‌های ارتباطی</div>
-      <div class="h-sub">تیم فروش سازمانی دیجی‌پی</div>
+      <div class="h-sub">شرکت نوآوران پرداخت مجازی ایرانیان (دیجی‌پی)</div>
       <div class="contact-list">
         <div class="r">${icon("phone")}<span class="k">شماره تماس</span><span class="v">${C.contact.phone}</span></div>
         <div class="r">${icon("users")}<span class="k">داخلی‌ها</span><span class="v">${C.contact.ext}</span></div>
@@ -443,7 +445,7 @@ add((n) => toolkitPage(n), { label: "جعبه‌ابزار شعبه: از نشا
 add((n) => processPage(n), { label: "فرایند همکاری شعبه و دیجی‌پی", level: "sub" });
 add((n) => valuePage(n), { label: "ارزش همکاری برای بانک تجارت", level: "sub" });
 add((n) => capacityPage(n), { label: "ظرفیت‌های قابل توسعه", level: "sub" });
-add((n) => clientsPage(n), { label: "سازمان‌های طرف قرارداد", level: "sub" });
+add((n) => clientsPage(n), { label: "سازمان‌های همکار", level: "sub" });
 add((n) => contactPage(n), { label: "راه‌های ارتباطی", level: "sec" });
 add(() => backPage());
 
