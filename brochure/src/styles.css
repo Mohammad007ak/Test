@@ -319,3 +319,26 @@ table.kit td.seg-c .seg { white-space: nowrap; }
 .guide-grid.c2 .gcard .example { font-size: 8.6pt; }
 .guide-grid.c2 .gcard { gap: 3.4mm; padding: 5.5mm 6mm 5mm; }
 .steps .step { padding: 6mm 5mm; }
+
+/* ---------- v2 additions ---------- */
+.media.panel { position: relative; overflow: hidden; background: var(--navy); color: #fff; }
+.media.panel .panel-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -62%); width: 46mm; height: 46mm; color: #fff; }
+.media.panel .panel-icon .ic { width: 100%; height: 100%; }
+.media.panel .panel-icon svg { stroke-width: 1; }
+.media.panel .panel-en { position: absolute; right: 12mm; bottom: 26mm; font-family: "Outfit"; font-weight: 300; font-size: 30pt; line-height: 1.05; text-transform: uppercase; color: rgba(255,255,255,.22); direction: ltr; text-align: right; }
+.status { white-space: nowrap; margin-right: 3mm; font-size: 7.5pt; font-weight: 700; color: var(--bright); border: .3mm solid var(--bright); border-radius: 10mm; padding: .6mm 2.6mm; }
+.timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin-top: 7mm; position: relative; }
+.timeline::before { content: ""; position: absolute; top: 3.2mm; left: 0; right: 0; height: .4mm; background: var(--mist); }
+.timeline .tl { position: relative; padding-top: 0; }
+.timeline .y { display: inline-block; position: relative; background: var(--navy); color: #fff; font-weight: 800; font-size: 8.5pt; border-radius: 10mm; padding: .6mm 3.5mm; }
+.timeline .t { display: block; margin-top: 2mm; font-size: 7.6pt; color: var(--ink-2); line-height: 1.5; direction: ltr; text-align: right; }
+table.matrix { font-size: 8.2pt; margin-top: 4mm; }
+table.matrix th, table.matrix td { padding: 1.35mm 3mm; }
+table.matrix td.p small { display: inline; margin-right: 2mm; font-size: 7pt; }
+table.matrix td.grp { padding: 1.1mm 3mm; }
+.toc .row { padding: 1.5mm 0; font-size: 9pt; }
+.toc .row.sub { padding-top: 1mm; padding-bottom: 1mm; font-size: 8.2pt; }
+.toc h2 { margin-bottom: 7mm; }
+.toc { padding-top: 18mm; }
+table.kit { border-spacing: 0 1.3mm; font-size: 8pt; }
+table.kit td { padding: 1.7mm 3mm; line-height: 1.55; }

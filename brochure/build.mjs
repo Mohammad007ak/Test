@@ -149,7 +149,7 @@ function glancePage(n) {
       <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:12mm;margin-top:9mm">
         <div>
           <div class="h-title" style="font-size:13pt">خدمات اصلی دیجی‌پی</div>
-          <div class="svc-grid" style="grid-template-columns:repeat(3,1fr);row-gap:4mm">${G.services
+          <div class="svc-grid" style="grid-template-columns:repeat(3,1fr);row-gap:3mm">${G.services
             .map((s) => `<div class="svc">${icon(s.icon)}<span>${s.t}</span></div>`)
             .join("")}</div>
         </div>
@@ -162,6 +162,7 @@ function glancePage(n) {
           <div class="gcard" style="border:none;padding:0;margin-top:3mm"><div class="tags">${G.categories.map((c) => `<span>${c}</span>`).join("")}</div></div>
         </div>
       </div>
+      <div class="timeline">${G.timeline.map((t) => `<div class="tl"><span class="y">${t.y}</span><span class="t en">${t.t}</span></div>`).join("")}</div>
     </div>${footer(n)}</section>`;
 }
 
@@ -186,7 +187,7 @@ function matrixPage(n) {
       const rows = sec.products
         .map((k) => {
           const p = products[k];
-          return `<tr><td class="p">${p.title}<small>${p.matrixSub}</small></td>${Object.keys(SEGMENTS)
+          return `<tr><td class="p">${p.title} <small>${p.matrixSub}</small></td>${Object.keys(SEGMENTS)
             .map((s) => `<td>${dot(p.seg[s])}</td>`)
             .join("")}<td class="pg">${productPage[k] ?? ""}</td></tr>`;
         })
@@ -237,9 +238,15 @@ function offersHtml(p) {
 function productPageHtml(n, key) {
   const p = products[key];
   const dark = p.dark;
-  const media = `<div class="media" style="position:relative;overflow:hidden">
+  const media = p.photo
+    ? `<div class="media" style="position:relative;overflow:hidden">
       <img class="cover-img" src="${img(p.photo)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="">
       ${p.stat ? `<div class="statbox"><div class="big">${p.stat.big}</div><div class="lbl">${p.stat.lbl}</div></div>` : ""}
+    </div>`
+    : `<div class="media panel">
+      ${swoosh({ x: "-25mm", y: "95mm", w: 150, opacity: 0.07 })}
+      <div class="panel-icon">${icon(p.panel.icon)}</div>
+      <div class="panel-en">${p.panel.en.join("<br>")}</div>
     </div>`;
 
   const featList = p.features
@@ -259,7 +266,7 @@ function productPageHtml(n, key) {
   let grid;
   if (p.compactGuide) {
     // top row: features | offers ; below: target-market cards across the full width
-    const side = offersHtml(p) || pills;
+    const side = `${offersHtml(p)}${pills}${bankNote}`;
     const top = side
       ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8mm;align-items:start"><div>${featList}${groups}</div><div style="margin-top:5mm">${side}</div></div>`
       : groups || featList.replace('class="feat"', 'class="feat" style="grid-template-columns:1fr 1fr;column-gap:8mm"');
@@ -285,7 +292,7 @@ function productPageHtml(n, key) {
     <div class="body" style="position:relative;padding:15mm 16mm 20mm 10mm">
       ${dark ? "" : swoosh({ x: "120mm", y: "100mm", w: 120, color: "#15479e", opacity: 0.035 })}
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div class="title-row"><span class="num-badge">${faDigits(p.no)}</span><span class="h-title">${p.title}</span></div>
+        <div class="title-row"><span class="num-badge">${faDigits(p.no)}</span><span class="h-title">${p.title}</span>${p.status ? `<span class="status">${p.status}</span>` : ""}</div>
         <span class="en" style="font-size:9pt;color:${dark ? "rgba(255,255,255,.55)" : "var(--sky)"};padding-top:3mm">${p.en}</span>
       </div>
       <p class="lead" style="font-size:9.6pt">${p.lead}</p>
@@ -370,7 +377,7 @@ function capacityPage(n) {
     <div class="content">
       <div class="h-title">ظرفیت‌های قابل توسعه با بانک تجارت</div>
       <div class="h-sub">فرصت‌هایی که با اتکا به زیرساخت فعلی دیجی‌پی، امکان ارائه آن‌ها به مشتریان بانک تجارت وجود دارد و پیشنهاد می‌شود در قالب همکاری مشترک بررسی شود.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:9mm">${C.capacities
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:8mm">${C.capacities
         .map((c) => `<div class="idea">${icon(c.icon)}<div><h5>${c.t}</h5><p>${c.d}</p>${segChips(Object.fromEntries(c.segs.map((s) => [s, "full"])), { onlyActive: true })}</div></div>`)
         .join("")}</div>
     </div>${footer(n)}</section>`;
