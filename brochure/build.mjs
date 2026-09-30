@@ -173,7 +173,7 @@ function networkPage(n) {
   const pts = [
     { icon: "store", t: "خرید آنلاین و حضوری از پذیرندگان در سراسر کشور" },
     { icon: "calendar-clock", t: "پذیرش اعتبار BNPL و خرید اقساطی C-Credit" },
-    { icon: "qr-code", t: "پرداخت حضوری با دیجی‌کارت و QR Code" },
+    { icon: "qr-code", t: "پرداخت حضوری با دیجی‌کارت، QR Code و سولوشن Cashier" },
     { icon: "layers", t: "۱۵ میلیون تنوع کالا و خدمت در ۱۲ گروه اصلی" },
   ];
   return `<section class="page navy" style="display:grid;grid-template-columns:1fr 1fr">
