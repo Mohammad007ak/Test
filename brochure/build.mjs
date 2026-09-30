@@ -119,7 +119,7 @@ function introPage(n) {
     </div>${footer(n)}</section>`;
 }
 
-function divider(n, { title, en, desc, kicker, big, image }) {
+function divider(n, { title, en, desc, kicker, big, image, related }) {
   if (image) {
     return `<section class="page navy divider" style="display:grid;grid-template-columns:1fr 1fr">
       <div style="position:relative">
@@ -130,7 +130,8 @@ function divider(n, { title, en, desc, kicker, big, image }) {
   }
   return `<section class="page navy divider">
     ${swoosh({ x: "-20mm", y: "105mm", w: 170, opacity: 0.05 })}
-    <div class="title-block">${kicker ? `<div class="kicker">${kicker}</div>` : ""}<h2>${title}</h2><div class="ghost">${en.join("<br>")}</div>${desc ? `<p class="desc">${desc}</p>` : ""}</div>
+    <div class="title-block">${kicker ? `<div class="kicker">${kicker}</div>` : ""}<h2>${title}</h2><div class="ghost">${en.join("<br>")}</div>${desc ? `<p class="desc">${desc}</p>` : ""}
+      ${related && related.length ? `<div class="related"><div class="rk">سایر محصولات کاربردی برای این حوزه</div><div class="rl">${related.map((r) => `<span>${r.title}<i>${r.pg}</i></span>`).join("")}</div></div>` : ""}</div>
     ${big ? `<div class="bignum">${big}</div>` : ""}
     ${footer(n)}</section>`;
 }
@@ -449,7 +450,18 @@ add((n) => merchantsPage(n), { label: "برخی از پذیرندگان طرف �
 add((n) => matrixPage(n), { label: "نقشه محصولات به تفکیک حوزه بانکداری", level: "sec" });
 
 sections.forEach((sec, si) => {
-  add((n) => divider(n, { title: sec.title, en: sec.en, desc: sec.desc, kicker: `بخش ${faDigits(si + 1)}`, big: `0${si + 1}` }), { label: sec.title, level: "sec" });
+  add(
+    (n) =>
+      divider(n, {
+        title: sec.title, en: sec.en, desc: sec.desc, kicker: `بخش ${faDigits(si + 1)}`, big: `0${si + 1}`,
+        related: sections
+          .filter((o) => o.id !== sec.id)
+          .flatMap((o) => o.products)
+          .filter((k) => products[k].seg[sec.id] === "full")
+          .map((k) => ({ title: products[k].title, pg: productPage[k] })),
+      }),
+    { label: sec.title, level: "sec" }
+  );
   sec.products.forEach((k) => {
     const p = products[k];
     p.no = ++productNo;

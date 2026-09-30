@@ -362,3 +362,10 @@ table.kit td { padding: 1.7mm 3mm; line-height: 1.55; }
 .vgrid { gap: 5mm; margin-top: 10mm; }
 .vcard { padding: 6.5mm 6mm; }
 .vcard p { font-size: 8.8pt; line-height: 1.9; }
+
+/* ---------- divider cross-references ---------- */
+.divider .related { margin-top: 9mm; max-width: 150mm; margin-right: 0; margin-left: auto; }
+.divider .related .rk { font-size: 8.5pt; opacity: .7; margin-bottom: 2.5mm; }
+.divider .related .rl { display: flex; flex-wrap: wrap; gap: 2mm; justify-content: flex-start; }
+.divider .related span { display: inline-flex; align-items: center; gap: 2mm; font-size: 8.5pt; font-weight: 600; background: rgba(255,255,255,.1); border: .3mm solid rgba(255,255,255,.25); border-radius: 10mm; padding: 1.2mm 2mm 1.2mm 3.5mm; }
+.divider .related i { font-style: normal; font-family: "Outfit"; font-size: 7.5pt; background: #fff; color: var(--navy); border-radius: 10mm; padding: .2mm 2mm; }
