@@ -1,0 +1,52 @@
+{% macro field(f, values, errors) -%}
+<div class="{{ 'full' if f.type == 'textarea' }} {{ 'has-error' if errors.get(f.name) }}"
+     {% if f.kinds %}data-kinds="{{ f.kinds | join(' ') }}"{% endif %}>
+  {% set v = values.get(f.name, '') %}
+  {% if f.type == 'bool' %}
+    <label><input type="checkbox" name="{{ f.name }}" {{ 'checked' if v in ('on', 'True', 'true', True) }}> {{ f.label }}</label>
+  {% else %}
+    <label for="f-{{ f.name }}">{{ f.label }}{% if not f.required %} <span class="muted">(اختیاری)</span>{% endif %}</label>
+    <div class="field-row">
+    {% if f.type == 'select' %}
+      <select id="f-{{ f.name }}" name="{{ f.name }}" {{ 'required' if f.required }}>
+        {% for key, label in f.options.items() %}
+          <option value="{{ key }}" {{ 'selected' if v == key }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    {% elif f.type == 'textarea' %}
+      <textarea id="f-{{ f.name }}" name="{{ f.name }}">{{ v }}</textarea>
+    {% else %}
+      <input id="f-{{ f.name }}" name="{{ f.name }}" value="{{ v }}" autocomplete="off"
+        {% if f.type in ('money', 'decimal', 'percent') %}inputmode="decimal"
+        {% elif f.type == 'int' %}inputmode="numeric"
+        {% elif f.type == 'date' %}inputmode="numeric" placeholder="۱۴۰۵/۰۷/۰۹"{% endif %}
+        {{ 'required' if f.required }}>
+    {% endif %}
+    {% if f.unit %}<span class="unit">{{ f.unit }}</span>{% endif %}
+    </div>
+  {% endif %}
+  {% if errors.get(f.name) %}<div class="error">{{ errors[f.name] }}</div>
+  {% elif f.hint %}<div class="hint">{{ f.hint }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro entity_form(entity, fields, values, errors, edit_id) -%}
+<div class="card" id="form">
+  <h2>{{ T.edit if edit_id else T.add }} {{ entity.title }}</h2>
+  <form method="post" action="/{{ entity.slug }}{{ '/' ~ edit_id if edit_id }}" class="stack" data-kind-form>
+    {% for f in fields %}{{ field(f, values, errors) }}{% endfor %}
+    <div class="form-actions full">
+      <button type="submit">{{ T.save }}</button>
+      {% if edit_id %}<a class="btn ghost" href="/{{ entity.slug }}">{{ T.cancel }}</a>{% endif %}
+    </div>
+  </form>
+</div>
+{%- endmacro %}
+
+{% macro row_actions(slug, id) -%}
+<td class="actions">
+  <a href="/{{ slug }}/{{ id }}/edit#form">{{ T.edit }}</a>
+  <button class="link" hx-post="/{{ slug }}/{{ id }}/delete" hx-target="closest tr"
+          hx-swap="outerHTML" hx-confirm="{{ T.confirm_delete }}">{{ T.delete }}</button>
+</td>
+{%- endmacro %}

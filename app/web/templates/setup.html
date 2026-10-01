@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="card auth">
+  <h1>{{ T.setup_title }}</h1>
+  <p class="muted small">{{ T.setup_hint }}</p>
+  {% if error %}<div class="alert danger">{{ error }}</div>{% endif %}
+  <form method="post" action="/setup">
+    <label for="password">{{ T.password }}</label>
+    <input id="password" type="password" name="password" autocomplete="new-password" minlength="8" required autofocus>
+    <label for="password_repeat" style="margin-top:8px">{{ T.password_repeat }}</label>
+    <input id="password_repeat" type="password" name="password_repeat" autocomplete="new-password" minlength="8" required>
+    <p><button type="submit">{{ T.save }}</button></p>
+  </form>
+</div>
+{% endblock %}

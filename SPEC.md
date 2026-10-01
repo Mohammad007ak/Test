@@ -84,18 +84,18 @@ Oct 1, 2026 · @Mohammad
 
 ## مدل داده
 
-همه مبالغ به **ریال و به‌صورت عدد صحیح** (`BIGINT`) ذخیره می‌شوند و فقط در نمایش به تومان تبدیل می‌شوند. نرخ‌ها با `Decimal` محاسبه می‌شوند، نه `float`. زمان‌ها به UTC ذخیره و شمسی نمایش داده می‌شوند.
+همه مبالغ به **تومان و به‌صورت عدد صحیح** (`BIGINT`) ذخیره، محاسبه و نمایش داده می‌شوند. ورودی‌های ریالی (پیامک بانکی، منابع قیمت) در همان مرز ورودی به تومان تبدیل می‌شوند. نرخ‌ها با `Decimal` محاسبه می‌شوند، نه `float`. زمان‌ها به UTC ذخیره و شمسی نمایش داده می‌شوند.
 
 | جدول | فیلدهای کلیدی | نکته |
 | --- | --- | --- |
-| `assets` | `id`, `kind`, `name`, `quantity`, `unit`, `karat`, `price_key`, `manual_value_irr`, `manual_value_updated_at`, `note` | `kind` یکی از: `fx`, `gold`, `coin`, `stock`, `fund`, `car`, `real_estate`, `receivable`, `cash`, `other`؛ دارایی بازاری `price_key` دارد، بقیه `manual_value_irr` |
-| `accounts` | `id`, `bank`, `account_mask`, `label`, `balance_irr`, `balance_updated_at`, `balance_source` | فقط ۴ رقم آخر حساب یا کارت ذخیره می‌شود؛ `balance_source` یکی از `manual` یا `sms` |
-| `transactions` | `id`, `account_id`, `direction`, `amount_irr`, `balance_after_irr`, `occurred_at`, `category`, `description`, `sms_id` | `direction` یکی از `in` یا `out` |
+| `assets` | `id`, `kind`, `name`, `quantity`, `unit`, `karat`, `price_key`, `manual_value_toman`, `manual_value_updated_at`, `note` | `kind` یکی از: `fx`, `gold`, `coin`, `stock`, `fund`, `car`, `real_estate`, `receivable`, `cash`, `other`؛ دارایی بازاری `price_key` دارد، بقیه `manual_value_toman` |
+| `accounts` | `id`, `bank`, `account_mask`, `label`, `balance_toman`, `balance_updated_at`, `balance_source` | فقط ۴ رقم آخر حساب یا کارت ذخیره می‌شود؛ `balance_source` یکی از `manual` یا `sms` |
+| `transactions` | `id`, `account_id`, `direction`, `amount_toman`, `balance_after_toman`, `occurred_at`, `category`, `description`, `sms_id` | `direction` یکی از `in` یا `out` |
 | `sms_inbox` | `id`, `text_masked`, `received_at`, `content_hash`, `parse_status`, `parser`, `error` | `content_hash` برای حذف تکراری‌ها؛ `parse_status` یکی از `parsed`, `failed`, `ignored` |
-| `liabilities` | `id`, `kind`, `lender`, `principal_irr`, `installment_irr`, `installments_total`, `installments_paid`, `due_day`, `nominal_rate`, `start_date`, `note` | `kind` یکی از: `bank_loan`, `bnpl`, `credit_card`, `personal`, `other` |
-| `income_streams` | `id`, `name`, `amount_irr`, `frequency`, `active` | `frequency` یکی از: `monthly`, `quarterly`, `yearly` |
-| `price_quotes` | `key`, `price_irr`, `fetched_at`, `source` | کلیدها: `usd`, `eur`, `gold18_gram`, `coin_emami`, `coin_half`, `coin_quarter`, `stock:<نماد>`, `fund:<نماد>`؛ تاریخچه نگه داشته می‌شود |
-| `networth_snapshots` | `date`, `assets_irr`, `liabilities_irr`, `networth_irr`, `usd_rate`, `gold18_rate` | یک ردیف در روز؛ پایه نمودار روند |
+| `liabilities` | `id`, `kind`, `lender`, `principal_toman`, `installment_toman`, `installments_total`, `installments_paid`, `due_day`, `nominal_rate`, `start_date`, `note` | `kind` یکی از: `bank_loan`, `bnpl`, `credit_card`, `personal`, `other` |
+| `income_streams` | `id`, `name`, `amount_toman`, `frequency`, `active` | `frequency` یکی از: `monthly`, `quarterly`, `yearly` |
+| `price_quotes` | `key`, `price_toman`, `fetched_at`, `source` | کلیدها: `usd`, `eur`, `gold18_gram`, `coin_emami`, `coin_half`, `coin_quarter`, `stock:<نماد>`, `fund:<نماد>`؛ تاریخچه نگه داشته می‌شود |
+| `networth_snapshots` | `date`, `assets_toman`, `liabilities_toman`, `networth_toman`, `usd_rate`, `gold18_rate` | یک ردیف در روز؛ پایه نمودار روند |
 | `loan_analyses` | `id`, `inputs_json`, `result_json`, `created_at` | تاریخچه تحلیل‌های وام برای مقایسه |
 | `settings` | `key`, `value` | مثل آستانه نسبت اقساط به درآمد و نرخ تورم فرضی |
 
@@ -125,8 +125,8 @@ Oct 1, 2026 · @Mohammad
   "bank": "mellat",
   "account_mask": "1234",
   "direction": "out",
-  "amount_irr": 25000000,
-  "balance_after_irr": 812500000,
+  "amount_toman": 25000000,
+  "balance_after_toman": 812500000,
   "occurred_at": "2026-10-01T09:42:00+03:30",
   "description": "خرید",
   "confidence": 1.0
@@ -145,7 +145,7 @@ Oct 1, 2026 · @Mohammad
 | طلا | همان منبع، کلید `gold18_gram` | گرم × (عیار ÷ ۱۸) × قیمت گرم ۱۸ |
 | سکه امامی، نیم، ربع | همان منبع | تعداد × قیمت سکه |
 | سهام و صندوق | tsetmc.com | تعداد × آخرین قیمت (صندوق: NAV ابطال) |
-| خودرو، ملک، طلب، سایر | ورود دستی کاربر | `manual_value_irr` |
+| خودرو، ملک، طلب، سایر | ورود دستی کاربر | `manual_value_toman` |
 
 قواعد:
 
@@ -153,7 +153,7 @@ Oct 1, 2026 · @Mohammad
 - همیشه آخرین قیمت معتبر با زمان دریافتش نمایش داده می‌شود.
 - کاربر می‌تواند هر قیمتی را دستی بازنویسی کند.
 - ارزش دستی قدیمی‌تر از ۳۰ روز با هشدار «به‌روزرسانی کن» نشان داده می‌شود.
-- ثروت به دلار = ثروت ریالی ÷ `usd`؛ ثروت به طلا = ثروت ریالی ÷ `gold18_gram`.
+- ثروت به دلار = ثروت تومانی ÷ `usd`؛ ثروت به طلا = ثروت تومانی ÷ `gold18_gram`.
 
 شرایط استفاده هر منبع قبل از استفاده باید بررسی شود. در نسخه محصول، منبع داده رسمی یا شراکت داده‌ای جایگزین می‌شود.
 
@@ -205,7 +205,7 @@ i_{\mathrm{real}} = \frac{1+i_{\mathrm{eff}}}{1+\pi} - 1
 - **تاریخ:** ذخیره به UTC، نمایش شمسی با کتابخانه `jdatetime`؛ منطقه زمانی `Asia/Tehran`.
 - **اعداد ورودی:** ارقام فارسی، عربی و لاتین همه پذیرفته می‌شوند؛ جداکننده هزارگان حذف می‌شود.
 - **اعداد خروجی:** ارقام فارسی با جداکننده هزارگان؛ مبالغ بزرگ به شکل خلاصه هم (مثلاً «۸۱٫۲ میلیون تومان»).
-- **ریال و تومان:** پیامک‌ها و منابع قیمت معمولاً ریالی‌اند؛ ذخیره ریالی، نمایش پیش‌فرض تومانی. واحد هر ورودی در فرم صریح نوشته می‌شود.
+- **ریال و تومان:** مبنای همه مبالغ تومان است. پیامک‌ها و منابع قیمت معمولاً ریالی‌اند و هنگام ورود به تومان تبدیل می‌شوند. واحد هر ورودی در فرم صریح نوشته می‌شود.
 - **نویسه‌ها:** «ي» و «ك» عربی همیشه به «ی» و «ک» فارسی تبدیل می‌شوند.
 - **رابط:** `dir="rtl"`، فونت Vazirmatn به‌صورت محلی در پروژه (بدون CDN)، اولویت با نمایش موبایل.
 - **متن‌ها:** همه رشته‌های رابط در یک فایل متمرکز تا بعداً راحت ویرایش شوند.
@@ -263,7 +263,7 @@ i_{\mathrm{real}} = \frac{1+i_{\mathrm{eff}}}{1+\pi} - 1
 
 **قواعد کدنویسی:**
 
-- مبالغ همیشه `int` ریالی؛ نرخ‌ها `Decimal`؛ هرگز `float` برای پول.
+- مبالغ همیشه `int` تومانی؛ نرخ‌ها `Decimal`؛ هرگز `float` برای پول.
 - type hint کامل، تابع‌های کوچک، منطق مالی جدا از لایه وب.
 - منابع قیمت، پارسرهای بانکی و LLM هرکدام پشت یک رابط انتزاعی.
 - برای محاسبات (ارزش‌گذاری، IRR، نرمال‌سازی) اول تست بنویس، بعد کد.

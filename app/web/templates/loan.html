@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "_fields.html" import field %}
+{% block content %}
+<h1>{{ T.loan_title }}</h1>
+<p class="muted small">{{ T.loan_disclaimer }}</p>
+
+{% if result %}
+<div class="grid">
+  <div class="card stat hero">
+    <div class="label">{{ T.effective_rate }}</div>
+    <div class="value">{{ result.effective_rate | percent(2) }}</div>
+    {% if loan.nominal_rate is not none %}<div class="sub">{{ T.nominal_rate }}: {{ loan.nominal_rate | percent(2) }}</div>{% endif %}
+  </div>
+  <div class="card stat">
+    <div class="label">{{ T.real_rate.format(inflation=inflation | percent(0)) }}</div>
+    <div class="value {{ 'neg' if result.real_rate < 0 }}">{{ result.real_rate | percent(2) }}</div>
+  </div>
+  <div class="card stat">
+    <div class="label">{{ T.total_cost }}</div>
+    <div class="value">{{ result.total_cost_toman | toman_short }}</div>
+    <div class="sub">{{ T.net_received }}: {{ result.net_received_toman | toman_short }} · {{ T.total_paid }}: {{ result.total_paid_toman | toman_short }}</div>
+  </div>
+  <div class="card stat">
+    <div class="label">{{ T.installment_amount }}</div>
+    <div class="value">{{ result.installment_toman | toman_short }}</div>
+    <div class="sub">{{ result.installment_toman | toman }}</div>
+  </div>
+</div>
+
+{% if result.dti_after is not none %}
+<div class="card">
+  <div>{{ T.dti_before }}: <strong>{{ result.dti_before | percent }}</strong> ← {{ T.dti_after }}: <strong class="{{ 'neg' if result.dti_exceeds }}">{{ result.dti_after | percent }}</strong></div>
+  {% if result.dti_exceeds %}<div class="alert danger small" style="margin-top:8px">{{ T.dti_warning.format(threshold=threshold | percent(0)) }}</div>{% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>{{ T.cost_steps }}</h2>
+  <table>
+    {% for step in result.cost_steps %}
+    <tr><td>{{ step.label }}</td>
+      <td class="num">{% if not loop.first %}+{{ step.added_rate | percent(2) }}{% endif %}</td>
+      <td class="num"><strong>{{ step.effective_rate | percent(2) }}</strong></td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<details class="card">
+  <summary>{{ T.cash_flows }}</summary>
+  <table>
+    <thead><tr><th>{{ T.month }}</th><th class="num">{{ T.cash_flow }}</th></tr></thead>
+    {% for cf in result.cash_flows %}<tr><td>{{ loop.index0 | fa }}</td><td class="num">{{ cf }}</td></tr>{% endfor %}
+  </table>
+  <p class="muted small">ماهانه: {{ result.monthly_rate | percent(4) }} — در اکسل: =IRR(ستون بالا)</p>
+</details>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/loan" class="stack">
+    {% for f in fields %}{{ field(f, values, errors) }}{% endfor %}
+    <div class="form-actions full"><button type="submit">{{ T.analyze }}</button></div>
+  </form>
+  <p class="muted small">تورم فرضی {{ inflation | percent(0) }} و آستانه {{ threshold | percent(0) }} از <a href="/settings">تنظیمات</a> خوانده می‌شوند.</p>
+</div>
+
+{% if history %}
+<div class="card">
+  <h2>{{ T.history }}</h2>
+  <table>
+    {% for h in history %}
+    <tr><td class="small muted">{{ h.at | jalali }}</td><td class="num">{{ h.amount | toman_short }}</td>
+      <td>{{ h.months | fa }} ماه</td><td class="num">{{ h.rate | percent(2) }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

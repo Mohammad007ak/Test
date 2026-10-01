@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+{% set nw = networth.networth_toman %}
+<div class="grid">
+  <div class="card stat hero">
+    <div class="label">{{ T.networth }}</div>
+    <div class="value {{ 'neg' if nw < 0 }}">{{ nw | toman_short }}</div>
+    <div class="sub">{{ nw | toman }}</div>
+  </div>
+  <div class="card stat">
+    <div class="label">{{ T.in_usd }}</div>
+    {% if usd %}<div class="value">{{ networth.in_unit(usd) | num }} $</div>
+    <div class="sub">نرخ: {{ usd | toman }}</div>
+    {% else %}<div class="sub"><a href="/prices">{{ T.no_unit_price.format(name='دلار') }}</a></div>{% endif %}
+  </div>
+  <div class="card stat">
+    <div class="label">{{ T.in_gold }}</div>
+    {% if gold %}<div class="value">{{ networth.in_unit(gold) | num(1) }} گرم</div>
+    <div class="sub">نرخ: {{ gold | toman }}</div>
+    {% else %}<div class="sub"><a href="/prices">{{ T.no_unit_price.format(name='طلا') }}</a></div>{% endif %}
+  </div>
+</div>
+
+{% if p.unvalued_assets %}
+<div class="alert warn">{{ T.needs_price_warning.format(count=p.unvalued_assets | length | fa) }}
+  {% for line in p.unvalued_assets %}<a href="/prices">{{ line.asset.name }}</a>{{ '، ' if not loop.last }}{% endfor %}</div>
+{% endif %}
+{% if p.stale_assets %}
+<div class="alert warn">{{ T.stale_warning }}
+  {% for line in p.stale_assets %}<a href="/assets/{{ line.asset.id }}/edit#form">{{ line.asset.name }}</a>{{ '، ' if not loop.last }}{% endfor %}</div>
+{% endif %}
+
+<div class="grid">
+  <div class="card stat"><div class="label">{{ T.total_assets }}</div><div class="value">{{ p.assets_toman | toman_short }}</div></div>
+  <div class="card stat"><div class="label">{{ T.total_liabilities }}</div><div class="value">{{ p.liabilities_toman | toman_short }}</div></div>
+</div>
+
+<div class="card">
+  <h2>{{ T.cashflow }}</h2>
+  <div class="grid">
+    <div class="stat"><div class="label">{{ T.monthly_income }}</div><div class="value">{{ p.monthly_income_toman | toman_short }}</div></div>
+    <div class="stat"><div class="label">{{ T.monthly_installments }}</div><div class="value">{{ p.monthly_installments_toman | toman_short }}</div></div>
+    <div class="stat"><div class="label">{{ T.free_cash }}</div><div class="value {{ 'neg' if p.monthly_free_cash_toman < 0 }}">{{ p.monthly_free_cash_toman | toman_short }}</div></div>
+  </div>
+  <div style="margin-top:12px">
+    <div class="label small muted">{{ T.dti }}: <strong>{{ p.dti | percent }}</strong> <span class="muted">(آستانه {{ threshold | percent(0) }})</span></div>
+    {% if p.dti is not none %}
+    <div class="bar {{ 'over' if dti_high }}"><span style="width: {{ [p.dti * 100, 100] | min }}%"></span></div>
+    {% endif %}
+    {% if dti_high %}<div class="alert danger small" style="margin-top:8px">{{ T.dti_warning.format(threshold=threshold | percent(0)) }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>{{ T.composition }}</h2>
+    {% if p.composition %}<div class="chart-box"><canvas id="composition"></canvas></div>
+    {% else %}<p class="muted">{{ T.empty }}</p>{% endif %}
+  </div>
+  <div class="card">
+    <h2>{{ T.trend }}</h2>
+    {% if has_trend %}<div class="chart-box"><canvas id="trend"></canvas></div>
+    {% else %}<p class="muted small">{{ T.trend_empty }}</p>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/chart.min.js"></script>
+<script>
+(function () {
+  var data = {{ chart_json | safe }};
+  var css = getComputedStyle(document.documentElement);
+  var text = css.getPropertyValue("--muted").trim();
+  Chart.defaults.font.family = "Vazirmatn";
+  Chart.defaults.color = text;
+  var fa = new Intl.NumberFormat("fa-IR", { notation: "compact", maximumFractionDigits: 1 });
+  var palette = ["#0f766e", "#2563eb", "#d97706", "#7c3aed", "#db2777", "#059669", "#64748b", "#ea580c", "#0891b2", "#a16207", "#4b5563"];
+  var c = document.getElementById("composition");
+  if (c) new Chart(c, {
+    type: "doughnut",
+    data: { labels: data.composition.labels, datasets: [{ data: data.composition.values, backgroundColor: palette, borderWidth: 0 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom", rtl: true },
+      tooltip: { rtl: true, callbacks: { label: function (ctx) { return ctx.label + ": " + fa.format(ctx.raw) + " تومان"; } } } } }
+  });
+  var t = document.getElementById("trend");
+  if (t) new Chart(t, {
+    type: "line",
+    data: { labels: data.trend.labels, datasets: [{ data: data.trend.values, borderColor: palette[0], tension: .25, pointRadius: 2 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false },
+      tooltip: { rtl: true, callbacks: { label: function (ctx) { return fa.format(ctx.raw) + " تومان"; } } } },
+      scales: { y: { ticks: { callback: function (v) { return fa.format(v); } } } } }
+  });
+})();
+</script>
+{% endblock %}

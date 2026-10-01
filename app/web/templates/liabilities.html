@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_fields.html" import entity_form, row_actions %}
+{% block content %}
+<h1>{{ s.NAV.liabilities }}</h1>
+<div class="card">
+  {% if p.liabilities %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>طرف حساب</th><th>نوع</th><th class="num">{{ T.installment_short }}</th><th>{{ T.remaining_installments }}</th><th class="num">{{ T.remaining }}</th><th></th></tr></thead>
+    <tbody>
+    {% for line in p.liabilities %}{% set l = line.liability %}
+      <tr>
+        <td>{{ l.lender }}{% if l.due_day %}<div class="muted small">سررسید روز {{ l.due_day | fa }}</div>{% endif %}</td>
+        <td>{{ s.LIABILITY_KINDS[l.kind] }}</td>
+        <td class="num">{{ line.monthly_toman | toman if line.monthly_toman else '—' }}</td>
+        <td>{% if l.installments_total %}{{ line.remaining_count | fa }} از {{ l.installments_total | fa }}{% else %}—{% endif %}</td>
+        <td class="num">{{ line.remaining_toman | toman }}</td>
+        {{ row_actions('liabilities', l.id) }}
+      </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr><th colspan="2">جمع</th><th class="num">{{ p.monthly_installments_toman | toman }}</th><th></th><th class="num">{{ p.liabilities_toman | toman }}</th><th></th></tr></tfoot>
+  </table></div>
+  {% else %}<p class="muted">{{ T.empty }}</p>{% endif %}
+</div>
+{{ entity_form(entity, fields, values, errors, edit_id) }}
+{% endblock %}

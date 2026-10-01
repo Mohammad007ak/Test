@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_fields.html" import entity_form, row_actions %}
+{% block content %}
+<h1>{{ s.NAV.assets }}</h1>
+<div class="card">
+  {% if p.assets %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>نام</th><th>نوع</th><th>مقدار</th><th class="num">{{ T.value }}</th><th></th></tr></thead>
+    <tbody>
+    {% for line in p.assets %}{% set a = line.asset %}
+      <tr>
+        <td>{{ a.name }}{% if a.note %}<div class="muted small">{{ a.note }}</div>{% endif %}</td>
+        <td>{{ s.ASSET_KINDS[a.kind] }}{% if a.kind == 'gold' %} <span class="muted small">{{ a.karat | fa }} عیار</span>{% endif %}
+          {% if a.price_key %}<div class="muted small">{{ s.PRICE_KEYS.get(a.price_key, a.price_key) }}</div>{% endif %}</td>
+        <td>{% if a.quantity is not none %}{{ a.quantity | dec }}{% endif %}</td>
+        <td class="num">
+          {% if line.value_toman is none %}<span class="alert warn small">{{ T.needs_price }}</span>
+          {% else %}{{ line.value_toman | toman }}{% endif %}
+          {% if line.price %}<div class="muted small">قیمت: {{ line.price.fetched_at | jalali }}</div>{% endif %}
+          {% if line.stale %}<div class="error">⚠ به‌روزرسانی کن</div>{% endif %}
+        </td>
+        {{ row_actions('assets', a.id) }}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ T.empty }}</p>{% endif %}
+</div>
+{{ entity_form(entity, fields, values, errors, edit_id) }}
+{% endblock %}
