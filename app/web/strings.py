@@ -581,6 +581,8 @@ ASSISTANT_SUGGESTIONS: tuple[str, ...] = (
 T.update({
     "assistant": "از وزیر بپرس",
     "assistant_teaser": "درباره پولت سؤال کن؛ وزیر با عددهای واقعی خودت جواب می‌دهد.",
+    "assistant_hello": "سلام، من وزیرم",
+    "assistant_subtitle": "وزیر مالی تو",
     "assistant_placeholder": "سؤالت را بنویس…",
     "assistant_send": "بپرس",
     "assistant_thinking": "وزیر دارد حساب می‌کند…",

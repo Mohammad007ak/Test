@@ -1,6 +1,7 @@
 """Jinja2 با فیلترهای فارسی (تومان، درصد، تاریخ شمسی)."""
 
 import hashlib
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from functools import cache
@@ -10,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 import jdatetime
 from fastapi.templating import Jinja2Templates
-from markupsafe import Markup
+from markupsafe import Markup, escape
 
 from app.domain.money import (
     format_number,
@@ -76,6 +77,55 @@ def sparkline(values: list[int], width: int = 300, height: int = 56) -> tuple[st
     return line, area
 
 
+_BOLD = re.compile(r"\*\*(.+?)\*\*")
+_BULLET = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+")
+_GROUPED = re.compile(r"(?<=\d),(?=\d{3})")
+
+
+def _inline(text: str) -> str:
+    text = str(escape(text))
+    text = _GROUPED.sub("٬", text)
+    text = _BOLD.sub(r"<strong>\1</strong>", text)
+    return to_persian_digits(text)
+
+
+def chat_markdown(text: str) -> Markup:
+    """جواب مدل (مارک‌داون ساده) → HTML امن: پاراگراف، فهرست، پررنگ و ارقام فارسی.
+
+    اول همه چیز escape می‌شود، پس هیچ تگی از مدل اجرا نمی‌شود.
+    """
+    parts: list[str] = []
+    items: list[str] = []
+    ordered = False
+
+    def flush() -> None:
+        nonlocal items
+        if items:
+            tag = "ol" if ordered else "ul"
+            parts.append(f"<{tag}>" + "".join(f"<li>{i}</li>" for i in items) + f"</{tag}>")
+            items = []
+
+    for line in text.strip().splitlines():
+        stripped = line.strip()
+        if not stripped:
+            flush()
+            continue
+        if _BULLET.match(stripped):
+            is_ordered = stripped[0].isdigit()
+            if items and is_ordered != ordered:
+                flush()
+            ordered = is_ordered
+            items.append(_inline(_BULLET.sub("", stripped)))
+            continue
+        flush()
+        if stripped.startswith("#"):
+            parts.append(f"<p><strong>{_inline(stripped.lstrip('#').strip())}</strong></p>")
+        else:
+            parts.append(f"<p>{_inline(stripped)}</p>")
+    flush()
+    return Markup("".join(parts))
+
+
 def _amount(toman: int) -> Markup:
     number, unit = toman_short_parts(toman)
     return Markup('<span class="amt">{}<small>{}</small></span>').format(number, unit)
@@ -110,5 +160,6 @@ templates.env.filters.update(
     fa=lambda v: to_persian_digits(str(v)),
     dec=plain_decimal,
     jalali_long=jalali_long,
+    chat_md=chat_markdown,
 )
 templates.env.globals.update(s=strings, T=strings.T, static=static_url)

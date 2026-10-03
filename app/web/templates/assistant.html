@@ -1,36 +1,53 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon %}
+{% set chat_mode = configured and consented %}
+{% block shell %}
+{% if chat_mode %}
+<div id="chat-app" class="chat-app" data-error="{{ T.request_failed }}">
+  <header class="chat-head">
+    <a href="/" class="icon-btn chat-back" aria-label="{{ T.close }}">{{ icon("chev") }}</a>
+    <img class="chat-head-logo" src="{{ static('logo.svg') }}" alt="">
+    <div class="chat-head-title"><strong>{{ s.APP_NAME }}</strong><span><span class="online-dot"></span>{{ T.assistant_subtitle }}</span></div>
+    {% if history %}<form method="post" action="/assistant/clear"><button type="submit" class="icon-btn" aria-label="{{ T.assistant_clear }}">{{ icon("trash") }}</button></form>{% endif %}
+  </header>
+
+  <div id="chat-scroll" class="chat-scroll">
+    <div id="chat-log" class="chat-log" aria-live="polite">
+      {% if not history %}
+      <div class="chat-hello">
+        <img src="{{ static('logo.svg') }}" alt="">
+        <h2>{{ T.assistant_hello }}</h2>
+        <p>{{ T.assistant_teaser }}</p>
+        <div class="chat-starters">
+          {% for q in suggestions %}<button type="button" class="starter" data-ask="{{ q }}">{{ icon("spark") }}<span>{{ q }}</span></button>{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% for m in history %}
+        {% if m.role == "user" %}<div class="chat-row me"><div class="chat-msg me">{{ m.content }}</div></div>
+        {% else %}<div class="chat-row vazir"><div class="chat-msg vazir">{{ m.content | chat_md }}</div></div>{% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <form id="chat-form" class="chat-composer" method="post" action="/assistant" hx-boost="false">
+    <textarea name="question" rows="1" maxlength="1000" placeholder="{{ T.assistant_placeholder }}" aria-label="{{ T.assistant_placeholder }}" required></textarea>
+    <button type="submit" class="chat-send" aria-label="{{ T.assistant_send }}" disabled>{{ icon("up") }}</button>
+  </form>
+  <p class="chat-disclaimer">{{ T.assistant_disclaimer }}</p>
+</div>
+{% else %}{{ super() }}{% endif %}
+{% endblock %}
+
 {% block content %}
 {% if not configured %}
   <div class="empty"><img class="brand-logo" src="{{ static('logo.svg') }}" alt=""><p>{{ T.assistant_not_configured }}</p></div>
-{% elif not consented %}
+{% else %}
   <section class="card assistant-consent">
     <img class="brand-logo" src="{{ static('logo.svg') }}" alt="">
     <h2>{{ T.assistant_consent_title }}</h2>
     <p class="muted">{{ T.assistant_consent_body }}</p>
     <form method="post" action="/assistant/consent"><button class="btn wide" type="submit">{{ T.assistant_consent_button }}</button></form>
   </section>
-{% else %}
-  <div id="chat-log" class="chat-log" aria-live="polite">
-    <div class="bubble-row"><img class="msg-avatar" src="{{ static('logo.svg') }}" alt="">
-      <div class="msg vazir">{{ T.assistant_teaser }}</div></div>
-    {% for m in history %}
-      {% if m.role == "user" %}<div class="bubble-row me"><div class="msg me">{{ m.content }}</div></div>
-      {% else %}<div class="bubble-row"><img class="msg-avatar" src="{{ static('logo.svg') }}" alt=""><div class="msg vazir">{{ m.content }}</div></div>{% endif %}
-    {% endfor %}
-  </div>
-  <div class="chat-suggestions">
-    {% for q in suggestions %}
-    <button type="button" class="chip-btn" hx-post="/assistant" hx-vals='{{ {"question": q} | tojson }}' hx-target="#chat-log" hx-swap="beforeend" hx-indicator="#thinking">{{ q }}</button>
-    {% endfor %}
-  </div>
-  <div id="thinking" class="thinking htmx-indicator"><span class="pulse"></span>{{ T.assistant_thinking }}</div>
-  <form class="chat-form" hx-post="/assistant" hx-target="#chat-log" hx-swap="beforeend" hx-indicator="#thinking"
-        hx-disabled-elt="find button" hx-on::after-request="if (event.detail.elt === this) this.reset()">
-    <input name="question" maxlength="1000" autocomplete="off" placeholder="{{ T.assistant_placeholder }}" aria-label="{{ T.assistant_placeholder }}" required>
-    <button type="submit" class="btn" aria-label="{{ T.assistant_send }}">{{ icon("spark") }}</button>
-  </form>
-  <p class="disclaimer">{{ T.assistant_disclaimer }}</p>
-  {% if history %}<form method="post" action="/assistant/clear" class="chat-clear"><button type="submit" class="auth-link as-button">{{ T.assistant_clear }}</button></form>{% endif %}
 {% endif %}
 {% endblock %}

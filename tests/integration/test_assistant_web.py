@@ -57,7 +57,7 @@ def test_needs_consent_first(client: TestClient) -> None:
 def test_answer_uses_real_numbers_and_history_persists(client: TestClient, model: Model) -> None:
     client.post("/assistant/consent")
     reply = client.post("/assistant", data={"question": "ثروت خالصم چقدره؟"})
-    assert reply.status_code == 200 and "7000000" in reply.text
+    assert reply.status_code == 200 and "۷۰۰۰۰۰۰" in reply.text  # ارقام فارسی
     assert "ثروت خالصم چقدره؟" in client.get("/assistant").text  # تاریخچه ماند
     client.post("/assistant", data={"question": "و دارایی‌هام؟"})
     roles = [m["role"] for m in model.seen[-2]]

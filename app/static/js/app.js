@@ -252,6 +252,87 @@
     applyTheme();
   });
 
+  // ---------- چت «از وزیر بپرس»: پرسش فوری روی صفحه، نقطه‌های «در حال نوشتن»، اسکرول خودکار ----------
+  function initChat(app) {
+    if (app.dataset.ready) return;
+    app.dataset.ready = "1";
+    var scroll = app.querySelector("#chat-scroll");
+    var log = app.querySelector("#chat-log");
+    var form = app.querySelector("#chat-form");
+    var box = form.querySelector("textarea");
+    var send = form.querySelector(".chat-send");
+    var busy = false;
+
+    function toBottom(smooth) {
+      scroll.scrollTo({ top: scroll.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+    }
+    function grow() {
+      box.style.height = "auto";
+      box.style.height = Math.min(box.scrollHeight, 140) + "px";
+      send.disabled = busy || !box.value.trim();
+    }
+    function row(who, child) {
+      var r = document.createElement("div");
+      r.className = "chat-row " + who;
+      r.appendChild(child);
+      log.appendChild(r);
+      return r;
+    }
+    function message(who, text) {
+      var m = document.createElement("div");
+      m.className = "chat-msg " + who;
+      m.textContent = text;
+      return row(who, m);
+    }
+    function ask(text) {
+      if (!text || busy) return;
+      busy = true;
+      var hello = log.querySelector(".chat-hello");
+      if (hello) hello.remove();
+      message("me", text);
+      var dots = document.createElement("div");
+      dots.className = "chat-msg vazir typing";
+      dots.innerHTML = "<i></i><i></i><i></i>";
+      var typing = row("vazir", dots);
+      box.value = "";
+      grow();
+      toBottom(true);
+      var data = new FormData();
+      data.append("question", text);
+      fetch(form.action, { method: "POST", body: data, credentials: "same-origin",
+                           headers: { "HX-Request": "true" } })
+        .then(function (r) {
+          if (r.redirected) { window.location.href = r.url; return null; }
+          return r.text();
+        })
+        .catch(function () { return ""; })
+        .then(function (html) {
+          if (html === null) return;
+          typing.remove();
+          if (html && html.trim()) log.insertAdjacentHTML("beforeend", html);
+          else message("vazir error", app.getAttribute("data-error"));
+          busy = false;
+          grow();
+          toBottom(true);
+        });
+    }
+
+    form.addEventListener("submit", function (e) { e.preventDefault(); ask(box.value.trim()); });
+    box.addEventListener("input", grow);
+    box.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing && window.matchMedia("(hover: hover)").matches) {
+        e.preventDefault();
+        ask(box.value.trim());
+      }
+    });
+    app.addEventListener("click", function (e) {
+      var starter = e.target.closest("[data-ask]");
+      if (starter) ask(starter.getAttribute("data-ask"));
+    });
+    grow();
+    toBottom(false);
+  }
+
   // ---------- راه‌اندازی هر محتوای تازه (بار اول و پس از هر جابه‌جایی htmx) ----------
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));
@@ -270,6 +351,7 @@
     });
     applyTheme();
     all(root, "canvas[data-trend]").forEach(drawTrend);
+    all(root, "#chat-app").forEach(initChat);
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduced && !(root.id === "live")) all(root, "[data-countup]").forEach(countUp);
   }

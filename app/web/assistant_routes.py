@@ -46,8 +46,8 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
 
     def turn(request: Request, question: str, answer: str, error: bool = False,
              status: int = 200) -> Response:
-        return page(request, "_chat_turn.html", {
-            "question": question, "answer": answer, "error": error}, status)
+        """فقط حباب جواب؛ پرسش را صفحه همان لحظه ارسال نشان داده است."""
+        return page(request, "_chat_answer.html", {"answer": answer, "error": error}, status)
 
     @app.get("/assistant", response_class=HTMLResponse, dependencies=[LoggedIn])
     def assistant(request: Request, db: Db) -> Response:
