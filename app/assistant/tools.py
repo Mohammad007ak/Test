@@ -171,15 +171,19 @@ _RUNNERS: dict[str, Callable[..., dict[str, Any]]] = {
 
 def run_tool(db: Session, name: str, arguments: str) -> str:
     """اجرای یک ابزار با آرگومان JSON مدل؛ خطا به‌صورت {"error": ...} برمی‌گردد تا مدل اصلاح کند."""
-    try:
-        runner = _RUNNERS[name]
-    except KeyError:
+    from app.assistant import actions
+
+    action_names = {t["function"]["name"] for t in actions.ACTION_TOOLS}
+    if name not in _RUNNERS and name not in action_names:
         return json.dumps({"error": f"ابزار ناشناخته: {name}"}, ensure_ascii=False)
     try:
         args = json.loads(arguments or "{}")
         if not isinstance(args, dict):
             raise ToolError("آرگومان‌ها باید یک شیء JSON باشد")
-        result = runner(db, **args)
+        if name in action_names:
+            result = actions.propose(db, name, args)
+        else:
+            result = _RUNNERS[name](db, **args)
     except (ToolError, ValueError, TypeError) as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
     return json.dumps(result, ensure_ascii=False, default=str)
@@ -222,3 +226,12 @@ TOOLS: list[dict[str, Any]] = [
            "blocked_months": {"type": "integer"}},
           ["amount_toman", "months"]),
 ]
+
+
+def _with_actions() -> None:
+    from app.assistant.actions import ACTION_TOOLS
+
+    TOOLS.extend(ACTION_TOOLS)
+
+
+_with_actions()

@@ -27,6 +27,7 @@
         {% if m.role == "user" %}<div class="chat-row me"><div class="chat-msg me">{{ m.content }}</div></div>
         {% else %}<div class="chat-row vazir"><div class="chat-msg vazir">{{ m.content | chat_md }}</div></div>{% endif %}
       {% endfor %}
+      {% for action_id, action in pending %}<div class="chat-row vazir">{% include "_action_card.html" %}</div>{% endfor %}
     </div>
   </div>
 

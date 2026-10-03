@@ -613,3 +613,11 @@ T.update({
                                    "عددها را در صفحه‌های اپ هم ببین.",
     "assistant_disclaimer_open": "پیشنهادهای وزیر خودکار است؛ تصمیم نهایی و ریسکش با خودت است.",
 })
+T.update({
+    "action_title": "ثبت {title}",
+    "action_confirm": "ثبت کن",
+    "action_cancel": "نه",
+    "action_saved": "{title} ثبت شد",
+    "action_cancelled": "ثبت {title} لغو شد",
+    "action_failed": "ثبت نشد: {errors}",
+})

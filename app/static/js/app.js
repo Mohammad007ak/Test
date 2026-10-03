@@ -328,6 +328,19 @@
     app.addEventListener("click", function (e) {
       var starter = e.target.closest("[data-ask]");
       if (starter) ask(starter.getAttribute("data-ask"));
+      var button = e.target.closest("[data-action-do]");
+      if (!button) return;
+      var card = button.closest("[data-action]");
+      card.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      fetch("/assistant/actions/" + card.getAttribute("data-action") + "/" +
+            button.getAttribute("data-action-do"),
+            { method: "POST", credentials: "same-origin", headers: { "HX-Request": "true" } })
+        .then(function (r) { return r.ok || r.status === 400 ? r.text() : ""; })
+        .catch(function () { return ""; })
+        .then(function (html) {
+          if (html) card.outerHTML = html;
+          else card.querySelectorAll("button").forEach(function (b) { b.disabled = false; });
+        });
     });
     grow();
     toBottom(false);

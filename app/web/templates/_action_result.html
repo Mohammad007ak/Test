@@ -1,0 +1,2 @@
+{% from "_ui.html" import icon %}
+<div class="action-card done {{ 'cancelled' if cancelled }}">{{ icon("close" if cancelled else "up") }}<span>{{ message }}</span></div>

@@ -5,10 +5,11 @@ from datetime import datetime
 from functools import partial
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 
 from app import services
+from app.assistant import actions
 from app.assistant.agent import AssistantError, ask
 from app.assistant.client import ChatModel
 from app.assistant.tools import run_tool
@@ -16,6 +17,7 @@ from app.domain.money import to_persian_digits
 from app.domain.spending import TEHRAN
 from app.web import strings as s
 from app.web.common import Db, LoggedIn, done, page, read_form
+from app.web.forms import FormError
 
 CONSENT_KEY = "assistant_consent"
 HISTORY_KEY = "assistant_history"
@@ -44,12 +46,14 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
             "consented": services.get_user_setting(db, CONSENT_KEY) == "yes",
             "history": _history(db), "suggestions": s.ASSISTANT_SUGGESTIONS[mode],
             "disclaimer": s.T[f"assistant_disclaimer_{mode}"],
+            "pending": list(actions.pending(db).items()),
         }, status)
 
     def turn(request: Request, question: str, answer: str, error: bool = False,
-             status: int = 200) -> Response:
-        """فقط حباب جواب؛ پرسش را صفحه همان لحظه ارسال نشان داده است."""
-        return page(request, "_chat_answer.html", {"answer": answer, "error": error}, status)
+             status: int = 200, new_actions: list[Any] | None = None) -> Response:
+        """فقط حباب جواب (و کارت‌های تأیید ثبت)؛ پرسش را صفحه همان لحظه نشان داده است."""
+        return page(request, "_chat_answer.html", {
+            "answer": answer, "error": error, "actions": new_actions or []}, status)
 
     @app.get("/assistant", response_class=HTMLResponse, dependencies=[LoggedIn])
     def assistant(request: Request, db: Db) -> Response:
@@ -80,6 +84,7 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
             return turn(request, text, s.T["assistant_limit"].format(limit=limit),
                         error=True, status=429)
         history = _history(db)
+        before = set(actions.pending(db))
         try:
             answer = ask(model, partial(run_tool, db), text, history, mode)
         except AssistantError as exc:
@@ -89,7 +94,26 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
                    {"role": "assistant", "content": answer.text}][-HISTORY_TURNS * 2:]
         services.set_user_setting(db, HISTORY_KEY, json.dumps(history, ensure_ascii=False))
         db.commit()
-        return turn(request, text, answer.text)
+        new = [(k, v) for k, v in actions.pending(db).items() if k not in before]
+        return turn(request, text, answer.text, new_actions=new)
+
+    @app.post("/assistant/actions/{action_id}/{verb}", response_class=HTMLResponse,
+              dependencies=[LoggedIn])
+    def action(request: Request, action_id: str, verb: str, db: Db) -> Response:
+        if verb not in ("confirm", "cancel"):
+            raise HTTPException(404)
+        try:
+            result = (actions.confirm if verb == "confirm" else actions.cancel)(db, action_id)
+        except FormError as exc:
+            db.rollback()
+            message = s.T["action_failed"].format(errors="، ".join(exc.errors.values()))
+            return page(request, "_action_result.html", {"message": message,
+                                                         "cancelled": True}, 400)
+        if result is None:
+            raise HTTPException(404)
+        key = "action_saved" if verb == "confirm" else "action_cancelled"
+        return page(request, "_action_result.html", {
+            "message": s.T[key].format(title=result["title"]), "cancelled": verb == "cancel"})
 
 
 def default_chat_model(url: str, key: str, model: str) -> Any:

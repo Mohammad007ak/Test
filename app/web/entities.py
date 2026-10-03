@@ -3,9 +3,9 @@
 from typing import Any
 
 from app.domain.normalize import normalize_chars, normalize_digits
-from app.models import Account, Asset, ExpenseStream, IncomeStream, Liability
+from app.models import Account, Asset, ExpenseStream, IncomeStream, Liability, utcnow
 from app.web import forms
-from app.web.forms import Entity
+from app.web.forms import Entity, FormError
 
 _UNITS = {"fx": None, "gold": "gram", "coin": "piece", "stock": "share", "fund": "unit",
           "crypto": "coin"}
@@ -92,3 +92,21 @@ ENTITIES: dict[str, Entity] = {
     "incomes": Entity("incomes", "درآمد", forms.INCOME_FIELDS, IncomeStream),
     "bills": Entity("bills", "هزینه ثابت", forms.BILL_FIELDS, ExpenseStream),
 }
+
+
+def build_entity(entity: Entity, data: dict[str, str], obj: Any | None = None) -> Any:
+    """ورودی فرم (یا دستیار) → شیء مدل با همان اعتبارسنجی فرم‌ها؛ خطا FormError است."""
+    values = forms.parse_form(entity.fields, data)
+    errors = entity.validate(values)
+    if errors:
+        raise FormError(errors)
+    values = entity.to_model(values)
+    obj = obj or entity.model()
+    if isinstance(obj, Asset) and values.get("manual_value_toman") != obj.manual_value_toman:
+        obj.manual_value_updated_at = utcnow() if values.get("manual_value_toman") else None
+    if entity.slug == "accounts" and values["balance_toman"] != obj.balance_toman:
+        obj.balance_updated_at = utcnow()
+        obj.balance_source = "manual"
+    for name, value in values.items():
+        setattr(obj, name, value)
+    return obj

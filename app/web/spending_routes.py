@@ -63,6 +63,19 @@ def _full_form(entity: Entity) -> bool:
     return any(f.name == "amount_toman" for f in entity.fields)
 
 
+def apply_transaction(entity: Entity, data: dict[str, str], tx: Transaction) -> None:
+    """فرم خرج یا واریز → تراکنش؛ فرم پیامکی فقط دسته و شرح را عوض می‌کند."""
+    values = forms.parse_form(entity.fields, data)
+    tx.category = values["category"]
+    tx.description = values["description"] or None
+    if _full_form(entity):
+        if values["amount_toman"] <= 0:
+            raise FormError({"amount_toman": s.T["invalid_number"]})
+        tx.amount_toman = values["amount_toman"]
+        day = values["occurred_on"] or datetime.now(TEHRAN).date()
+        tx.occurred_at = _noon_tehran(day)
+
+
 def _noon_tehran(day: date) -> datetime:
     return datetime.combine(day, time(12), tzinfo=TEHRAN)
 
@@ -108,17 +121,6 @@ def _register_flow(app: FastAPI, flow: Flow) -> None:
             raise HTTPException(404)
         return tx
 
-    def _apply(entity: Entity, data: dict[str, str], tx: Transaction) -> None:
-        values = forms.parse_form(entity.fields, data)
-        tx.category = values["category"]
-        tx.description = values["description"] or None
-        if _full_form(entity):
-            if values["amount_toman"] <= 0:
-                raise FormError({"amount_toman": s.T["invalid_number"]})
-            tx.amount_toman = values["amount_toman"]
-            day = values["occurred_on"] or datetime.now(TEHRAN).date()
-            tx.occurred_at = _noon_tehran(day)
-
     def listing(request: Request, db: Db) -> Response:
         year, month = parse_month(request.query_params.get("m"))
         result = services.month_spending(db, year, month, flow.direction)
@@ -142,7 +144,7 @@ def _register_flow(app: FastAPI, flow: Flow) -> None:
         tx = Transaction(direction=flow.direction, account_id=None)
         entity = entity_of(db)
         try:
-            _apply(entity, data, tx)
+            apply_transaction(entity, data, tx)
         except FormError as exc:
             return _form(request, entity, data, exc.errors, status=400)
         db.add(tx)
@@ -159,7 +161,7 @@ def _register_flow(app: FastAPI, flow: Flow) -> None:
         entity = entity_of(db, tx)
         data = await read_form(request)
         try:
-            _apply(entity, data, tx)
+            apply_transaction(entity, data, tx)
         except FormError as exc:
             db.rollback()
             return _form(request, entity, data, exc.errors, edit_id=tx_id, status=400)

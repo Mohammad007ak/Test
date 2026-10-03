@@ -1,1 +1,2 @@
 <div class="chat-row vazir"><div class="chat-msg vazir {{ 'error' if error }}">{{ answer | chat_md }}</div></div>
+{% for action_id, action in actions %}<div class="chat-row vazir">{% include "_action_card.html" %}</div>{% endfor %}

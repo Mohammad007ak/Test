@@ -1,0 +1,9 @@
+{% from "_ui.html" import icon %}
+<div class="action-card" data-action="{{ action_id }}">
+  <div class="action-head">{{ icon("plus") }}<strong>{{ T.action_title.format(title=action.title) }}</strong></div>
+  <dl>{% for label, value in action.summary %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl>
+  <div class="action-buttons">
+    <button type="button" class="btn" data-action-do="confirm">{{ T.action_confirm }}</button>
+    <button type="button" class="btn ghost" data-action-do="cancel">{{ T.action_cancel }}</button>
+  </div>
+</div>

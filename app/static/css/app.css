@@ -1331,3 +1331,21 @@ details[open].group, details[open].disclosure { border-color: color-mix(in srgb,
 .chat-send:not(:disabled):active { transform: scale(.9); }
 .chat-disclaimer { text-align: center; color: var(--muted); font-size: .7rem;
   padding: 6px 16px calc(var(--safe-b) + 8px); }
+
+/* کارت تأیید ثبت در چت */
+.action-card { width: 86%; padding: 12px 14px; border-radius: 18px; background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--hairline)); box-shadow: var(--shadow);
+  animation: rise .35s var(--ease) both; }
+.action-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--accent); }
+.action-head .i { width: 18px; height: 18px; }
+.action-card dl { margin: 0 0 10px; display: flex; flex-direction: column; gap: 4px; }
+.action-card dl div { display: flex; justify-content: space-between; gap: 12px; font-size: .86rem; }
+.action-card dt { color: var(--muted); }
+.action-card dd { margin: 0; font-weight: 700; text-align: left; }
+.action-buttons { display: flex; gap: 8px; }
+.action-buttons .btn { flex: 1; min-height: 42px; }
+.action-buttons .btn.ghost { flex: 0 0 auto; padding: 0 18px; }
+.action-card.done { display: flex; align-items: center; gap: 8px; width: auto; font-weight: 700;
+  color: var(--accent); padding: 10px 14px; }
+.action-card.done .i { width: 18px; height: 18px; }
+.action-card.cancelled { color: var(--muted); border-color: var(--hairline); }

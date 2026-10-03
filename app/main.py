@@ -39,14 +39,13 @@ from app.web.assistant_routes import default_chat_model, register_assistant_rout
 from app.web.auth_routes import register_auth_routes
 from app.web.common import (
     Db,
-    Form,
     LoggedIn,
     done,
     page,
     read_form,
     wants_fragment,
 )
-from app.web.entities import ENTITIES
+from app.web.entities import ENTITIES, build_entity
 from app.web.forms import Field, FormError
 from app.web.render import jalali, sparkline, tehran_today
 from app.web.sms_routes import queue_count, register_sms_routes
@@ -262,22 +261,6 @@ def _register_routes(app: FastAPI) -> None:
                 found[prefix].append(name)
         return {prefix: sorted(names) for prefix, names in found.items()}
 
-    def _save(entity: forms.Entity, data: Form, obj: Any | None) -> Any:
-        values = forms.parse_form(entity.fields, data)
-        errors = entity.validate(values)
-        if errors:
-            raise FormError(errors)
-        values = entity.to_model(values)
-        obj = obj or entity.model()
-        if isinstance(obj, Asset) and values.get("manual_value_toman") != obj.manual_value_toman:
-            obj.manual_value_updated_at = utcnow() if values.get("manual_value_toman") else None
-        if entity.slug == "accounts" and values["balance_toman"] != obj.balance_toman:
-            obj.balance_updated_at = utcnow()
-            obj.balance_source = "manual"
-        for name, value in values.items():
-            setattr(obj, name, value)
-        return obj
-
     @app.get("/{slug}", response_class=HTMLResponse, dependencies=[LoggedIn])
     def entity_list(request: Request, slug: str, db: Db) -> Response:
         entity = _entity(slug)
@@ -296,7 +279,7 @@ def _register_routes(app: FastAPI) -> None:
         entity = _entity(slug)
         data = await read_form(request)
         try:
-            db.add(_save(entity, data, None))
+            db.add(build_entity(entity, data, None))
         except FormError as exc:
             return _form(request, db, entity, data, exc.errors, status=400)
         db.commit()
@@ -314,7 +297,7 @@ def _register_routes(app: FastAPI) -> None:
         obj = db.get(entity.model, obj_id) or _not_found()
         data = await read_form(request)
         try:
-            _save(entity, data, obj)
+            build_entity(entity, data, obj)
         except FormError as exc:
             db.rollback()
             return _form(request, db, entity, data, exc.errors, edit_id=obj_id, status=400)
