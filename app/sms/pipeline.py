@@ -32,14 +32,26 @@ def _validate(parsed: ParsedSms) -> str | None:
         return f"جهت نامعتبر: {parsed.direction}"
     if parsed.amount_rial <= 0:
         return "مبلغ نامعتبر"
-    if not (len(parsed.account_mask) == 4 and parsed.account_mask.isdigit()):
+    if parsed.account_mask and not (len(parsed.account_mask) == 4
+                                    and parsed.account_mask.isdigit()):
         return "۴ رقم آخر حساب نامعتبر"
     if not parsed.bank:
         return "بانک مشخص نیست"
     return None
 
 
+class AmbiguousAccount(ValueError):
+    pass
+
+
 def _account(session: Session, bank: str, mask: str) -> Account:
+    if not mask:  # پیامک بدون شماره حساب (مثل بلو): تنها حساب همان بانک
+        accounts = session.scalars(select(Account).where(Account.bank == bank)).all()
+        if len(accounts) > 1:
+            raise AmbiguousAccount("این بانک چند حساب دارد و پیامک شماره حساب ندارد؛ "
+                                   "حساب را از صف بررسی مشخص کن")
+        if accounts:
+            return accounts[0]
     account = session.scalars(select(Account).where(Account.bank == bank,
                                                     Account.account_mask == mask)).first()
     if account is None:
@@ -114,7 +126,12 @@ def ingest(session: Session, raw_text: str, received_at: datetime,
         sms.error = " · ".join(errors) or NO_PARSER
         session.commit()
         return IngestResult("failed", sms)
-    transaction = _apply(session, sms, parsed, parser_name)
+    try:
+        transaction = _apply(session, sms, parsed, parser_name)
+    except AmbiguousAccount as exc:
+        sms.parse_status, sms.parser, sms.error = "failed", parser_name, str(exc)
+        session.commit()
+        return IngestResult("failed", sms)
     session.commit()
     return IngestResult("parsed", sms, transaction)
 

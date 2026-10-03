@@ -52,13 +52,13 @@ def _asset_from_model(asset: Asset) -> dict[str, Any]:
 
 def _account_validate(values: dict[str, Any]) -> dict[str, str]:
     mask = normalize_digits(values.get("account_mask") or "")
-    if not (len(mask) == 4 and mask.isascii() and mask.isdigit()):
+    if mask and not (len(mask) == 4 and mask.isascii() and mask.isdigit()):
         return {"account_mask": forms.s.T["mask_hint"]}
     return {}
 
 
 def _account_to_model(values: dict[str, Any]) -> dict[str, Any]:
-    values["account_mask"] = normalize_digits(values["account_mask"])
+    values["account_mask"] = normalize_digits(values["account_mask"] or "")
     return values
 
 

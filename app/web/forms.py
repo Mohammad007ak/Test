@@ -154,7 +154,7 @@ ASSET_FIELDS = [
 
 ACCOUNT_FIELDS = [
     Field("bank", "بانک", "select", required=True, options=s.BANKS),
-    Field("account_mask", "۴ رقم آخر", "text", required=True, hint=s.T["mask_hint"]),
+    Field("account_mask", "۴ رقم آخر", "text", hint=s.T["mask_hint"]),
     Field("label", "عنوان", "text"),
     Field("balance_toman", "موجودی", "money", required=True),
 ]

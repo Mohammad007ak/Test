@@ -6,8 +6,9 @@
 """
 
 from app.sms.parsers.base import BankParser, ParsedSms
+from app.sms.parsers.blu import BluParser
 from app.sms.parsers.saman import SamanParser
 
-PARSERS: list[BankParser] = [SamanParser()]
+PARSERS: list[BankParser] = [SamanParser(), BluParser()]
 
 __all__ = ["PARSERS", "BankParser", "ParsedSms"]
