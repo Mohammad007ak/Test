@@ -36,12 +36,14 @@ def _used_today(db: Db) -> tuple[str, int]:
     return today, usage.get("count", 0) if usage.get("date") == today else 0
 
 
-def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit: int) -> None:
+def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit: int,
+                              mode: str = "strict") -> None:
     def chat_page(request: Request, db: Db, status: int = 200) -> Response:
         return page(request, "assistant.html", {
             "active": "assistant", "configured": model is not None,
             "consented": services.get_user_setting(db, CONSENT_KEY) == "yes",
-            "history": _history(db), "suggestions": s.ASSISTANT_SUGGESTIONS,
+            "history": _history(db), "suggestions": s.ASSISTANT_SUGGESTIONS[mode],
+            "disclaimer": s.T[f"assistant_disclaimer_{mode}"],
         }, status)
 
     def turn(request: Request, question: str, answer: str, error: bool = False,
@@ -79,7 +81,7 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
                         error=True, status=429)
         history = _history(db)
         try:
-            answer = ask(model, partial(run_tool, db), text, history)
+            answer = ask(model, partial(run_tool, db), text, history, mode)
         except AssistantError as exc:
             return turn(request, text, str(exc), error=True, status=200)
         services.set_user_setting(db, USAGE_KEY, json.dumps({"date": today, "count": used + 1}))

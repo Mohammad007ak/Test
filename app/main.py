@@ -23,6 +23,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app import price_refresh, services
 from app.adapters.prices import AlanchandSource, PriceSource, ShakhesbanSource
 from app.assistant.client import ChatModel
+from app.assistant.prompt import MODES
 from app.config import Settings, get_settings
 from app.db import Base, make_engine, make_session_factory
 from app.domain.loan import LoanInput, analyze_loan
@@ -148,7 +149,8 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     if chat_model == "default":
         chat_model = default_chat_model(settings.llm_url, settings.llm_key, settings.llm_model)
     register_auth_routes(app, settings, otp)
-    register_assistant_routes(app, chat_model, settings.llm_daily_limit)
+    register_assistant_routes(app, chat_model, settings.llm_daily_limit,
+                              settings.llm_mode if settings.llm_mode in MODES else "strict")
     register_sms_routes(app)
     register_spending_routes(app)
     register_extra_routes(app)

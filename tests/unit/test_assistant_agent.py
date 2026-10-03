@@ -80,3 +80,19 @@ def test_provider_error_becomes_friendly_error() -> None:
 
     with pytest.raises(AssistantError):
         OpenAICompatClient("https://x/v1", "K", "m", post=post).complete([], [])
+
+
+def test_open_mode_allows_recommendations_strict_mode_does_not() -> None:
+    from app.assistant.prompt import system_prompt
+
+    open_prompt, strict_prompt = system_prompt("open"), system_prompt("strict")
+    assert "پیشنهاد مشخص" in open_prompt and "سرمایه‌گذاری" in open_prompt
+    assert "توصیه سرمایه‌گذاری نیستی" in strict_prompt
+    for prompt in (open_prompt, strict_prompt):
+        assert "فقط از ابزارها" in prompt  # عدد کاربر هیچ‌وقت حدسی نیست
+
+
+def test_mode_is_used_in_conversation() -> None:
+    model = ScriptedModel({"role": "assistant", "content": "باشه"})
+    ask(model, fake_runner([]), "طلا بخرم؟", history=[], mode="open")
+    assert "پیشنهاد مشخص" in model.calls[0][0]["content"]

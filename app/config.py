@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     llm_key: str = ""
     llm_model: str = ""
     llm_daily_limit: int = 30  # سؤال در روز برای هر کاربر
+    # open = پیشنهاد مشخص مالی و سرمایه‌گذاری (محیط آزمایشی)؛ strict = فقط تحلیل (بدون مجوز مشاوره)
+    llm_mode: str = "open"
 
 
 @lru_cache

@@ -34,7 +34,7 @@
     <textarea name="question" rows="1" maxlength="1000" placeholder="{{ T.assistant_placeholder }}" aria-label="{{ T.assistant_placeholder }}" required></textarea>
     <button type="submit" class="chat-send" aria-label="{{ T.assistant_send }}" disabled>{{ icon("up") }}</button>
   </form>
-  <p class="chat-disclaimer">{{ T.assistant_disclaimer }}</p>
+  <p class="chat-disclaimer">{{ disclaimer }}</p>
 </div>
 {% else %}{{ super() }}{% endif %}
 {% endblock %}
