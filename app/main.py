@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy import select
@@ -194,6 +194,16 @@ def _register_routes(app: FastAPI) -> None:
             "empty": empty,
             "spending": services.month_spending(db, *parse_month(None)),
         })
+
+    # آیفون و مرورگرها این‌ها را بی‌اجازه از ریشه سایت می‌خواهند
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon() -> FileResponse:
+        return FileResponse(STATIC_DIR / "favicon.png", media_type="image/png")
+
+    @app.get("/apple-touch-icon.png", include_in_schema=False)
+    @app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
+    def touch_icon() -> FileResponse:
+        return FileResponse(STATIC_DIR / "apple-touch-icon.png", media_type="image/png")
 
     @app.get("/more", response_class=HTMLResponse, dependencies=[LoggedIn])
     def more(request: Request, db: Db) -> Response:

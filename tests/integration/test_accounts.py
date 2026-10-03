@@ -169,3 +169,9 @@ class TestOwnerClaim:
             assert "ماشین قدیمی" not in stranger.get("/assets").text
             register(owner, PHONE)
             assert "ماشین قدیمی" in owner.get("/assets").text
+
+
+def test_root_icons_for_browsers_and_iphone(client: TestClient) -> None:
+    for url in ("/favicon.ico", "/apple-touch-icon.png", "/apple-touch-icon-precomposed.png"):
+        response = client.get(url)
+        assert response.status_code == 200 and response.headers["content-type"] == "image/png"
