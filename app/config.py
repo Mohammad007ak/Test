@@ -11,12 +11,18 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/finassist.db"
     secret_key: str = ""
     secure_cookies: bool = False
-    setup_code: str = ""  # روی سرور: بدون این کد کسی نمی‌تواند اولین رمز را بگذارد
     timezone: str = "Asia/Tehran"
     price_refresh_seconds: int = 30  # وقتی اپ باز است؛ ۰ = دریافت خودکار خاموش
     price_idle_minutes: int = 60  # وقتی کسی اپ را نگاه نمی‌کند
-    sms_token: str = ""  # توکن اندپوینت پیامک؛ خالی = ساخته و در دیتابیس نگه داشته می‌شود
-    sms_file: str = ""  # مسیر فایل پیامک‌ها (مثلاً در iCloud Drive) که هر دقیقه خوانده می‌شود
+    # کد تأیید پیامکی (ثبت‌نام و بازیابی رمز) از sms.ir؛ خالی = کد فقط در لاگ سرور چاپ می‌شود
+    smsir_api_key: str = ""
+    smsir_template_id: int = 0
+    smsir_param: str = "CODE"  # نام متغیر کد در الگوی پیامک
+    otp_daily_limit: int = 300  # سقف کل پیامک کد در ۲۴ ساعت (سپر هزینه)
+    # فقط این شماره‌ها ثبت‌نام می‌کنند (با کاما جدا)؛ خالی = ثبت‌نام برای همه باز
+    signup_allowlist: str = ""
+    # صاحب داده‌های نسخه تک‌کاربره؛ با ثبت‌نام این شماره همان داده‌ها را تحویل می‌گیرد
+    owner_phone: str = ""
 
 
 @lru_cache

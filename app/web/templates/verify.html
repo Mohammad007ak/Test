@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block shell %}
+<main class="auth">
+  <div class="auth-logo">{{ icon("card") }}</div>
+  <h1>{{ T.verify_title }}</h1>
+  <p class="muted">{{ T.verify_hint.format(phone=masked) }}</p>
+  {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
+  <form method="post" action="/verify" class="form">
+    <div class="input"><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" dir="ltr" class="code-input" placeholder="------" aria-label="{{ T.code }}" required autofocus></div>
+    <div class="input"><input id="password" type="password" name="password" autocomplete="new-password" minlength="8" placeholder="{{ T.choose_password if purpose == 'signup' else T.new_password }}" aria-label="{{ T.password }}" required></div>
+    <div class="input"><input id="password_repeat" type="password" name="password_repeat" autocomplete="new-password" minlength="8" placeholder="{{ T.password_repeat }}" aria-label="{{ T.password_repeat }}" required></div>
+    <button type="submit" class="btn wide">{{ T.finish_signup if purpose == "signup" else T.finish_reset }}</button>
+  </form>
+  <form method="post" action="/verify/resend"><button type="submit" class="auth-link as-button">{{ T.resend }}</button></form>
+  <p class="auth-alt"><a href="{{ '/signup' if purpose == 'signup' else '/forgot' }}">{{ T.change_phone }}</a></p>
+</main>
+{% endblock %}

@@ -8,12 +8,12 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db import Base, make_engine, make_session_factory
 from app.models import Account, Transaction
 from app.sms.parsers import PARSERS
 from app.sms.parsers.blu import BluParser
 from app.sms.pipeline import ingest
 from app.sms.text import mask_numbers, prepare
+from tests.unit.conftest import memory_session
 
 NOW = datetime(2026, 10, 3, 9, 0, tzinfo=UTC)
 
@@ -55,9 +55,7 @@ def test_not_other_banks() -> None:
 
 @pytest.fixture
 def session() -> Iterator[Session]:
-    engine = make_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    with make_session_factory(engine)() as s:
+    with memory_session() as s:
         yield s
 
 

@@ -10,13 +10,11 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.adapters.prices import PriceSource
 from app.price_refresh import due_sources, refresh_all
-from app.sms.importer import import_new_from_file
 
 log = logging.getLogger("finassist.prices")
 
@@ -86,24 +84,3 @@ async def run_adaptive(job: Callable[[], bool], activity: Activity) -> None:
                 await asyncio.wait_for(activity.wake.wait(), timeout=remaining)
             except TimeoutError:
                 pass
-
-
-SMS_FILE_SECONDS = 60
-sms_log = logging.getLogger("finassist.sms")
-
-
-def import_sms_file(factory: sessionmaker[Session], path: Path) -> None:
-    """بخش تازه فایل پیامک‌ها (Shortcuts → iCloud Drive) را وارد می‌کند."""
-    with factory() as session:
-        counts = import_new_from_file(session, path)
-    if counts and any(counts.values()):
-        sms_log.info("پیامک: %s", counts)
-
-
-async def run_every(job: Callable[[], None], seconds: float) -> None:
-    while True:
-        try:
-            await asyncio.to_thread(job)
-        except Exception:
-            log.exception("کار زمان‌بندی‌شده شکست خورد")
-        await asyncio.sleep(seconds)

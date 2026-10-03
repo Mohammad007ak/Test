@@ -10,20 +10,22 @@ from sqlalchemy import select
 from app.config import Settings
 from app.main import create_app
 from app.models import Account, ExpenseStream, Transaction
-
-PASSWORD = "very-secret-1"
+from tests.integration.conftest import FakeSender, register
 
 
 @pytest.fixture
 def client(tmp_path: Path) -> Iterator[TestClient]:
     settings = Settings(database_url=f"sqlite:///{tmp_path / 't.db'}", secret_key="t")
-    with TestClient(create_app(settings, price_sources=[], schedule=False)) as c:
-        c.post("/setup", data={"password": PASSWORD, "password_repeat": PASSWORD})
+    app = create_app(settings, price_sources=[], schedule=False, otp_sender=FakeSender())
+    with TestClient(app) as c:
+        register(c)
         yield c
 
 
 def db(client: TestClient):  # type: ignore[no-untyped-def]
-    return client.app.state.session_factory()  # type: ignore[attr-defined]
+    from app.db import user_session
+
+    return user_session(client.app.state.session_factory(), 1)  # type: ignore[attr-defined]
 
 
 def this_month() -> str:

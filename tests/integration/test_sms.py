@@ -8,23 +8,31 @@ from sqlalchemy import select
 from app.config import Settings
 from app.main import create_app
 from app.models import Account, SmsInbox, Transaction
+from tests.integration.conftest import FakeSender, register
 
-PASSWORD = "very-secret-1"
-TOKEN = "test-token-123"
+TOKEN = "test-token-1234567890"
 SMS = "بانک ملت\nکارت 6037991234561234\nبرداشت 2,500,000 ریال\nمانده 81,250,000"
 
 
 @pytest.fixture
 def client(tmp_path: Path) -> Iterator[TestClient]:
-    settings = Settings(database_url=f"sqlite:///{tmp_path / 't.db'}", secret_key="t",
-                        sms_token=TOKEN)
-    with TestClient(create_app(settings, price_sources=[], schedule=False)) as c:
-        c.post("/setup", data={"password": PASSWORD, "password_repeat": PASSWORD})
+    settings = Settings(database_url=f"sqlite:///{tmp_path / 't.db'}", secret_key="t")
+    app = create_app(settings, price_sources=[], schedule=False, otp_sender=FakeSender())
+    with TestClient(app) as c:
+        register(c)
+        with db(c) as s:
+            from app.services import set_user_setting
+            from app.web.sms_routes import TOKEN_KEY
+
+            set_user_setting(s, TOKEN_KEY, TOKEN)
+            s.commit()
         yield c
 
 
 def db(client: TestClient):  # type: ignore[no-untyped-def]
-    return client.app.state.session_factory()  # type: ignore[attr-defined]
+    from app.db import user_session
+
+    return user_session(client.app.state.session_factory(), 1)  # type: ignore[attr-defined]
 
 
 class TestApi:

@@ -57,15 +57,13 @@ def test_parsian_day_in_order() -> None:
     """واریز ۱۳:۴۸ و برداشت ۱۸:۰۱ همان روز: مانده نهایی مال برداشت است، به هر ترتیبی برسند."""
     from sqlalchemy import select
 
-    from app.db import Base, make_engine, make_session_factory
     from app.models import Account
     from app.sms.pipeline import ingest
+    from tests.unit.conftest import memory_session
 
     deposit = (FIXTURES / "parsian" / "deposit.txt").read_text("utf-8")
     withdrawal = (FIXTURES / "parsian" / "withdrawal.txt").read_text("utf-8")
-    engine = make_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    with make_session_factory(engine)() as session:
+    with memory_session() as session:
         ingest(session, withdrawal, RECEIVED)
         ingest(session, deposit, RECEIVED)  # دیرتر رسید ولی قدیمی‌تر است
         account = session.scalars(select(Account)).one()

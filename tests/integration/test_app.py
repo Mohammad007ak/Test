@@ -9,8 +9,7 @@ from app.adapters.prices import FetchedQuote, PriceSourceError
 from app.config import Settings
 from app.main import create_app
 from app.models import Account, Asset, Liability, LoanAnalysis, NetworthSnapshot, PriceQuote
-
-PASSWORD = "very-secret-1"
+from tests.integration.conftest import FakeSender, register
 
 
 class StubSource:
@@ -34,62 +33,25 @@ class StubSource:
 @pytest.fixture
 def app_client(tmp_path: Path) -> Iterator[TestClient]:
     settings = Settings(database_url=f"sqlite:///{tmp_path / 'test.db'}", secret_key="test")
-    app = create_app(settings, migrate=True, price_sources=[StubSource()], schedule=False)
+    app = create_app(settings, migrate=True, price_sources=[StubSource()], schedule=False,
+                     otp_sender=FakeSender())
     with TestClient(app) as client:
         yield client
 
 
 @pytest.fixture
 def client(app_client: TestClient) -> TestClient:
-    response = app_client.post("/setup", data={"password": PASSWORD, "password_repeat": PASSWORD},
-                               follow_redirects=False)
-    assert response.status_code == 303
+    register(app_client)
     return app_client
 
 
 def db(client: TestClient):  # type: ignore[no-untyped-def]
-    return client.app.state.session_factory()  # type: ignore[attr-defined]
+    from app.db import user_session
+
+    return user_session(client.app.state.session_factory(), 1)  # type: ignore[attr-defined]
 
 
 class TestAuth:
-    def test_first_run_redirects_to_setup(self, app_client: TestClient) -> None:
-        assert app_client.get("/", follow_redirects=False).headers["location"] == "/login"
-        assert app_client.get("/login", follow_redirects=False).headers["location"] == "/setup"
-
-    def test_setup_rejects_short_password(self, app_client: TestClient) -> None:
-        response = app_client.post("/setup", data={"password": "short", "password_repeat": "short"})
-        assert response.status_code == 400
-
-    def test_setup_only_once(self, client: TestClient) -> None:
-        response = client.post("/setup", data={"password": "other-pass-1",
-                                               "password_repeat": "other-pass-1"},
-                               follow_redirects=False)
-        assert response.headers["location"] == "/login"
-
-    def test_logout_then_login(self, client: TestClient) -> None:
-        client.post("/logout")
-        assert client.get("/assets", follow_redirects=False).status_code == 303
-        assert client.post("/login", data={"password": "wrong-pass"}).status_code == 401
-        client.post("/login", data={"password": PASSWORD})
-        assert client.get("/assets").status_code == 200
-
-    def test_login_locked_after_repeated_failures(self, client: TestClient) -> None:
-        client.post("/logout")
-        for _ in range(5):
-            assert client.post("/login", data={"password": "wrong-pass"}).status_code == 401
-        assert client.post("/login", data={"password": PASSWORD}).status_code == 429
-
-    def test_setup_code_required_when_configured(self, tmp_path: Path) -> None:
-        settings = Settings(database_url=f"sqlite:///{tmp_path / 'c.db'}", secret_key="t",
-                            setup_code="open-sesame")
-        app = create_app(settings, migrate=True, price_sources=[], schedule=False)
-        with TestClient(app) as c:
-            form = {"password": PASSWORD, "password_repeat": PASSWORD}
-            assert c.post("/setup", data=form).status_code == 403
-            response = c.post("/setup", data=form | {"setup_code": "open-sesame"},
-                              follow_redirects=False)
-            assert response.status_code == 303
-
     def test_htmx_request_gets_redirect_header(self, app_client: TestClient) -> None:
         response = app_client.post("/assets/1/delete", headers={"HX-Request": "true"})
         assert response.status_code == 401
@@ -361,33 +323,81 @@ def test_migration_removes_databourse_quotes(tmp_path: Path) -> None:
     assert sources == ["alanchand"]
 
 
-def test_migration_0005_keeps_transactions_and_allows_manual(tmp_path: Path) -> None:
-    from alembic import command
-    from alembic.autogenerate import compare_metadata
+def _alembic(tmp_path: Path):  # type: ignore[no-untyped-def]
     from alembic.config import Config
-    from alembic.migration import MigrationContext
-    from sqlalchemy import create_engine, text
-
-    from app.db import Base
+    from sqlalchemy import create_engine
 
     root = Path(__file__).resolve().parents[2]
     url = f"sqlite:///{tmp_path / 'old.db'}"
     config = Config(str(root / "alembic.ini"))
     config.set_main_option("script_location", str(root / "migrations"))
     config.set_main_option("sqlalchemy.url", url)
+    return config, create_engine(url)
+
+
+def test_migration_0005_keeps_transactions_and_allows_manual(tmp_path: Path) -> None:
+    from alembic import command
+    from sqlalchemy import text
+
+    config, engine = _alembic(tmp_path)
     command.upgrade(config, "0004")
-    engine = create_engine(url)
     with engine.begin() as conn:
         conn.execute(text("INSERT INTO accounts (id, bank, account_mask, account_prefix,"
                           " balance_toman, balance_source)"
                           " VALUES (1, 'saman', '1234', '', 5, 'sms')"))
         conn.execute(text("INSERT INTO transactions (account_id, direction, amount_toman,"
                           " occurred_at) VALUES (1, 'out', 700, '2026-10-01 10:00:00')"))
-    command.upgrade(config, "head")
+    command.upgrade(config, "0005")
     with engine.begin() as conn:
         conn.execute(text("INSERT INTO transactions (account_id, direction, amount_toman,"
                           " occurred_at) VALUES (NULL, 'out', 50, '2026-10-02 10:00:00')"))
         amounts = [r[0] for r in conn.execute(text("SELECT amount_toman FROM transactions"))]
-        diff = compare_metadata(MigrationContext.configure(conn), Base.metadata)
     assert amounts == [700, 50]
+
+
+def test_migration_0006_gives_single_user_data_to_legacy_owner(tmp_path: Path) -> None:
+    from alembic import command
+    from alembic.autogenerate import compare_metadata
+    from alembic.migration import MigrationContext
+    from sqlalchemy import text
+
+    from app.db import Base
+
+    config, engine = _alembic(tmp_path)
+    command.upgrade(config, "0005")
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO settings (key, value) VALUES ('password_hash', 'H'),"
+                          " ('dti_threshold', '0.4'), ('session_secret', 'S')"))
+        conn.execute(text("INSERT INTO assets (kind, name, manual_value_toman)"
+                          " VALUES ('car', 'ماشین', 5)"))
+        conn.execute(text("INSERT INTO networth_snapshots (date, assets_toman, liabilities_toman,"
+                          " networth_toman) VALUES ('2026-10-01', 5, 0, 5)"))
+        conn.execute(text("INSERT INTO price_quotes (key, price_toman, units, fetched_at, source)"
+                          " VALUES ('usd', 1, 1, '2026-10-01', 'manual'),"
+                          " ('usd', 2, 1, '2026-10-01', 'alanchand')"))
+    command.upgrade(config, "head")
+    with engine.begin() as conn:
+        user = conn.execute(text("SELECT id, phone, password_hash FROM users")).one()
+        assert tuple(user) == (1, None, "H")
+        assert conn.execute(text("SELECT user_id FROM assets")).scalar() == 1
+        assert conn.execute(text("SELECT user_id FROM networth_snapshots")).scalar() == 1
+        assert conn.execute(text("SELECT value FROM user_settings WHERE key='dti_threshold'"
+                                 " AND user_id=1")).scalar() == "0.4"
+        assert conn.execute(text("SELECT value FROM settings WHERE key='session_secret'")
+                            ).scalar() == "S"
+        assert conn.execute(text("SELECT count(*) FROM settings WHERE key='password_hash'")
+                            ).scalar() == 0
+        owners = dict(conn.execute(text("SELECT source, user_id FROM price_quotes")).all())
+        assert owners == {"manual": 1, "alanchand": None}
+        diff = compare_metadata(MigrationContext.configure(conn), Base.metadata)
     assert diff == []
+
+
+def test_migration_0006_on_empty_database_creates_no_user(tmp_path: Path) -> None:
+    from alembic import command
+    from sqlalchemy import text
+
+    config, engine = _alembic(tmp_path)
+    command.upgrade(config, "head")
+    with engine.begin() as conn:
+        assert conn.execute(text("SELECT count(*) FROM users")).scalar() == 0

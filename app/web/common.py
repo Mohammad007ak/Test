@@ -9,6 +9,7 @@ from fastapi import Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
+from app.db import user_session
 from app.web import auth
 from app.web import strings as s
 from app.web.render import templates
@@ -17,12 +18,22 @@ Form = dict[str, str]
 
 
 def get_db(request: Request) -> Iterator[Session]:
+    """نشست دیتابیس محدود به کاربر واردشده (یا هیچ‌کس)."""
     with request.app.state.session_factory() as session:
-        yield session
+        user_id = auth.session_user_id(request, session)
+        request.state.user_id = user_id
+        yield user_session(session, user_id)
 
 
 Db = Annotated[Session, Depends(get_db)]
-LoggedIn = Depends(auth.require_login)
+
+
+def require_login(request: Request, _db: Db) -> None:
+    if request.state.user_id is None:
+        raise auth.LoginRequired
+
+
+LoggedIn = Depends(require_login)
 
 
 async def read_form(request: Request) -> Form:

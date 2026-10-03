@@ -4,11 +4,14 @@
 <main class="auth">
   <div class="auth-logo">{{ icon("wallet") }}</div>
   <h1>{{ s.APP_NAME }}</h1>
-  <p class="muted">برای ادامه رمز عبورت را وارد کن.</p>
+  <p class="muted">{{ T.login_hint }}</p>
   {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
   <form method="post" action="/login" class="form">
-    <div class="input"><input id="password" type="password" name="password" autocomplete="current-password" placeholder="{{ T.password }}" aria-label="{{ T.password }}" required autofocus></div>
+    <div class="input"><input id="phone" type="tel" name="phone" value="{{ phone or '' }}" inputmode="tel" autocomplete="username" dir="ltr" placeholder="{{ T.phone_placeholder }}" aria-label="{{ T.phone }}" required autofocus></div>
+    <div class="input"><input id="password" type="password" name="password" autocomplete="current-password" placeholder="{{ T.password }}" aria-label="{{ T.password }}" required></div>
     <button type="submit" class="btn wide">{{ T.login }}</button>
   </form>
+  <a href="/forgot" class="auth-link">{{ T.forgot }}</a>
+  <p class="auth-alt">{{ T.no_account }} <a href="/signup">{{ T.signup }}</a></p>
 </main>
 {% endblock %}

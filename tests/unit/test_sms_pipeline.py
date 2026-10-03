@@ -8,10 +8,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db import Base, make_engine, make_session_factory
 from app.models import Account, SmsInbox, Transaction
 from app.sms.parsers.base import ParsedSms
 from app.sms.pipeline import complete_manually, ingest
+from tests.unit.conftest import memory_session
 
 T0 = datetime(2026, 10, 3, 6, 0, tzinfo=UTC)
 SMS = "بانک نمونه\nکارت 6037991234561234\nبرداشت 250,000\nمانده 8,125,000"
@@ -49,9 +49,7 @@ class FakeLLM:
 
 @pytest.fixture
 def session() -> Iterator[Session]:
-    engine = make_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    with make_session_factory(engine)() as s:
+    with memory_session() as s:
         yield s
 
 

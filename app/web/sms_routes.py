@@ -1,10 +1,10 @@
 """مسیرهای پیامک بانکی: اندپوینت Shortcuts، واردکردن فایل و صف بررسی (SPEC: F6)."""
 
-import hmac
 import secrets
 import socket
 import time
 from collections import deque
+from collections.abc import Callable
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Request
@@ -14,8 +14,8 @@ from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
 
 from app import services
-from app.config import Settings
-from app.models import SmsInbox, utcnow
+from app.db import user_session
+from app.models import SmsInbox, UserSetting, utcnow
 from app.sms.importer import import_text, parse_time
 from app.sms.parsers import ParsedSms
 from app.sms.pipeline import complete_manually, ignore, ingest
@@ -39,15 +39,24 @@ REVIEW_FIELDS = [
 ]
 
 
-def ingest_token(db: Session, settings: Settings) -> str:
-    if settings.sms_token:
-        return settings.sms_token
-    token = services.get_setting(db, TOKEN_KEY)
+def ingest_token(db: Session) -> str:
+    """توکن اختصاصی کاربر جاری برای Shortcuts؛ بار اول ساخته می‌شود."""
+    token = services.get_user_setting(db, TOKEN_KEY)
     if token is None:
         token = secrets.token_urlsafe(24)
-        services.set_setting(db, TOKEN_KEY, token)
+        services.set_user_setting(db, TOKEN_KEY, token)
         db.commit()
     return token
+
+
+def token_owner(factory: Callable[[], Session], token: str) -> int | None:
+    """صاحب توکن (جست‌وجوی سیستمی، چون درخواست Shortcuts نشست ورود ندارد)."""
+    if len(token) < 16:
+        return None
+    with factory() as system:
+        row = system.scalars(select(UserSetting).where(
+            UserSetting.key == TOKEN_KEY, UserSetting.value == token)).first()
+        return row.user_id if row is not None else None
 
 
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "0.0.0.0", "::1"}
@@ -88,16 +97,18 @@ class _RateLimiter:
         return True
 
 
-def register_sms_routes(app: FastAPI, settings: Settings) -> None:
-    limiter = _RateLimiter(RATE_LIMIT)
+def register_sms_routes(app: FastAPI) -> None:
+    limiters: dict[int, _RateLimiter] = {}
 
     @app.post("/api/sms")
     async def api_sms(request: Request, db: Db) -> Response:
         """Shortcuts آیفون: بدنه JSON {"text": "...", "received_at": "..."} و هدر توکن."""
-        token = request.headers.get("X-Ingest-Token", "")
-        if not hmac.compare_digest(token, ingest_token(db, settings)):
+        owner = token_owner(request.app.state.session_factory,
+                            request.headers.get("X-Ingest-Token", ""))
+        if owner is None:
             return JSONResponse({"error": "invalid token"}, status_code=401)
-        if not limiter.allow():
+        user_session(db, owner)
+        if not limiters.setdefault(owner, _RateLimiter(RATE_LIMIT)).allow():
             return JSONResponse({"error": "rate limited"}, status_code=429)
         try:
             body = await request.json()
@@ -118,10 +129,9 @@ def register_sms_routes(app: FastAPI, settings: Settings) -> None:
                             .order_by(SmsInbox.id.desc()).limit(20)).all()
         return page(request, "sms.html", {
             "active": "sms", "queue": queue, "recent": recent,
-            "token": ingest_token(db, settings),
+            "token": ingest_token(db),
             "endpoint": phone_endpoint(request.url.hostname or "", request.url.port,
                                        scheme=_public_scheme(request)),
-            "watched_file": settings.sms_file,
         })
 
     @app.post("/sms/upload", dependencies=[LoggedIn])
@@ -137,7 +147,7 @@ def register_sms_routes(app: FastAPI, settings: Settings) -> None:
 
     @app.post("/sms/token", dependencies=[LoggedIn])
     def sms_rotate_token(request: Request, db: Db) -> Response:
-        services.set_setting(db, TOKEN_KEY, secrets.token_urlsafe(24))
+        services.set_user_setting(db, TOKEN_KEY, secrets.token_urlsafe(24))
         db.commit()
         return done(request, "/sms", s.TOASTS["sms_token"])
 

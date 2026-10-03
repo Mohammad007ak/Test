@@ -1,8 +1,8 @@
 """ساخت اپ FastAPI و مسیرهای وب."""
 
 import asyncio
-import hmac
 import json
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -26,19 +26,14 @@ from app.config import Settings, get_settings
 from app.db import Base, make_engine, make_session_factory
 from app.domain.loan import LoanInput, analyze_loan
 from app.domain.money import format_number
-from app.models import Asset, LoanAnalysis, PriceQuote, utcnow
-from app.scheduler import (
-    SMS_FILE_SECONDS,
-    Activity,
-    Pace,
-    import_sms_file,
-    refresh_now,
-    run_adaptive,
-    run_every,
-)
+from app.domain.phone import mask_phone
+from app.models import Asset, LoanAnalysis, PriceQuote, User, UserOwned, utcnow
+from app.otp import LogSender, OtpSender, OtpService, SmsIrSender
+from app.scheduler import Activity, Pace, refresh_now, run_adaptive
 from app.sms.llm import DisabledLLM
 from app.web import auth, forms
 from app.web import strings as s
+from app.web.auth_routes import register_auth_routes
 from app.web.common import (
     Db,
     Form,
@@ -46,7 +41,6 @@ from app.web.common import (
     done,
     page,
     read_form,
-    redirect,
     wants_fragment,
 )
 from app.web.entities import ENTITIES
@@ -56,6 +50,7 @@ from app.web.sms_routes import queue_count, register_sms_routes
 from app.web.spending_routes import parse_month, register_spending_routes
 
 STATIC_DIR = Path(__file__).parent / "static"
+log = logging.getLogger("finassist")
 
 
 def run_migrations(database_url: str) -> None:
@@ -79,9 +74,17 @@ def default_price_sources(factory: sessionmaker[Session]) -> list[PriceSource]:
     return [AlanchandSource(), ShakhesbanSource(wanted=owned)]
 
 
+def default_otp_sender(settings: Settings) -> OtpSender:
+    if settings.smsir_api_key and settings.smsir_template_id:
+        return SmsIrSender(settings.smsir_api_key, settings.smsir_template_id,
+                           settings.smsir_param)
+    log.warning("sms.ir تنظیم نشده؛ کدهای تأیید فقط در لاگ سرور چاپ می‌شوند")
+    return LogSender()
+
+
 def create_app(settings: Settings | None = None, *, migrate: bool = True,
                price_sources: list[PriceSource] | None = None,
-               schedule: bool = True) -> FastAPI:
+               schedule: bool = True, otp_sender: OtpSender | None = None) -> FastAPI:
     settings = settings or get_settings()
     engine = make_engine(settings.database_url)
     if migrate:
@@ -104,10 +107,6 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
         if schedule and sources and settings.price_refresh_seconds > 0:
             tasks.append(asyncio.create_task(run_adaptive(
                 partial(refresh_now, factory, sources), activity)))
-        if schedule and settings.sms_file:
-            tasks.append(asyncio.create_task(run_every(
-                partial(import_sms_file, factory, Path(settings.sms_file).expanduser()),
-                SMS_FILE_SECONDS)))
         yield
         for task in tasks:
             task.cancel()
@@ -118,6 +117,9 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     app.state.price_sources = sources
     app.state.llm = DisabledLLM()  # ارائه‌دهنده LLM هنوز انتخاب نشده (SPEC: تصمیم باز)
     app.state.poll_seconds = settings.price_refresh_seconds if sources else 0
+    app.state.otp_sender = otp_sender or default_otp_sender(settings)
+    otp = OtpService(app.state.otp_sender, secret=secret, daily_limit=settings.otp_daily_limit)
+    app.state.otp = otp
 
     @app.middleware("http")
     async def _track_activity(request: Request, call_next: Any) -> Response:
@@ -136,71 +138,15 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
             return Response(status_code=401, headers={"HX-Redirect": "/login"})
         return RedirectResponse("/login", status_code=303)
 
-    register_sms_routes(app, settings)
+    register_auth_routes(app, settings, otp)
+    register_sms_routes(app)
     register_spending_routes(app)
     register_extra_routes(app)
-    _register_routes(app, settings)
+    _register_routes(app)
     return app
 
 
-def _register_routes(app: FastAPI, settings: Settings) -> None:
-    throttle = auth.LoginThrottle()
-
-    # ---------- ورود ----------
-
-    @app.get("/setup", response_class=HTMLResponse)
-    def setup_form(request: Request, db: Db) -> Response:
-        if auth.has_password(db):
-            return redirect("/login")
-        return page(request, "setup.html", {"need_code": bool(settings.setup_code)})
-
-    @app.post("/setup", response_class=HTMLResponse)
-    async def setup(request: Request, db: Db) -> Response:
-        if auth.has_password(db):
-            return redirect("/login")
-        data = await read_form(request)
-        need_code = bool(settings.setup_code)
-        if need_code and not hmac.compare_digest(
-                data.get("setup_code", "").strip().encode(), settings.setup_code.encode()):
-            return page(request, "setup.html", {"error": s.T["setup_code_wrong"],
-                                                "need_code": need_code}, 403)
-        password = data.get("password", "")
-        if len(password) < auth.MIN_PASSWORD_LENGTH:
-            return page(request, "setup.html", {"error": s.T["password_short"],
-                                                "need_code": need_code}, 400)
-        if password != data.get("password_repeat"):
-            return page(request, "setup.html", {"error": s.T["password_mismatch"],
-                                                "need_code": need_code}, 400)
-        auth.set_password(db, password)
-        db.commit()
-        request.session["authenticated"] = True
-        return redirect("/")
-
-    @app.get("/login", response_class=HTMLResponse)
-    def login_form(request: Request, db: Db) -> Response:
-        if not auth.has_password(db):
-            return redirect("/setup")
-        return page(request, "login.html", {})
-
-    @app.post("/login", response_class=HTMLResponse)
-    async def login(request: Request, db: Db) -> Response:
-        client = request.client.host if request.client else ""
-        if not throttle.allowed(client):
-            return page(request, "login.html", {"error": s.T["login_locked"]}, 429)
-        data = await read_form(request)
-        if not auth.check_password(db, data.get("password", "")):
-            throttle.failed(client)
-            return page(request, "login.html", {"error": s.T["wrong_password"]}, 401)
-        throttle.succeeded(client)
-        request.session.clear()
-        request.session["authenticated"] = True
-        return redirect("/")
-
-    @app.post("/logout")
-    def logout(request: Request) -> Response:
-        request.session.clear()
-        return redirect("/login")
-
+def _register_routes(app: FastAPI) -> None:
     # ---------- داشبورد ----------
 
     @app.get("/", response_class=HTMLResponse, dependencies=[LoggedIn])
@@ -246,8 +192,10 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
         })
 
     @app.get("/more", response_class=HTMLResponse, dependencies=[LoggedIn])
-    def more(request: Request) -> Response:
-        return page(request, "more.html", {"active": "more"})
+    def more(request: Request, db: Db) -> Response:
+        user = db.get(User, request.state.user_id)
+        return page(request, "more.html", {"active": "more",
+                                           "phone": mask_phone(user.phone) if user else ""})
 
     # ---------- CRUD عمومی دارایی، حساب، بدهی، درآمد ----------
 
@@ -261,24 +209,23 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
             f.name: getattr(obj, f.name) for f in entity.fields}
         return {f.name: forms.display_value(f, raw.get(f.name)) for f in entity.fields}
 
-    def _form(request: Request, entity: forms.Entity, values: dict[str, str],
+    def _form(request: Request, db: Session, entity: forms.Entity, values: dict[str, str],
               errors: dict[str, str] | None = None, edit_id: int | None = None,
               status: int = 200) -> Response:
         """فرم در برگه پایین (htmx) یا به‌صورت صفحه کامل (بدون جاوااسکریپت)."""
         fragment = wants_fragment(request)
         if fragment and status >= 400:
             status = 422  # htmx این کد را جایگزین می‌کند تا خطاها در همان برگه دیده شوند
-        suggestions = _symbol_suggestions(request) if entity.slug == "assets" else {}
+        suggestions = _symbol_suggestions(db) if entity.slug == "assets" else {}
         return page(request, "sheet_form.html" if fragment else "form_page.html", {
             "active": entity.slug, "entity": entity, "fields": entity.fields,
             "values": values, "errors": errors or {}, "edit_id": edit_id,
             "suggestions": suggestions,
         }, status)
 
-    def _symbol_suggestions(request: Request) -> dict[str, list[str]]:
+    def _symbol_suggestions(db: Session) -> dict[str, list[str]]:
         """نمادهای سهام و نام صندوق‌هایی که منبع قیمت برایشان قیمت دارد."""
-        with request.app.state.session_factory() as db:
-            keys = services.latest_quotes(db)
+        keys = services.latest_quotes(db)
         found: dict[str, list[str]] = {"stock": [], "fund": []}
         for key in keys:
             prefix, _, name = key.partition(":")
@@ -309,11 +256,11 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
             "active": slug, "entity": entity, "p": services.build_portfolio(db)})
 
     @app.get("/{slug}/new", response_class=HTMLResponse, dependencies=[LoggedIn])
-    def entity_new(request: Request, slug: str) -> Response:
+    def entity_new(request: Request, slug: str, db: Db) -> Response:
         entity = _entity(slug)
         defaults = {"active": "on", "karat": "۱۸"}
         defaults.update({k: v for k, v in request.query_params.items() if k == "kind"})
-        return _form(request, entity, defaults)
+        return _form(request, db, entity, defaults)
 
     @app.post("/{slug}", response_class=HTMLResponse, dependencies=[LoggedIn])
     async def entity_create(request: Request, slug: str, db: Db) -> Response:
@@ -322,7 +269,7 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
         try:
             db.add(_save(entity, data, None))
         except FormError as exc:
-            return _form(request, entity, data, exc.errors, status=400)
+            return _form(request, db, entity, data, exc.errors, status=400)
         db.commit()
         return done(request, f"/{slug}", s.TOASTS["created"].format(title=entity.title))
 
@@ -330,7 +277,7 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
     def entity_edit(request: Request, slug: str, obj_id: int, db: Db) -> Response:
         entity = _entity(slug)
         obj = db.get(entity.model, obj_id) or _not_found()
-        return _form(request, entity, _form_values(entity, obj), edit_id=obj_id)
+        return _form(request, db, entity, _form_values(entity, obj), edit_id=obj_id)
 
     @app.post("/{slug}/{obj_id}", response_class=HTMLResponse, dependencies=[LoggedIn])
     async def entity_update(request: Request, slug: str, obj_id: int, db: Db) -> Response:
@@ -341,7 +288,7 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
             _save(entity, data, obj)
         except FormError as exc:
             db.rollback()
-            return _form(request, entity, data, exc.errors, edit_id=obj_id, status=400)
+            return _form(request, db, entity, data, exc.errors, edit_id=obj_id, status=400)
         db.commit()
         return done(request, f"/{slug}", s.TOASTS["updated"])
 
@@ -396,8 +343,10 @@ def register_extra_routes(app: FastAPI) -> None:
         return done(request, "/prices", s.TOASTS["prices"])
 
     @app.post("/prices/refresh", dependencies=[LoggedIn])
-    def prices_refresh(request: Request, db: Db) -> Response:
-        statuses = price_refresh.refresh_all(db, request.app.state.price_sources)
+    def prices_refresh(request: Request) -> Response:
+        # قیمت منابع مشترک است؛ با نشست سیستمی، تا به قیمت‌های دستی کاربر دست نخورد
+        with request.app.state.session_factory() as system:
+            statuses = price_refresh.refresh_all(system, request.app.state.price_sources)
         fetched = sum(status.count for status in statuses)
         failed = [status.name for status in statuses if not status.ok]
         message = s.TOASTS["refreshed"].format(count=format_number(fetched))
@@ -446,7 +395,7 @@ def register_extra_routes(app: FastAPI) -> None:
             return _settings_page(request, db, data, exc.errors, status=400)
         for key, value in values.items():
             if value is not None:
-                services.set_setting(db, key, str(value))
+                services.set_user_setting(db, key, str(value))
         db.commit()
         return done(request, "/settings", s.TOASTS["settings"])
 
@@ -455,7 +404,7 @@ def register_extra_routes(app: FastAPI) -> None:
         payload: dict[str, list[dict[str, Any]]] = {}
         for mapper in Base.registry.mappers:
             model = mapper.class_
-            if model.__tablename__ == "settings":
+            if not issubclass(model, UserOwned):  # فقط داده خود کاربر
                 continue
             payload[model.__tablename__] = [
                 {c.key: getattr(row, c.key) for c in sa_inspect(model).column_attrs}

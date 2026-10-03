@@ -1,45 +1,68 @@
-"""ورود تک‌کاربره: رمز با argon2 در جدول settings، نشست امضاشده در کوکی."""
+"""ورود چندکاربره: نام کاربری = موبایل، رمز با argon2، نشست امضاشده در کوکی.
+
+نشست شناسه کاربر و «نسخه نشست» او را نگه می‌دارد؛ با تغییر رمز نسخه بالا می‌رود و همه
+نشست‌های قبلی (دستگاه‌های دیگر) باطل می‌شوند.
+"""
 
 import secrets
 import time
 from collections.abc import Callable
 
 from argon2 import PasswordHasher
-from argon2.exceptions import InvalidHashError, VerifyMismatchError
+from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import Request
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models import User
 from app.services import get_setting, set_setting
 
-PASSWORD_KEY = "password_hash"
 SECRET_KEY = "session_secret"
 MIN_PASSWORD_LENGTH = 8
 
 _hasher = PasswordHasher()
+_DUMMY_HASH = _hasher.hash("dummy-password-for-timing")
 
 
 class LoginRequired(Exception):
     """کاربر وارد نشده؛ به صفحه ورود هدایت می‌شود."""
 
 
-def has_password(session: Session) -> bool:
-    return get_setting(session, PASSWORD_KEY) is not None
-
-
-def set_password(session: Session, password: str) -> None:
+def hash_password(password: str) -> str:
     if len(password) < MIN_PASSWORD_LENGTH:
         raise ValueError("password too short")
-    set_setting(session, PASSWORD_KEY, _hasher.hash(password))
+    return _hasher.hash(password)
 
 
-def check_password(session: Session, password: str) -> bool:
-    stored = get_setting(session, PASSWORD_KEY)
-    if stored is None:
-        return False
-    try:
-        return _hasher.verify(stored, password)
-    except (VerifyMismatchError, InvalidHashError):
-        return False
+def user_by_phone(session: Session, phone: str) -> User | None:
+    return session.scalars(select(User).where(User.phone == phone)).first()
+
+
+def authenticate(session: Session, phone: str, password: str) -> User | None:
+    user = user_by_phone(session, phone)
+    try:  # برای شماره ناموجود هم یک بار هش بررسی می‌شود تا زمان پاسخ چیزی لو ندهد
+        _hasher.verify(user.password_hash if user and user.password_hash else _DUMMY_HASH,
+                       password)
+    except (VerificationError, InvalidHashError):
+        return None
+    return user if user and user.password_hash else None
+
+
+def log_in(request: Request, user: User) -> None:
+    request.session.clear()
+    request.session["uid"] = user.id
+    request.session["sv"] = user.session_version
+
+
+def session_user_id(request: Request, session: Session) -> int | None:
+    uid = request.session.get("uid")
+    if not isinstance(uid, int):
+        return None
+    user = session.get(User, uid)
+    if user is None or user.phone is None or user.session_version != request.session.get("sv"):
+        request.session.pop("uid", None)
+        return None
+    return uid
 
 
 def session_secret(session: Session, configured: str) -> str:
@@ -55,7 +78,7 @@ def session_secret(session: Session, configured: str) -> str:
 
 
 class LoginThrottle:
-    """بعد از max_failures رمز اشتباه از یک آدرس، ورود از آن آدرس تا پایان پنجره بسته است."""
+    """بعد از max_failures رمز اشتباه برای یک کلید (IP یا شماره)، ورود تا پایان پنجره بسته است."""
 
     def __init__(self, max_failures: int = 5, window_seconds: float = 15 * 60,
                  clock: Callable[[], float] = time.monotonic) -> None:
@@ -81,8 +104,3 @@ class LoginThrottle:
 
     def succeeded(self, client: str) -> None:
         self._failures.pop(client, None)
-
-
-def require_login(request: Request) -> None:
-    if not request.session.get("authenticated"):
-        raise LoginRequired

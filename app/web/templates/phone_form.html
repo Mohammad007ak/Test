@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block shell %}
+<main class="auth">
+  <div class="auth-logo">{{ icon("lock" if purpose == "reset" else "spark") }}</div>
+  <h1>{{ T.signup_title if purpose == "signup" else T.reset_title }}</h1>
+  <p class="muted">{{ T.signup_hint if purpose == "signup" else T.reset_hint }}</p>
+  {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
+  <form method="post" action="{{ '/signup' if purpose == 'signup' else '/forgot' }}" class="form">
+    <div class="input"><input id="phone" type="tel" name="phone" value="{{ phone or '' }}" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="{{ T.phone_placeholder }}" aria-label="{{ T.phone }}" required autofocus></div>
+    <button type="submit" class="btn wide">{{ T.send_code }}</button>
+  </form>
+  <p class="auth-alt">{{ T.have_account }} <a href="/login">{{ T.login }}</a></p>
+</main>
+{% endblock %}

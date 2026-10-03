@@ -8,6 +8,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.db import USER_KEY
 from app.domain.income import monthly_income_toman
 from app.domain.liabilities import (
     LiabilityTerms,
@@ -26,6 +27,7 @@ from app.models import (
     PriceQuote,
     Setting,
     Transaction,
+    UserSetting,
     utcnow,
 )
 
@@ -54,8 +56,22 @@ def set_setting(session: Session, key: str, value: str) -> None:
         row.value = value
 
 
+def get_user_setting(session: Session, key: str) -> str | None:
+    """تنظیم کاربر جاری (نشست محدود به کاربر)؛ وگرنه مقدار پیش‌فرض."""
+    row = session.scalars(select(UserSetting).where(UserSetting.key == key)).first()
+    return row.value if row is not None else DEFAULT_SETTINGS.get(key)
+
+
+def set_user_setting(session: Session, key: str, value: str) -> None:
+    row = session.scalars(select(UserSetting).where(UserSetting.key == key)).first()
+    if row is None:
+        session.add(UserSetting(key=key, value=value))
+    else:
+        row.value = value
+
+
 def get_decimal_setting(session: Session, key: str) -> Decimal:
-    return Decimal(get_setting(session, key) or "0")
+    return Decimal(get_user_setting(session, key) or "0")
 
 
 # ---------- قیمت‌ها ----------
@@ -63,7 +79,10 @@ def get_decimal_setting(session: Session, key: str) -> Decimal:
 def latest_quotes(session: Session) -> dict[str, PriceQuote]:
     """آخرین قیمت معتبر هر کلید (تاریخچه حفظ می‌شود)."""
     quotes: dict[str, PriceQuote] = {}
-    rows = session.scalars(select(PriceQuote).order_by(PriceQuote.fetched_at, PriceQuote.id))
+    query = select(PriceQuote).order_by(PriceQuote.fetched_at, PriceQuote.id)
+    if USER_KEY not in session.info:  # نشست سیستمی: فقط قیمت منابع، نه قیمت دستی کاربران
+        query = query.where(PriceQuote.user_id.is_(None))
+    rows = session.scalars(query)
     for quote in rows:
         quotes[quote.key] = quote
     return quotes
@@ -219,7 +238,8 @@ def build_portfolio(session: Session, now: datetime | None = None) -> Portfolio:
 
 def record_snapshot(session: Session, portfolio: Portfolio, day: date) -> NetworthSnapshot:
     """یک ردیف در روز؛ اجرای دوباره در همان روز ردیف را به‌روز می‌کند."""
-    snapshot = session.get(NetworthSnapshot, day) or NetworthSnapshot(date=day)
+    snapshot = (session.scalars(select(NetworthSnapshot).where(NetworthSnapshot.date == day))
+                .first() or NetworthSnapshot(date=day))
     snapshot.assets_toman = portfolio.assets_toman
     snapshot.liabilities_toman = portfolio.liabilities_toman
     snapshot.networth_toman = portfolio.networth.networth_toman

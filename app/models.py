@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.engine import Dialect
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from sqlalchemy.types import TypeDecorator
 
 from app.db import Base
@@ -45,7 +45,54 @@ def utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-class Asset(Base):
+class User(Base):
+    """کاربر؛ نام کاربری همان شماره موبایل (۰۹xxxxxxxxx) است."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # خالی فقط برای حساب قدیمی تک‌کاربره تا صاحبش با شماره خودش ثبت‌نام کند
+    phone: Mapped[str | None] = mapped_column(String(11), unique=True)
+    password_hash: Mapped[str | None] = mapped_column(String(200))
+    # با تغییر رمز بالا می‌رود تا نشست‌های قبلی همه دستگاه‌ها باطل شوند
+    session_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class UserOwned:
+    """داده شخصی: هر کوئری خودکار به کاربر جاری محدود می‌شود (app.db.scope_to_user)."""
+
+    @declared_attr
+    def user_id(cls) -> Mapped[int]:
+        return mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+
+
+class UserSetting(UserOwned, Base):
+    __tablename__ = "user_settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"),
+                                         primary_key=True, index=True)
+
+
+class OtpCode(Base):
+    """کد یک‌بارمصرف پیامکی برای ثبت‌نام یا بازیابی رمز؛ فقط هش کد نگه داشته می‌شود."""
+
+    __tablename__ = "otp_codes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    phone: Mapped[str] = mapped_column(String(11), index=True)
+    purpose: Mapped[str] = mapped_column(String(10))
+    code_hash: Mapped[str] = mapped_column(String(64))
+    ip: Mapped[str] = mapped_column(String(64), default="")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    used: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class Asset(UserOwned, Base):
     __tablename__ = "assets"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -60,7 +107,7 @@ class Asset(Base):
     note: Mapped[str | None] = mapped_column(Text)
 
 
-class Account(Base):
+class Account(UserOwned, Base):
     __tablename__ = "accounts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -74,7 +121,7 @@ class Account(Base):
     balance_source: Mapped[str] = mapped_column(String(10), default="manual")
 
 
-class SmsInbox(Base):
+class SmsInbox(UserOwned, Base):
     __tablename__ = "sms_inbox"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -86,7 +133,7 @@ class SmsInbox(Base):
     error: Mapped[str | None] = mapped_column(Text)
 
 
-class Transaction(Base):
+class Transaction(UserOwned, Base):
     __tablename__ = "transactions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -102,7 +149,7 @@ class Transaction(Base):
     sms_id: Mapped[int | None] = mapped_column(ForeignKey("sms_inbox.id", ondelete="SET NULL"))
 
 
-class Liability(Base):
+class Liability(UserOwned, Base):
     __tablename__ = "liabilities"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -118,7 +165,7 @@ class Liability(Base):
     note: Mapped[str | None] = mapped_column(Text)
 
 
-class IncomeStream(Base):
+class IncomeStream(UserOwned, Base):
     __tablename__ = "income_streams"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -128,7 +175,7 @@ class IncomeStream(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
-class ExpenseStream(Base):
+class ExpenseStream(UserOwned, Base):
     """هزینه ثابت تکراری (اجاره، قبض، شهریه)؛ از باقی‌مانده ماهانه کم می‌شود."""
 
     __tablename__ = "expense_streams"
@@ -150,6 +197,8 @@ class PriceQuote(Base):
     units: Mapped[int] = mapped_column(BigInteger, default=1, server_default="1")
     fetched_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
     source: Mapped[str] = mapped_column(String(50))
+    # قیمت دستی فقط برای همان کاربر؛ قیمت منابع (خالی) برای همه
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
 
     @property
     def per_unit(self) -> Decimal:
@@ -157,9 +206,11 @@ class PriceQuote(Base):
         return Decimal(self.price_toman) / (self.units or 1)
 
 
-class NetworthSnapshot(Base):
+class NetworthSnapshot(UserOwned, Base):
     __tablename__ = "networth_snapshots"
 
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"),
+                                         primary_key=True, index=True)
     date: Mapped[date] = mapped_column(Date, primary_key=True)
     assets_toman: Mapped[int] = mapped_column(BigInteger)
     liabilities_toman: Mapped[int] = mapped_column(BigInteger)
@@ -168,7 +219,7 @@ class NetworthSnapshot(Base):
     gold18_rate: Mapped[int | None] = mapped_column(BigInteger)
 
 
-class LoanAnalysis(Base):
+class LoanAnalysis(UserOwned, Base):
     __tablename__ = "loan_analyses"
 
     id: Mapped[int] = mapped_column(primary_key=True)

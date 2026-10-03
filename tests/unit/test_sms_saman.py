@@ -6,12 +6,12 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-from app.db import Base, make_engine, make_session_factory
 from app.models import Account, SmsInbox, Transaction
 from app.sms.parsers import PARSERS
 from app.sms.parsers.saman import SamanParser
 from app.sms.pipeline import ingest
 from app.sms.text import mask_numbers, prepare
+from tests.unit.conftest import memory_session
 
 NOW = datetime(2026, 10, 3, 9, 0, tzinfo=UTC)
 
@@ -64,9 +64,7 @@ def test_unexpected_saman_format_goes_to_queue_instead_of_guessing() -> None:
 
 def test_registered_and_applied_end_to_end() -> None:
     assert any(isinstance(p, SamanParser) for p in PARSERS)
-    engine = make_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    with make_session_factory(engine)() as session:
+    with memory_session() as session:
         result = ingest(session, WITHDRAWAL, datetime(2026, 10, 3, 8, 41, tzinfo=UTC))
         assert result.status == "parsed" and result.sms.parser == "saman"
         account = session.scalars(select(Account)).one()
@@ -79,10 +77,8 @@ def test_registered_and_applied_end_to_end() -> None:
 
 
 def test_two_saman_accounts_with_same_last_four_stay_separate() -> None:
-    engine = make_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
     second = WITHDRAWAL.replace("814-20-", "2137-800-").replace("46,294,698", "16,225,026")
-    with make_session_factory(engine)() as session:
+    with memory_session() as session:
         ingest(session, WITHDRAWAL, datetime(2026, 10, 3, 8, 41, tzinfo=UTC))
         ingest(session, second, datetime(2026, 10, 3, 8, 42, tzinfo=UTC))
         accounts = {a.account_prefix: a.balance_toman for a in session.scalars(select(Account))}
@@ -90,9 +86,7 @@ def test_two_saman_accounts_with_same_last_four_stay_separate() -> None:
 
 
 def test_manual_account_without_prefix_is_adopted() -> None:
-    engine = make_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    with make_session_factory(engine)() as session:
+    with memory_session() as session:
         session.add(Account(bank="saman", account_mask="5671", label="جاری", balance_toman=1))
         session.commit()
         ingest(session, WITHDRAWAL, datetime(2026, 10, 3, 8, 41, tzinfo=UTC))
