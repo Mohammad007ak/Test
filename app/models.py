@@ -195,7 +195,9 @@ class PriceQuote(Base):
     key: Mapped[str] = mapped_column(String(100), index=True)
     price_toman: Mapped[int] = mapped_column(BigInteger)  # قیمت units واحد
     units: Mapped[int] = mapped_column(BigInteger, default=1, server_default="1")
-    fetched_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    fetched_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)  # آخرین بار دیده‌شده
+    # اولین بار که این قیمت دیده شد (ردیف تازه فقط با تغییر قیمت ساخته می‌شود)
+    first_seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=utcnow)
     source: Mapped[str] = mapped_column(String(50))
     # قیمت دستی فقط برای همان کاربر؛ قیمت منابع (خالی) برای همه
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))

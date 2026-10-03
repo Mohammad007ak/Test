@@ -552,3 +552,18 @@ T.update({
     "category_new_placeholder": "مثلاً حیوان خانگی",
     "edit_categories": "ویرایش دسته‌ها",
 })
+
+# ---------- قیمت‌های دلخواه صفحه اصلی ----------
+PAGE_TITLES["watchlist"] = "قیمت‌های من"
+TAB_OF_PAGE["watchlist"] = "dashboard"
+T.update({
+    "watchlist": "قیمت‌های من",
+    "watchlist_hint": "هر قیمتی که می‌خواهی در صفحه اصلی ببینی انتخاب کن (حداکثر ۱۲ مورد).",
+    "watchlist_empty": "قیمتی انتخاب نکرده‌ای؛ از «ویرایش» اضافه کن.",
+    "no_change": "بدون تغییر",
+    "watch_main": "دلار، یورو، طلا و سکه",
+    "watch_fx": "ارزها",
+    "watch_crypto": "رمزارزها",
+    "watch_mine": "سهام و صندوق‌های من",
+})
+TOASTS["watchlist"] = "قیمت‌های صفحه اصلی به‌روز شد"

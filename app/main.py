@@ -196,6 +196,8 @@ def _register_routes(app: FastAPI) -> None:
             "spark_line": spark[0], "spark_area": spark[1],
             "empty": empty,
             "spending": spending,
+            "watch": services.watchlist(db),
+            "watch_labels": _watch_labels(db),
             "cat_labels": categories.labels(db),
             "deposits": deposits,
         })
@@ -418,6 +420,22 @@ def register_extra_routes(app: FastAPI) -> None:
         db.commit()
         return done(request, "/settings", s.TOASTS["settings"])
 
+    @app.get("/watchlist/edit", response_class=HTMLResponse, dependencies=[LoggedIn])
+    def watchlist_edit(request: Request, db: Db) -> Response:
+        return page(request, "watchlist_sheet.html" if wants_fragment(request)
+                    else "watchlist_page.html", {
+                        "active": "watchlist", "groups": _watch_groups(db),
+                        "selected": set(services.watchlist_keys(db)),
+                        "labels": _watch_labels(db)})
+
+    @app.post("/watchlist", dependencies=[LoggedIn])
+    async def watchlist_save(request: Request, db: Db) -> Response:
+        form = await request.form()
+        allowed = {key for _title, keys in _watch_groups(db) for key in keys}
+        services.set_watchlist(db, [str(k) for k in form.getlist("keys") if k in allowed])
+        db.commit()
+        return done(request, "/", s.TOASTS["watchlist"])
+
     @app.get("/settings/categories", response_class=HTMLResponse, dependencies=[LoggedIn])
     def categories_page(request: Request, db: Db) -> Response:
         return page(request, "settings_categories.html", {
@@ -563,6 +581,21 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
             sources.append(price_refresh.view_for_user(last, user_keys, per_user))
     return page(request, "prices.html", {"active": "prices", "rows": rows, "sources": sources,
                                          "errors": errors or {}}, status)
+
+
+def _watch_groups(db: Session) -> list[tuple[str, list[str]]]:
+    """گزینه‌های «قیمت‌های من»: قیمت‌های اصلی، ارزها، رمزارزها و نمادهای خود کاربر."""
+    main = list(s.MAIN_PRICE_KEYS)
+    return [(s.T["watch_main"], main),
+            (s.T["watch_fx"], [k for k in s.FX_KEYS if k not in main]),
+            (s.T["watch_crypto"], list(s.CRYPTO_KEYS)),
+            (s.T["watch_mine"], services.owned_market_keys(db))]
+
+
+def _watch_labels(db: Session) -> dict[str, str]:
+    keys = {key for _title, group in _watch_groups(db) for key in group}
+    keys |= set(services.watchlist_keys(db))
+    return {key: _price_label(key) for key in keys}
 
 
 def _price_group(key: str, used: set[str | None]) -> str:

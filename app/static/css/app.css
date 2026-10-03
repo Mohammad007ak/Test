@@ -1212,3 +1212,20 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
 .hide-toggle { display: flex; align-items: center; gap: 4px; font-size: .78rem; color: var(--muted);
   white-space: nowrap; cursor: pointer; }
 .hide-toggle input { width: 18px; height: 18px; min-height: 0; accent-color: var(--accent); }
+
+/* ---------- قیمت‌های من ---------- */
+.watch { display: flex; flex-direction: column; gap: 8px; }
+.watch-head { margin: 4px 4px 0; }
+.watch-scroll { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
+  margin: 0 -16px; padding: 2px 16px 6px; scrollbar-width: none; }
+.watch-scroll::-webkit-scrollbar { display: none; }
+.watch-card { flex: 0 0 auto; min-width: 138px; scroll-snap-align: start; display: flex;
+  flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 18px;
+  background: var(--surface); border: 1px solid var(--hairline); box-shadow: var(--shadow); }
+.watch-label { font-size: .75rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.watch-card strong { font-size: 1rem; font-weight: 900; white-space: nowrap; }
+.watch-change { display: inline-flex; align-items: center; gap: 2px; font-size: .74rem;
+  font-weight: 700; color: var(--muted); }
+.watch-change .i { width: 14px; height: 14px; }
+.watch-change.up { color: var(--good); }
+.watch-change.down { color: var(--bad); }

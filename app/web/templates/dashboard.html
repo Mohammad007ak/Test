@@ -14,6 +14,7 @@
 {% endif %}
 
 {% if empty %}
+{% include "_watchlist.html" %}
 <section class="card welcome">
   <div class="bubble s1 big">{{ icon("spark") }}</div>
   <h2>{{ T.welcome_title }}</h2>
@@ -73,6 +74,8 @@
   </div>
   {% endif %}
 </section>
+
+{% include "_watchlist.html" %}
 
 <div class="pair">
   <a href="/assets" class="card mini">

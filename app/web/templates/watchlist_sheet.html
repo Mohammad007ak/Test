@@ -1,0 +1,17 @@
+{% from "_ui.html" import icon %}
+<form method="post" action="/watchlist" hx-post="/watchlist" hx-target="#sheet-body" hx-swap="innerHTML" class="form">
+  <div class="sheet-head">
+    <h2>{{ T.watchlist }}</h2>
+    <a href="/" class="icon-btn" data-close hx-boost="false" aria-label="{{ T.close }}">{{ icon("close") }}</a>
+  </div>
+  <p class="muted small">{{ T.watchlist_hint }}</p>
+  {% for title, keys in groups %}{% if keys %}
+  <span class="label">{{ title }}</span>
+  <div class="chips">
+    {% for key in keys %}
+    <label class="chip"><input type="checkbox" name="keys" value="{{ key }}" {{ 'checked' if key in selected }}><span>{{ labels.get(key, key) }}</span></label>
+    {% endfor %}
+  </div>
+  {% endif %}{% endfor %}
+  <div class="sheet-actions"><button type="submit" class="btn wide">{{ T.save }}</button></div>
+</form>

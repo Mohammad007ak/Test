@@ -1,0 +1,19 @@
+{% from "_ui.html" import icon, sheet_link %}
+<section id="watchlist" class="watch">
+  <div class="card-head watch-head"><h2>{{ T.watchlist }}</h2>{% call sheet_link("/watchlist/edit", "small") %}{{ T.edit }}{% endcall %}</div>
+  {% if watch %}
+  <div class="watch-scroll">
+    {% for item in watch %}
+    <div class="watch-card">
+      <span class="watch-label">{{ watch_labels.get(item.key, item.key) }}</span>
+      <strong>{% if item.quote is none %}—{% elif item.quote.per_unit >= 1000000 %}{{ item.quote.per_unit | round | int | amt }}{% else %}{{ item.quote | unit_price }}{% endif %}</strong>
+      {% if item.change is not none and item.change != 0 %}
+      <span class="watch-change {{ 'up' if item.change > 0 else 'down' }}">{{ icon("up" if item.change > 0 else "down") }}{{ item.change | abs | percent }}</span>
+      {% else %}<span class="watch-change flat">{{ T.no_change }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted small">{{ T.watchlist_empty }}</p>
+  {% endif %}
+</section>

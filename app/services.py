@@ -275,3 +275,50 @@ def month_spending(session: Session, year: int, month: int,
                Transaction.occurred_at < end)
         .order_by(Transaction.occurred_at.desc(), Transaction.id.desc())))
     return MonthSpending(rows, spending_by_category((t.category, t.amount_toman) for t in rows))
+
+
+# ---------- قیمت‌های دلخواه صفحه اصلی ----------
+
+WATCHLIST_KEY = "watchlist"
+DEFAULT_WATCHLIST = ("usd", "eur", "gold18_gram", "coin_emami")
+MAX_WATCHLIST = 12
+CHANGE_WINDOW = timedelta(hours=24)
+
+
+@dataclass(frozen=True)
+class WatchItem:
+    key: str
+    quote: PriceQuote | None
+    change: Decimal | None  # نسبت به ۲۴ ساعت قبل
+
+
+def watchlist_keys(session: Session) -> list[str]:
+    raw = get_user_setting(session, WATCHLIST_KEY)
+    return [k for k in raw.split(",") if k] if raw is not None else list(DEFAULT_WATCHLIST)
+
+
+def set_watchlist(session: Session, keys: list[str]) -> None:
+    unique = list(dict.fromkeys(keys))[:MAX_WATCHLIST]
+    set_user_setting(session, WATCHLIST_KEY, ",".join(unique))
+
+
+def _price_at(session: Session, key: str, moment: datetime) -> PriceQuote | None:
+    """قیمتی که در آن لحظه معتبر بود: آخرین ردیفی که پیش از آن دیده شده بود."""
+    return session.scalars(
+        select(PriceQuote).where(PriceQuote.key == key, PriceQuote.first_seen_at <= moment)
+        .order_by(PriceQuote.first_seen_at.desc(), PriceQuote.id.desc())).first()
+
+
+def watchlist(session: Session, now: datetime | None = None) -> list[WatchItem]:
+    now = now or utcnow()
+    quotes = latest_quotes(session)
+    items = []
+    for key in watchlist_keys(session):
+        quote = quotes.get(key)
+        change = None
+        if quote is not None:
+            before = _price_at(session, key, now - CHANGE_WINDOW)
+            if before is not None and before.id != quote.id and before.per_unit:
+                change = (quote.per_unit - before.per_unit) / before.per_unit
+        items.append(WatchItem(key, quote, change))
+    return items
