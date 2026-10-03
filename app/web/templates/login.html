@@ -2,8 +2,9 @@
 {% from "_ui.html" import icon %}
 {% block shell %}
 <main class="auth">
-  <div class="auth-logo">{{ icon("wallet") }}</div>
-  <h1>{{ s.APP_NAME }}</h1>
+  <img class="brand-logo" src="{{ static('logo.svg') }}" alt="" width="88" height="88">
+  <h1 class="brand-name">{{ s.APP_NAME }}<span class="brand-dot">.</span></h1>
+  <p class="brand-tag">{{ s.TAGLINE }}</p>
   <p class="muted">{{ T.login_hint }}</p>
   {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
   <form method="post" action="/login" class="form">

@@ -2,7 +2,7 @@
 {% from "_ui.html" import icon %}
 {% block shell %}
 <main class="auth">
-  <div class="auth-logo">{{ icon("lock" if purpose == "reset" else "spark") }}</div>
+  <img class="brand-logo" src="{{ static('logo.svg') }}" alt="" width="88" height="88">
   <h1>{{ T.signup_title if purpose == "signup" else T.reset_title }}</h1>
   <p class="muted">{{ T.signup_hint if purpose == "signup" else T.reset_hint }}</p>
   {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}

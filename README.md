@@ -1,4 +1,4 @@
-# دستیار مالی هوشمند — MVP
+# وزیر — وزیر مالی تو (MVP)
 
 ترازنامه شخصی چندکاربره (فاز صفر). مرجع محصول: [`SPEC.md`](SPEC.md) · قواعد کد: [`CLAUDE.md`](CLAUDE.md)
 
@@ -21,6 +21,7 @@ uv run uvicorn app.asgi:app  # http://127.0.0.1:8000
 - **متغیرهای محیطی (به‌صورت secret):**
   - `FINASSIST_SECRET_KEY`: یک رشته تصادفی بلند.
   - `FINASSIST_SMSIR_API_KEY` و `FINASSIST_SMSIR_TEMPLATE_ID`: کلید و شناسه الگوی تأییدشده در پنل sms.ir.
+  - متن پیشنهادی الگوی sms.ir: «کد ورود شما به وزیر: #CODE#»
   - `FINASSIST_OWNER_PHONE`: شماره خودت، تا داده‌های نسخه تک‌کاربره به حسابت برسد.
   - اختیاری: `FINASSIST_SIGNUP_ALLOWLIST` (فقط این شماره‌ها ثبت‌نام کنند) و `FINASSIST_OTP_DAILY_LIMIT`.
 - **HTTPS را سرویس می‌دهد.** کوکی‌ها در ایمیج به‌صورت پیش‌فرض Secure هستند.

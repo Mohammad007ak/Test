@@ -2,7 +2,7 @@
 {% from "_ui.html" import icon %}
 {% block shell %}
 <main class="auth">
-  <div class="auth-logo">{{ icon("card") }}</div>
+  <img class="brand-logo" src="{{ static('logo.svg') }}" alt="" width="88" height="88">
   <h1>{{ T.verify_title }}</h1>
   <p class="muted">{{ T.verify_hint.format(phone=masked) }}</p>
   {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}

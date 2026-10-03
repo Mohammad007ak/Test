@@ -19,8 +19,9 @@
   <meta name="apple-mobile-web-app-title" content="{{ s.APP_NAME }}">
   <meta name="htmx-config" content='{"globalViewTransitions": true, "defaultSwapStyle": "innerHTML", "historyCacheSize": 0, "refreshOnHistoryMiss": true, "responseHandling": [{"code": "204", "swap": false}, {"code": "[234]..", "swap": true}, {"code": "...", "swap": false, "error": true}]}'>
   <link rel="manifest" href="{{ static('manifest.webmanifest') }}">
-  <link rel="apple-touch-icon" href="{{ static('icon.png') }}">
-  <link rel="icon" type="image/png" href="{{ static('icon.png') }}">
+  <link rel="apple-touch-icon" href="{{ static('apple-touch-icon.png') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ static('logo.svg') }}">
+  <link rel="icon" type="image/png" href="{{ static('favicon.png') }}">
   <link rel="preload" href="/static/fonts/Vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ static('css/app.css') }}">
   <title>{{ title }}</title>
