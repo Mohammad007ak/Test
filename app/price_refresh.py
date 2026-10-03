@@ -28,7 +28,7 @@ class SourceStatus:
 
 
 def _valid(quote: FetchedQuote) -> bool:
-    return bool(quote.key) and quote.price_toman > 0
+    return bool(quote.key) and quote.price_toman > 0 and quote.units > 0
 
 
 def refresh_source(session: Session, source: PriceSource) -> SourceStatus:
@@ -42,11 +42,12 @@ def refresh_source(session: Session, source: PriceSource) -> SourceStatus:
         for quote in quotes:
             previous = latest.get(quote.key)
             if (previous is not None and previous.source == source.name
-                    and previous.price_toman == quote.price_toman):
+                    and previous.price_toman == quote.price_toman
+                    and previous.units == quote.units):
                 previous.fetched_at = now  # قیمت عوض نشده؛ فقط زمان آخرین مشاهده به‌روز می‌شود
             else:
                 session.add(PriceQuote(key=quote.key, price_toman=quote.price_toman,
-                                       fetched_at=now, source=source.name))
+                                       units=quote.units, fetched_at=now, source=source.name))
         status = SourceStatus(source.name, now, bool(quotes), len(quotes),
                               "" if quotes else "هیچ قیمتی دریافت نشد")
     _save_status(session, status)

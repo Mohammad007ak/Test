@@ -1,13 +1,20 @@
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
 from app.adapters.prices import PriceSourceError
-from app.adapters.prices.alanchand import AlanchandSource, parse_currencies, parse_gold
+from app.adapters.prices.alanchand import (
+    AlanchandSource,
+    parse_crypto,
+    parse_currencies,
+    parse_gold,
+)
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "prices" / "alanchand"
 CURRENCIES = (FIXTURES / "currencies.html").read_text(encoding="utf-8")
 GOLD = (FIXTURES / "gold.html").read_text(encoding="utf-8")
+CRYPTO = (FIXTURES / "crypto.html").read_text(encoding="utf-8")
 
 
 def as_dict(quotes):  # type: ignore[no-untyped-def]
@@ -45,9 +52,11 @@ def test_gold_and_coins() -> None:
 
 def test_source_fetches_both_pages() -> None:
     pages = {"https://alanchand.com/currencies-price": CURRENCIES,
-             "https://alanchand.com/gold-price": GOLD}
+             "https://alanchand.com/gold-price": GOLD,
+             "https://alanchand.com/crypto-price": CRYPTO}
     quotes = as_dict(AlanchandSource(fetch_html=pages.__getitem__).fetch())
     assert quotes["usd"] == 269_500 and quotes["gold18_gram"] == 26_473_980
+    assert quotes["crypto:btc"] == 22_762_553_884
 
 
 def test_changed_layout_is_reported() -> None:
@@ -62,3 +71,27 @@ def test_network_error_is_reported() -> None:
 
     with pytest.raises(PriceSourceError):
         AlanchandSource(fetch_html=broken).fetch()
+
+
+
+class TestCrypto:
+    def quotes(self):  # type: ignore[no-untyped-def]
+        return {q.key: q for q in parse_crypto(CRYPTO)}
+
+    def test_large_coins_use_site_toman_price(self) -> None:
+        q = self.quotes()
+        assert (q["crypto:btc"].price_toman, q["crypto:btc"].units) == (22_762_553_884, 1)
+        assert (q["crypto:usdt"].price_toman, q["crypto:usdt"].units) == (268_680, 1)
+
+    def test_tiny_coins_keep_precision_via_usd_and_tether(self) -> None:
+        shib = self.quotes()["crypto:shib"]  # سایت «۲ تومان» نشان می‌دهد
+        # ۰٫۰۰۰۰۰۵۷ دلار × ۲۶۸٬۶۸۰ تومان = ۱٫۵۳۱۴۷۶ تومان برای هر شیبا
+        assert shib.units == 1_000_000
+        assert shib.price_toman == 1_531_476
+
+    def test_broken_zero_toman_price_is_derived_from_usd(self) -> None:
+        ton = self.quotes()["crypto:ton"]  # سایت «۰ تومان» نشان می‌دهد ولی ۱٫۶ دلار
+        assert Decimal(ton.price_toman) / ton.units == Decimal("429888")
+
+    def test_all_coins_present(self) -> None:
+        assert len(self.quotes()) == 40

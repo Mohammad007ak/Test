@@ -546,12 +546,19 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
     quotes = services.latest_quotes(db)
     used = set(db.scalars(select(Asset.price_key).where(Asset.price_key.is_not(None))))
     rows = [{"key": key, "label": _price_label(key), "quote": quotes.get(key),
-             "main": key in s.MAIN_PRICE_KEYS or key in used or key not in s.PRICE_KEYS}
+             "group": _price_group(key, used)}
             for key in _price_keys(db)]
     sources = [price_refresh.load_status(db, source.name) or source.name
                for source in request.app.state.price_sources]
     return page(request, "prices.html", {"active": "prices", "rows": rows, "sources": sources,
                                          "errors": errors or {}}, status)
+
+
+def _price_group(key: str, used: set[str | None]) -> str:
+    """main: همیشه بالای صفحه؛ fx و crypto: در بخش‌های تاشو."""
+    if key in s.MAIN_PRICE_KEYS or key in used or key not in s.PRICE_KEYS:
+        return "main"
+    return "crypto" if key.startswith("crypto:") else "fx"
 
 
 def _price_label(key: str) -> str:

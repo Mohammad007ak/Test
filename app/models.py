@@ -129,9 +129,15 @@ class PriceQuote(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     key: Mapped[str] = mapped_column(String(100), index=True)
-    price_toman: Mapped[int] = mapped_column(BigInteger)
+    price_toman: Mapped[int] = mapped_column(BigInteger)  # قیمت units واحد
+    units: Mapped[int] = mapped_column(BigInteger, default=1, server_default="1")
     fetched_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
     source: Mapped[str] = mapped_column(String(50))
+
+    @property
+    def per_unit(self) -> Decimal:
+        """قیمت یک واحد (برای رمزارزهای خیلی ارزان کسری از تومان)."""
+        return Decimal(self.price_toman) / (self.units or 1)
 
 
 class NetworthSnapshot(Base):

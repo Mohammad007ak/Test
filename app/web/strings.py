@@ -8,6 +8,7 @@ ASSET_KINDS: dict[str, str] = {
     "coin": "سکه",
     "stock": "سهام",
     "fund": "صندوق",
+    "crypto": "رمزارز",
     "car": "خودرو",
     "real_estate": "ملک",
     "receivable": "طلب",
@@ -183,6 +184,7 @@ SEGMENTS: dict[str, tuple[tuple[str, str], ...]] = {
 
 ASSET_ICONS: dict[str, str] = {
     "fx": "dollar", "gold": "gold", "coin": "coin", "stock": "chart", "fund": "pie",
+    "crypto": "crypto",
     "car": "car", "real_estate": "building", "receivable": "handshake", "cash": "cash",
     "other": "box",
 }
@@ -201,6 +203,7 @@ COMPOSITION_GROUPS: tuple[tuple[str, str, tuple[str, ...], int], ...] = (
     ("bourse", "بورس", ("stock", "fund"), 7),
     ("car", "خودرو", ("car",), 5),
     ("real_estate", "ملک", ("real_estate",), 6),
+    ("crypto", "رمزارز", ("crypto",), 8),
     ("other", "سایر", ("receivable", "cash", "other"), 0),
 )
 
@@ -334,5 +337,54 @@ CURRENCY_NAMES: dict[str, str] = {
     "ars": "پزو آرژانتین",
 }
 
+# رمزارزهای الان‌چند (کلید قیمت = crypto:<نماد>)
+CRYPTO_NAMES: dict[str, str] = {
+    "usdt": "تتر (USDT)",
+    "btc": "بیت کوین (BTC)",
+    "eth": "اتریوم (ETH)",
+    "xrp": "ریپل (XRP)",
+    "bnb": "بایننس کوین (BNB)",
+    "shib": "شیبا (SHIB)",
+    "ada": "کاردانو (ADA)",
+    "doge": "دوج‌کوین (DOGE)",
+    "ton": "تون کوین (TON)",
+    "not": "نات کوین (NOT)",
+    "sol": "سولانا (SOL)",
+    "trx": "ترون (TRX)",
+    "cake": "پنکیک سواپ (CAKE)",
+    "avax": "آوالانچ (AVAX)",
+    "dot": "پولکادات (DOT)",
+    "link": "چین‌لینک (LINK)",
+    "ltc": "لایت‌کوین (LTC)",
+    "pepe": "پپه (PEPE)",
+    "uni": "یونی‌سواپ (UNI)",
+    "xlm": "استلار (XLM)",
+    "fil": "فایل‌کوین (FIL)",
+    "near": "نیر پروتکل (NEAR)",
+    "eos": "ایاس (EOS)",
+    "aave": "آوه (AAVE)",
+    "grt": "گراف (GRT)",
+    "xtz": "تزوس (XTZ)",
+    "flow": "فلو (FLOW)",
+    "sand": "سندباکس (SAND)",
+    "mana": "دی‌سنترالند (MANA)",
+    "axs": "اکسی اینفینیتی (AXS)",
+    "chz": "چیلیز (CHZ)",
+    "enj": "انجین کوین (ENJ)",
+    "zec": "زدکش (ZEC)",
+    "gala": "گالا (GALA)",
+    "lrc": "لوپرینگ (LRC)",
+    "bat": "بت (BAT)",
+    "one": "هارمونی (ONE)",
+    "zen": "هورایزن (ZEN)",
+    "cvc": "سیویک (CVC)",
+    "storj": "استورج (STORJ)",
+}
+
 FX_KEYS = tuple(CURRENCY_NAMES)
-PRICE_KEYS: dict[str, str] = {**CURRENCY_NAMES, **GOLD_PRICE_KEYS}
+CRYPTO_KEYS = tuple(f"crypto:{code}" for code in CRYPTO_NAMES)
+PRICE_KEYS: dict[str, str] = {
+    **CURRENCY_NAMES,
+    **GOLD_PRICE_KEYS,
+    **{f"crypto:{code}": name for code, name in CRYPTO_NAMES.items()},
+}

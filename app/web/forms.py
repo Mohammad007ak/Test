@@ -126,6 +126,7 @@ def display_value(spec: Field, value: Any) -> str:
 
 CURRENCY_OPTIONS = {k: s.PRICE_KEYS[k] for k in s.FX_KEYS}
 COIN_OPTIONS = {k: s.PRICE_KEYS[k] for k in s.COIN_KEYS}
+CRYPTO_OPTIONS = dict(s.CRYPTO_NAMES)
 
 ASSET_FIELDS = [
     Field("kind", "نوع", "select", required=True, options=s.ASSET_KINDS, widget="chips"),
@@ -133,9 +134,11 @@ ASSET_FIELDS = [
     Field("currency", "ارز", "select", required=True, options=CURRENCY_OPTIONS, kinds=("fx",)),
     Field("coin_type", "نوع سکه", "select", required=True, options=COIN_OPTIONS,
           kinds=("coin",), widget="chips"),
+    Field("crypto_symbol", "رمزارز", "select", required=True, options=CRYPTO_OPTIONS,
+          kinds=("crypto",)),
     Field("symbol", "نماد", "text", required=True, kinds=("stock", "fund"), hint="مثلاً فولاد"),
     Field("quantity", "مقدار", "decimal", required=True,
-          kinds=("fx", "gold", "coin", "stock", "fund"),
+          kinds=("fx", "gold", "coin", "stock", "fund", "crypto"),
           hint="گرم، عدد سکه، تعداد سهم یا واحد ارز"),
     Field("karat", "عیار", "int", required=True, kinds=("gold",), min=1, max=24),
     Field("manual_value_toman", "ارزش فعلی", "money", required=True,

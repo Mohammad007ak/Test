@@ -27,7 +27,7 @@
     <div class="row price-row {{ 'has-error' if errors.get(row.key) }}">
       <span class="row-main">
         <span class="row-title">{{ row.label }}</span>
-        <span class="row-sub">{% if row.quote %}{{ row.quote.price_toman | toman }} · {{ row.quote.fetched_at | jalali }} · {{ s.SOURCE_LABELS.get(row.quote.source, row.quote.source) }}{% else %}{{ T.no_price }}{% endif %}</span>
+        <span class="row-sub">{% if row.quote %}{{ row.quote | unit_price }} · {{ row.quote.fetched_at | jalali }} · {{ s.SOURCE_LABELS.get(row.quote.source, row.quote.source) }}{% else %}{{ T.no_price }}{% endif %}</span>
         {% if errors.get(row.key) %}<span class="error">{{ errors[row.key] }}</span>{% endif %}
       </span>
       <span class="input compact has-unit">
@@ -37,15 +37,17 @@
     </div>
   {% endmacro %}
   <div class="list">
-    {% for row in rows if row.main %}{{ price_row(row) }}{% endfor %}
+    {% for row in rows if row.group == "main" %}{{ price_row(row) }}{% endfor %}
   </div>
-  {% set others = rows | rejectattr("main") | list %}
+  {% for group, title in (("fx", "سایر ارزها"), ("crypto", "رمزارزها")) %}
+  {% set others = rows | selectattr("group", "equalto", group) | list %}
   {% if others %}
   <details class="card disclosure other-prices">
-    <summary>سایر ارزها ({{ others | length | fa }})</summary>
+    <summary>{{ title }} ({{ others | length | fa }})</summary>
     <div class="list flat">{% for row in others %}{{ price_row(row) }}{% endfor %}</div>
   </details>
   {% endif %}
+  {% endfor %}
   <div class="sticky-actions"><button type="submit" class="btn wide">{{ T.save }}</button></div>
 </form>
 {% endblock %}

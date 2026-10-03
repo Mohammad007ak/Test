@@ -5,6 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from functools import cache
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import jdatetime
@@ -53,6 +54,15 @@ def _amount(toman: int) -> Markup:
     return Markup('<span class="amt">{}<small>{}</small></span>').format(number, unit)
 
 
+def _unit_price(quote: Any) -> str:
+    """قیمت یک واحد؛ برای رمزارزهای خیلی ارزان با رقم اعشار («۱٫۵۳۱۴۷۶ تومان»)."""
+    if quote.units == 1:
+        return format_toman(quote.price_toman)
+    places = len(str(quote.units)) - 1
+    text = format_number(quote.per_unit, places).rstrip("۰").rstrip("٫")
+    return f"{text} تومان"
+
+
 def _number(value: Decimal | int | None, places: int = 0) -> str:
     return "" if value is None else format_number(value, places)
 
@@ -66,6 +76,7 @@ templates.env.filters.update(
     toman=format_toman,
     toman_short=format_toman_short,
     amt=_amount,
+    unit_price=_unit_price,
     num=_number,
     percent=_percent,
     jalali=jalali,

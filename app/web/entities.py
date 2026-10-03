@@ -7,7 +7,8 @@ from app.models import Account, Asset, IncomeStream, Liability
 from app.web import forms
 from app.web.forms import Entity
 
-_UNITS = {"fx": None, "gold": "gram", "coin": "piece", "stock": "share", "fund": "unit"}
+_UNITS = {"fx": None, "gold": "gram", "coin": "piece", "stock": "share", "fund": "unit",
+          "crypto": "coin"}
 
 
 def _asset_to_model(values: dict[str, Any]) -> dict[str, Any]:
@@ -15,7 +16,9 @@ def _asset_to_model(values: dict[str, Any]) -> dict[str, Any]:
     currency = values.pop("currency")
     coin_type = values.pop("coin_type")
     symbol = values.pop("symbol")
+    crypto = values.pop("crypto_symbol")
     price_key = {
+        "crypto": f"crypto:{crypto}" if crypto else None,
         "fx": currency,
         "coin": coin_type,
         "gold": "gold18_gram",
@@ -32,7 +35,9 @@ def _asset_from_model(asset: Asset) -> dict[str, Any]:
     key = asset.price_key or ""
     values["currency"] = key if asset.kind == "fx" else None
     values["coin_type"] = key if asset.kind == "coin" else None
-    values["symbol"] = key.split(":", 1)[1] if ":" in key else None
+    _, _, code = key.partition(":")
+    values["symbol"] = code if asset.kind in ("stock", "fund") else None
+    values["crypto_symbol"] = code if asset.kind == "crypto" else None
     return values
 
 

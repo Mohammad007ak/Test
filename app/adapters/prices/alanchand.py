@@ -4,7 +4,9 @@
 - قیمت‌های هر دو صفحه تومانی‌اند. برای ارز «قیمت فروش» برداشته می‌شود.
 - هر ارز یک ردیف اصلی (بازار آزاد) دارد و ردیف‌های حواله و بازارهای دیگر نادیده گرفته می‌شوند.
 - ارزهایی که به ازای صد واحد قیمت دارند («صد ین ژاپن») به یک واحد تبدیل می‌شوند.
-- اونس‌ها دلاری‌اند و رمزارز در دامنه نسخه صفر نیست؛ هر دو کنار گذاشته می‌شوند.
+- اونس‌ها دلاری‌اند و کنار گذاشته می‌شوند.
+- رمزارز: قیمت تومانی سایت برای کوین‌های ارزان گرد شده یا گاهی صفر است؛ در آن حالت
+  قیمت دلاری × قیمت تتر حساب و برای «units» واحد ذخیره می‌شود تا دقت از دست نرود.
 """
 
 import re
@@ -23,6 +25,7 @@ from app.domain.normalize import normalize_digits
 BASE_URL = "https://alanchand.com"
 CURRENCIES_URL = f"{BASE_URL}/currencies-price"
 GOLD_URL = f"{BASE_URL}/gold-price"
+CRYPTO_URL = f"{BASE_URL}/crypto-price"
 USER_AGENT = "finassist/0.1 (personal net-worth tracker)"
 TIMEOUT_SECONDS = 20
 
@@ -36,7 +39,9 @@ GOLD_KEYS: dict[str, str] = {
     "sek": "coin_gram",
 }
 
-_ROW_URL = re.compile(r"/(currencies-price|gold-price)/([a-z0-9_]+)")
+_ROW_URL = re.compile(r"/(currencies-price|gold-price|crypto-price)/([a-z0-9_]+)")
+SITE_TOMAN_MIN = 100_000  # کمتر از این، قیمت تومانی سایت دقت کافی ندارد
+SIGNIFICANT_TOMAN = 1_000_000  # قیمت ذخیره‌شده دست‌کم این‌قدر باشد (۶ رقم معنادار)
 _PRICE = re.compile(r"[\d,]+")
 
 
@@ -44,6 +49,7 @@ class _Row:
     def __init__(self, section: str, slug: str, title: str) -> None:
         self.section, self.slug, self.title = section, slug, title
         self.cells: list[tuple[str, str]] = []  # (class، متن خود خانه بدون span درونی)
+        self.spans: dict[str, str] = {}  # متن spanها بر اساس اولین class (tmn، dlr، ...)
 
 
 class _TableParser(HTMLParser):
@@ -56,6 +62,7 @@ class _TableParser(HTMLParser):
         self._cell: list[str] | None = None
         self._cell_class = ""
         self._span_depth = 0
+        self._span_classes: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attr = {k: v or "" for k, v in attrs}
@@ -67,10 +74,12 @@ class _TableParser(HTMLParser):
             self._cell, self._cell_class, self._span_depth = [], attr.get("class", ""), 0
         elif tag == "span" and self._cell is not None:
             self._span_depth += 1
+            self._span_classes.append((attr.get("class", "").split() or [""])[0])
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "span" and self._span_depth:
             self._span_depth -= 1
+            self._span_classes.pop()
         elif tag == "td" and self._row is not None and self._cell is not None:
             self._row.cells.append((self._cell_class, " ".join("".join(self._cell).split())))
             self._cell = None
@@ -79,8 +88,13 @@ class _TableParser(HTMLParser):
             self._row = None
 
     def handle_data(self, data: str) -> None:
-        if self._cell is not None and not self._span_depth:
+        if self._cell is None or self._row is None:
+            return
+        if not self._span_depth:
             self._cell.append(data)
+        elif self._span_classes[-1]:
+            key = self._span_classes[-1]
+            self._row.spans[key] = (self._row.spans.get(key, "") + data).strip()
 
 
 def _rows(page: str, section: str) -> list[_Row]:
@@ -130,6 +144,40 @@ def parse_gold(page: str) -> list[FetchedQuote]:
     return quotes
 
 
+def _usd(text: str) -> Decimal | None:
+    cleaned = normalize_digits(text).replace(",", "").strip()
+    try:
+        value = Decimal(cleaned)
+    except ArithmeticError:
+        return None
+    return value if value.is_finite() and value > 0 else None
+
+
+def _scaled(per_unit: Decimal) -> tuple[int, int]:
+    """قیمت یک واحد → (قیمت units واحد، units) با دست‌کم شش رقم معنادار."""
+    units = 1
+    while per_unit * units < SIGNIFICANT_TOMAN:
+        units *= 10
+    return round_toman(per_unit * units), units
+
+
+def parse_crypto(page: str) -> list[FetchedQuote]:
+    rows = _rows(page, "crypto-price")
+    tether = next((_toman(r.spans.get("tmn", "")) for r in rows if r.slug == "usdt"), None)
+    quotes = []
+    for row in rows:
+        site = _toman(row.spans.get("tmn", "")) or 0
+        if site >= SITE_TOMAN_MIN:
+            quotes.append(FetchedQuote(f"crypto:{row.slug}", site))
+            continue
+        usd = _usd(row.spans.get("dlr", ""))
+        if usd is None or not tether:
+            continue
+        price, units = _scaled(usd * tether)
+        quotes.append(FetchedQuote(f"crypto:{row.slug}", price, units))
+    return quotes
+
+
 def _ssl_context() -> ssl.SSLContext:
     context = ssl.create_default_context()
     # پایتون مستقل (uv) روی مک گاهی گواهی‌های سیستم را پیدا نمی‌کند
@@ -158,7 +206,8 @@ class AlanchandSource:
     def fetch(self) -> list[FetchedQuote]:
         currencies = parse_currencies(self._get(CURRENCIES_URL))
         gold = parse_gold(self._get(GOLD_URL))
+        crypto = parse_crypto(self._get(CRYPTO_URL))
         if not any(q.key == "usd" for q in currencies) or not any(
                 q.key == "gold18_gram" for q in gold):
             raise PriceSourceError("قالب صفحه عوض شده؛ دلار یا طلای ۱۸ پیدا نشد")
-        return currencies + gold
+        return currencies + gold + crypto

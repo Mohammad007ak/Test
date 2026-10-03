@@ -24,7 +24,8 @@ class StubSource:
     def fetch(self) -> list[FetchedQuote]:
         if self.fail:
             raise PriceSourceError("قطع")
-        return [FetchedQuote("usd", 102_500), FetchedQuote("gold18_gram", 8_200_000)]
+        return [FetchedQuote("usd", 102_500), FetchedQuote("gold18_gram", 8_200_000),
+                FetchedQuote("crypto:shib", 1_531_476, units=1_000_000)]
 
 
 @pytest.fixture
@@ -252,8 +253,8 @@ def test_names_keep_persian_digits(client: TestClient) -> None:
 class TestPriceRefresh:
     def test_refresh_button_fetches_and_shows_status(self, client: TestClient) -> None:
         response = client.post("/prices/refresh")
-        assert "۲ قیمت به‌روز شد" in response.text
-        assert "۸٬۲۰۰٬۰۰۰ تومان" in response.text and "۲ قیمت ·" in response.text
+        assert "۳ قیمت به‌روز شد" in response.text
+        assert "۸٬۲۰۰٬۰۰۰ تومان" in response.text and "۳ قیمت ·" in response.text
 
     def test_failed_source_keeps_last_prices(self, client: TestClient) -> None:
         client.post("/prices/refresh")
@@ -270,3 +271,14 @@ def test_static_assets_are_versioned(client: TestClient) -> None:
     css = re.search(r'href="(/static/css/app\.css\?v=[0-9a-f]{10})"', page)
     assert css, "CSS بدون نشانه نسخه است؛ مرورگر ممکن است نسخه قدیمی را نشان دهد"
     assert client.get(css.group(1)).status_code == 200
+
+
+def test_cheap_crypto_is_valued_with_full_precision(client: TestClient) -> None:
+    client.post("/prices/refresh")
+    client.post("/assets", data={"kind": "crypto", "name": "شیبا", "crypto_symbol": "shib",
+                                 "quantity": "۱۰٬۰۰۰٬۰۰۰"})
+    with db(client) as s:
+        assert s.scalars(select(Asset)).one().price_key == "crypto:shib"
+    # ۱۰ میلیون × ۱٫۵۳۱۴۷۶ تومان (نه ۲ تومانِ گردشده)
+    assert "۱۵٫۳<small>میلیون تومان" in client.get("/assets").text
+    assert "۱٫۵۳۱۴۷۶ تومان" in client.get("/prices").text

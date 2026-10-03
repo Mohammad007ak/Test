@@ -1,11 +1,12 @@
 """ارزش‌گذاری دارایی و ثروت خالص."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 
 from app.domain.money import round_toman
 
-MARKET_KINDS = frozenset({"fx", "gold", "coin", "stock", "fund"})
+MARKET_KINDS = frozenset({"fx", "gold", "coin", "stock", "fund", "crypto"})
 MANUAL_KINDS = frozenset({"car", "real_estate", "receivable", "cash", "other"})
 GOLD_BASE_KARAT = 18
 
@@ -19,7 +20,7 @@ class AssetHolding:
     manual_value_toman: int | None
 
 
-def asset_value_toman(asset: AssetHolding, prices: dict[str, int]) -> int | None:
+def asset_value_toman(asset: AssetHolding, prices: Mapping[str, Decimal | int]) -> int | None:
     """ارزش تومانی دارایی؛ None اگر قیمت بازار هنوز موجود نیست."""
     if asset.kind not in MARKET_KINDS:
         return asset.manual_value_toman

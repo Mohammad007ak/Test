@@ -10,8 +10,9 @@ class PriceSourceError(Exception):
 
 @dataclass(frozen=True)
 class FetchedQuote:
-    key: str  # usd، gold18_gram، coin_emami، stock:<نماد>، ...
-    price_toman: int
+    key: str  # usd، gold18_gram، coin_emami، crypto:btc، stock:<نماد>، ...
+    price_toman: int  # قیمت units واحد (برای رمزارزهای خیلی ارزان، مثلاً قیمت یک میلیون شیبا)
+    units: int = 1
 
 
 class PriceSource(Protocol):

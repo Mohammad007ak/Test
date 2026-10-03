@@ -160,7 +160,7 @@ def _terms(liability: Liability) -> LiabilityTerms:
 def build_portfolio(session: Session, now: datetime | None = None) -> Portfolio:
     now = now or utcnow()
     quotes = latest_quotes(session)
-    prices = {key: quote.price_toman for key, quote in quotes.items()}
+    prices = {key: quote.per_unit for key, quote in quotes.items()}
 
     asset_lines = [
         AssetLine(asset, asset_value_toman(_holding(asset), prices),

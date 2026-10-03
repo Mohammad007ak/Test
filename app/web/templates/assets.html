@@ -22,6 +22,7 @@
           {% elif a.kind == 'fx' %}{{ a.quantity | dec }} {{ s.PRICE_KEYS.get(a.price_key, '') }}
           {% elif a.kind == 'coin' %}{{ a.quantity | dec }} عدد {{ s.PRICE_KEYS.get(a.price_key, '') }}
           {% elif a.kind in ('stock', 'fund') %}{{ a.quantity | dec }} واحد
+          {% elif a.kind == 'crypto' %}{{ a.quantity | dec }} {{ s.PRICE_KEYS.get(a.price_key, '') }}
           {% elif a.manual_value_updated_at %}{{ T.updated_at }} {{ a.manual_value_updated_at | jalali(false) }}{% endif %}
         </span>
       </span>
