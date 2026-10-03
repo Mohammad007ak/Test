@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% from "_fields.html" import field %}
+{% from "_ui.html" import icon, bubble %}
 {% block content %}
+<div class="list">
+  <a href="/settings/categories" class="row">{{ bubble("tag", 3) }}<span class="row-main"><span class="row-title">{{ s.PAGE_TITLES.categories }}</span><span class="row-sub">{{ T.spending_categories }} و {{ T.deposit_categories }}</span></span>{{ icon("chev", "end") }}</a>
+</div>
 <form method="post" action="/settings" class="form card" novalidate>
   <div class="fields">{% for f in fields %}{{ field(f, values, errors) }}{% endfor %}</div>
   <button type="submit" class="btn wide">{{ T.save }}</button>

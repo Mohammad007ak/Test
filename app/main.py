@@ -31,7 +31,7 @@ from app.models import Asset, LoanAnalysis, PriceQuote, User, UserOwned, utcnow
 from app.otp import LogSender, OtpSender, OtpService, SmsIrSender
 from app.scheduler import Activity, Pace, refresh_now, run_adaptive
 from app.sms.llm import DisabledLLM
-from app.web import auth, forms
+from app.web import auth, categories, forms
 from app.web import strings as s
 from app.web.auth_routes import register_auth_routes
 from app.web.common import (
@@ -196,6 +196,7 @@ def _register_routes(app: FastAPI) -> None:
             "spark_line": spark[0], "spark_area": spark[1],
             "empty": empty,
             "spending": spending,
+            "cat_labels": categories.labels(db),
             "deposits": deposits,
         })
 
@@ -416,6 +417,21 @@ def register_extra_routes(app: FastAPI) -> None:
                 services.set_user_setting(db, key, str(value))
         db.commit()
         return done(request, "/settings", s.TOASTS["settings"])
+
+    @app.get("/settings/categories", response_class=HTMLResponse, dependencies=[LoggedIn])
+    def categories_page(request: Request, db: Db) -> Response:
+        return page(request, "settings_categories.html", {
+            "active": "categories",
+            "groups": [("out", s.T["spending_categories"], categories.categories(db, "out")),
+                       ("in", s.T["deposit_categories"], categories.categories(db, "in"))]})
+
+    @app.post("/settings/categories/{direction}", dependencies=[LoggedIn])
+    async def categories_save(request: Request, direction: str, db: Db) -> Response:
+        if direction not in categories.BUILTIN:
+            raise HTTPException(404)
+        categories.save(db, direction, await read_form(request))
+        db.commit()
+        return done(request, "/settings/categories", s.TOASTS["settings"])
 
     @app.get("/export.json", dependencies=[LoggedIn])
     def export(db: Db) -> Response:

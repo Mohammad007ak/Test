@@ -15,7 +15,7 @@ from fastapi.responses import HTMLResponse, Response
 from app import services
 from app.domain.spending import TEHRAN, shift_month
 from app.models import Transaction
-from app.web import forms
+from app.web import categories, forms
 from app.web import strings as s
 from app.web.common import Db, LoggedIn, done, page, read_form, wants_fragment
 from app.web.forms import Entity, FormError
@@ -58,6 +58,11 @@ def _is_manual(tx: Transaction) -> bool:
     return tx.account_id is None and tx.sms_id is None
 
 
+def _full_form(entity: Entity) -> bool:
+    """فرم تراکنش دستی (مبلغ و تاریخ دارد)؛ فرم تراکنش پیامکی فقط دسته و شرح دارد."""
+    return any(f.name == "amount_toman" for f in entity.fields)
+
+
 def _noon_tehran(day: date) -> datetime:
     return datetime.combine(day, time(12), tzinfo=TEHRAN)
 
@@ -79,8 +84,11 @@ def register_spending_routes(app: FastAPI) -> None:
 def _register_flow(app: FastAPI, flow: Flow) -> None:
     base = f"/{flow.slug}"
 
-    def entity_of(tx: Transaction) -> Entity:
-        return flow.manual if _is_manual(tx) else flow.from_sms
+    def entity_of(db: Db, tx: Transaction | None = None) -> Entity:
+        """فرم با دسته‌های شخصی کاربر؛ تراکنش پیامکی فقط دسته و شرح دارد."""
+        base_entity = flow.manual if tx is None or _is_manual(tx) else flow.from_sms
+        return categories.with_options(base_entity, db, flow.direction,
+                                       include=tx.category if tx else None)
 
     def _form(request: Request, entity: Entity, values: dict[str, str],
               errors: dict[str, str] | None = None, edit_id: int | None = None,
@@ -91,7 +99,7 @@ def _register_flow(app: FastAPI, flow: Flow) -> None:
         return page(request, "sheet_form.html" if fragment else "form_page.html", {
             "active": flow.slug, "entity": entity, "fields": entity.fields,
             "values": values, "errors": errors or {}, "edit_id": edit_id,
-            "no_delete": entity is flow.from_sms,
+            "no_delete": not _full_form(entity),
         }, status)
 
     def _tx(db: Db, tx_id: int) -> Transaction:
@@ -104,7 +112,7 @@ def _register_flow(app: FastAPI, flow: Flow) -> None:
         values = forms.parse_form(entity.fields, data)
         tx.category = values["category"]
         tx.description = values["description"] or None
-        if entity is flow.manual:
+        if _full_form(entity):
             if values["amount_toman"] <= 0:
                 raise FormError({"amount_toman": s.T["invalid_number"]})
             tx.amount_toman = values["amount_toman"]
@@ -123,30 +131,32 @@ def _register_flow(app: FastAPI, flow: Flow) -> None:
             "prev": f"{prev[0]}-{prev[1]:02d}", "next": f"{next_[0]}-{next_[1]:02d}",
             "fixed_toman": portfolio.monthly_fixed_expenses_toman if flow.show_fixed else 0,
             "accounts": {a.id: a for a in portfolio.accounts},
+            "cat_labels": categories.labels(db),
         })
 
-    def new(request: Request) -> Response:
-        return _form(request, flow.manual, {})
+    def new(request: Request, db: Db) -> Response:
+        return _form(request, entity_of(db), {})
 
     async def create(request: Request, db: Db) -> Response:
         data = await read_form(request)
         tx = Transaction(direction=flow.direction, account_id=None)
+        entity = entity_of(db)
         try:
-            _apply(flow.manual, data, tx)
+            _apply(entity, data, tx)
         except FormError as exc:
-            return _form(request, flow.manual, data, exc.errors, status=400)
+            return _form(request, entity, data, exc.errors, status=400)
         db.add(tx)
         db.commit()
         return done(request, base, s.TOASTS["created"].format(title=flow.manual.title))
 
     def edit(request: Request, tx_id: int, db: Db) -> Response:
         tx = _tx(db, tx_id)
-        entity = entity_of(tx)
+        entity = entity_of(db, tx)
         return _form(request, entity, _form_values(entity, tx), edit_id=tx_id)
 
     async def update(request: Request, tx_id: int, db: Db) -> Response:
         tx = _tx(db, tx_id)
-        entity = entity_of(tx)
+        entity = entity_of(db, tx)
         data = await read_form(request)
         try:
             _apply(entity, data, tx)

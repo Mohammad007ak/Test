@@ -1203,3 +1203,12 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
 .spend-in { display: flex; justify-content: space-between; align-items: baseline; color: inherit;
   text-decoration: none; margin: -4px 0 12px; padding: 8px 12px; border-radius: 12px;
   background: var(--accent-soft); }
+
+/* ---------- ویرایش دسته‌ها ---------- */
+.cat-editor { display: flex; flex-direction: column; gap: 10px; }
+.cat-edit-row { display: flex; align-items: center; gap: 10px; transition: opacity .2s; }
+.cat-edit-row input:not([type=checkbox]) { flex: 1; min-height: 44px; }
+.cat-edit-row.is-hidden { opacity: .5; }
+.hide-toggle { display: flex; align-items: center; gap: 4px; font-size: .78rem; color: var(--muted);
+  white-space: nowrap; cursor: pointer; }
+.hide-toggle input { width: 18px; height: 18px; min-height: 0; accent-color: var(--accent); }

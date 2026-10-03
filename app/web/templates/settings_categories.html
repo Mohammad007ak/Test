@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, bubble %}
+{% block content %}
+<p class="lead">{{ T.categories_hint }}</p>
+{% for direction, title, cats in groups %}
+<form method="post" action="/settings/categories/{{ direction }}" class="card cat-editor">
+  <div class="card-head"><h2>{{ title }}</h2></div>
+  {% for c in cats %}
+  <div class="cat-edit-row {{ 'is-hidden' if c.hidden }}">
+    {{ bubble(s.CATEGORY_ICONS.get(c.key, "box"), s.CATEGORY_SLOT.get(c.key, 0)) }}
+    <input name="label:{{ c.key }}" value="{{ c.label }}" maxlength="40" aria-label="{{ c.label }}" required>
+    {% if not c.protected %}
+    <label class="hide-toggle"><input type="checkbox" name="hidden:{{ c.key }}" {{ 'checked' if c.hidden }}><span>{{ T.category_hide }}</span></label>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <div class="cat-edit-row new">
+    {{ bubble("plus", 3) }}
+    <input name="new" maxlength="40" placeholder="{{ T.category_new_placeholder }}" aria-label="{{ T.category_new }}">
+  </div>
+  <button type="submit" class="btn wide">{{ T.save }}</button>
+</form>
+{% endfor %}
+{% endblock %}

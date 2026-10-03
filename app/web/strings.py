@@ -538,3 +538,17 @@ T.update({
     "welcome": "حسابت ساخته شد؛ خوش آمدی",
     "password_changed": "رمز عبور عوض شد",
 })
+
+# ---------- دسته‌بندی شخصی ----------
+PAGE_TITLES["categories"] = "دسته‌بندی‌ها"
+TAB_OF_PAGE["categories"] = "more"
+T.update({
+    "spending_categories": "دسته‌های خرج",
+    "deposit_categories": "دسته‌های واریز",
+    "categories_hint": "نام هر دسته را عوض کن، دسته‌هایی که لازم نداری را پنهان کن "
+                       "یا دسته تازه بساز. تراکنش‌های قبلی دسته‌شان را نگه می‌دارند.",
+    "category_hide": "پنهان",
+    "category_new": "دسته تازه",
+    "category_new_placeholder": "مثلاً حیوان خانگی",
+    "edit_categories": "ویرایش دسته‌ها",
+})

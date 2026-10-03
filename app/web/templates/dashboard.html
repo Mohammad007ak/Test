@@ -141,7 +141,7 @@
   <ul class="cat-bars">
     {% for row in spending.by_category[:3] %}
     <li class="s{{ s.CATEGORY_SLOT.get(row.category, 0) }}">
-      <span class="cat-name">{{ s.CATEGORY_LABELS.get(row.category, row.category) }}</span>
+      <span class="cat-name">{{ cat_labels.get(row.category, row.category) }}</span>
       <span class="cat-value">{{ row.total_toman | amt }}</span>
       <span class="cat-track"><span class="cat-fill" style="--w: {{ row.total_toman / top * 100 }}%"></span></span>
     </li>

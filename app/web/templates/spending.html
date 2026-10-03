@@ -15,11 +15,11 @@
 
 {% if result.by_category %}
 <section class="card">
-  <div class="card-head"><h2>{{ T.by_category }}</h2></div>
+  <div class="card-head"><h2>{{ T.by_category }}</h2><a href="/settings/categories" class="small">{{ T.edit_categories }}</a></div>
   <ul class="cat-bars">
     {% for row in result.by_category %}
     <li class="s{{ s.CATEGORY_SLOT.get(row.category, 0) }}">
-      <span class="cat-name">{{ s.CATEGORY_LABELS.get(row.category, row.category) }}</span>
+      <span class="cat-name">{{ cat_labels.get(row.category, row.category) }}</span>
       <span class="cat-value">{{ row.total_toman | amt }}</span>
       <span class="cat-track"><span class="cat-fill" style="--w: {{ (row.total_toman / top * 100) if top else 0 }}%"></span></span>
     </li>
@@ -36,14 +36,14 @@
   {% call sheet_link("/" ~ flow.slug ~ "/" ~ tx.id ~ "/edit", "row " ~ ("dim" if cat == "transfer" else "")) %}
     {{ bubble(s.CATEGORY_ICONS.get(cat, "box"), s.CATEGORY_SLOT.get(cat, 0)) }}
     <span class="row-main">
-      <span class="row-title">{{ tx.description or s.CATEGORY_LABELS.get(cat, cat) }}</span>
+      <span class="row-title">{{ tx.description or cat_labels.get(cat, cat) }}</span>
       <span class="row-sub">{{ tx.occurred_at | jalali(false) }} ·
         {% if tx.account_id and tx.account_id in accounts %}{{ s.BANKS.get(accounts[tx.account_id].bank, '') }}{% else %}{{ T.cash_expense }}{% endif %}</span>
     </span>
     <span class="row-end">
       <strong class="{{ 'pos' if flow.direction == 'in' }}">{{ '+' if flow.direction == 'in' }}{{ tx.amount_toman | amt }}</strong>
       {% if cat == "uncategorized" %}<span class="pill warn">{{ s.CATEGORY_LABELS.uncategorized }}</span>
-      {% else %}<span class="pill">{{ s.CATEGORY_LABELS.get(cat, cat) }}</span>{% endif %}
+      {% else %}<span class="pill">{{ cat_labels.get(cat, cat) }}</span>{% endif %}
     </span>
   {% endcall %}
   {% endfor %}
