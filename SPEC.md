@@ -88,7 +88,7 @@ Oct 1, 2026 · @Mohammad
 | جدول | فیلدهای کلیدی | نکته |
 | --- | --- | --- |
 | `assets` | `id`, `kind`, `name`, `quantity`, `unit`, `karat`, `price_key`, `manual_value_toman`, `manual_value_updated_at`, `note` | `kind` یکی از: `fx`, `gold`, `coin`, `stock`, `fund`, `car`, `real_estate`, `receivable`, `cash`, `other`؛ دارایی بازاری `price_key` دارد، بقیه `manual_value_toman` |
-| `accounts` | `id`, `bank`, `account_mask`, `label`, `balance_toman`, `balance_updated_at`, `balance_source` | فقط ۴ رقم آخر حساب یا کارت ذخیره می‌شود؛ `balance_source` یکی از `manual` یا `sms` |
+| `accounts` | `id`, `bank`, `account_mask`, `account_prefix`, `label`, `balance_toman`, `balance_updated_at`, `balance_source` | ۴ رقم آخر حساب یا کارت، و برای حساب ابتدای شماره (حداکثر ۴ رقم)؛ `balance_source` یکی از `manual` یا `sms` |
 | `transactions` | `id`, `account_id`, `direction`, `amount_toman`, `balance_after_toman`, `occurred_at`, `category`, `description`, `sms_id` | `direction` یکی از `in` یا `out` |
 | `sms_inbox` | `id`, `text_masked`, `received_at`, `content_hash`, `parse_status`, `parser`, `error` | `content_hash` برای حذف تکراری‌ها؛ `parse_status` یکی از `parsed`, `failed`, `ignored` |
 | `liabilities` | `id`, `kind`, `lender`, `principal_toman`, `installment_toman`, `installments_total`, `installments_paid`, `due_day`, `nominal_rate`, `start_date`, `note` | `kind` یکی از: `bank_loan`, `bnpl`, `credit_card`, `personal`, `other` |
@@ -114,7 +114,7 @@ Oct 1, 2026 · @Mohammad
 3. حذف تکراری: هش متن یکسان‌شده؛ هش تکراری با وضعیت `ignored` ثبت می‌شود.
 4. پارس با رجیستری پارسرها: هر پارسر بانکی `can_parse(text)` و `parse(text)` دارد.
 5. بازگشت به LLM: اگر هیچ پارسری جواب نداد، متن پوشانده‌شده با خروجی JSON سختگیرانه به LLM می‌رود.
-6. اعتبارسنجی و ثبت: حساب با `bank` و `account_mask` پیدا یا ساخته می‌شود، مانده به‌روز و تراکنش ثبت می‌شود.
+6. اعتبارسنجی و ثبت: حساب با `bank`، `account_prefix` و `account_mask` پیدا یا ساخته می‌شود (پیامک بدون شماره، مثل بلو: تنها حساب همان بانک)، مانده به‌روز و تراکنش ثبت می‌شود.
 7. صف بررسی: پیامک ناموفق در UI نشان داده می‌شود تا کاربر دستی تکمیلش کند.
 
 **قرارداد خروجی پارسر:**
