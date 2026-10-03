@@ -481,3 +481,6 @@ T.update({
     "details": "جزئیات",
     "greeting": "سلام",
 })
+
+THEMES: dict[str, str] = {"system": "خودکار", "light": "روشن", "dark": "تیره"}
+T.update({"appearance": "ظاهر"})

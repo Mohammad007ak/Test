@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon, bubble %}
 {% block content %}
+<h2 class="section-title">{{ T.appearance }}</h2>
+<div class="list theme-pick" role="group" aria-label="{{ T.appearance }}">
+  {% for key, label in s.THEMES.items() %}
+  <button type="button" data-set-theme="{{ key }}" aria-pressed="false"><span class="theme-swatch {{ key }}"></span>{{ label }}</button>
+  {% endfor %}
+</div>
 <h2 class="section-title">{{ T.more_data }}</h2>
 <div class="list">
   <a href="/sms" class="row">{{ bubble("card", 1) }}<span class="row-main"><span class="row-title">{{ s.PAGE_TITLES.sms }}</span><span class="row-sub">{{ T.sms_more }}</span></span>{{ icon("chev", "end") }}</a>

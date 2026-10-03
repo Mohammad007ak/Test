@@ -226,6 +226,32 @@
     }
   });
 
+  // ---------- ظاهر: خودکار (طبق سیستم)، روشن یا تیره ----------
+  var systemLight = window.matchMedia("(prefers-color-scheme: light)");
+
+  function themeChoice() {
+    try { return localStorage.getItem("theme") || "system"; } catch (err) { return "system"; }
+  }
+
+  function applyTheme() {
+    var choice = themeChoice();
+    var dark = choice === "dark" || (choice === "system" && !systemLight.matches);
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
+    document.querySelectorAll("[data-set-theme]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-set-theme") === choice));
+    });
+  }
+
+  systemLight.addEventListener("change", applyTheme);
+  document.addEventListener("click", function (e) {
+    var button = e.target.closest("[data-set-theme]");
+    if (!button) return;
+    try { localStorage.setItem("theme", button.getAttribute("data-set-theme")); } catch (err) { /* حالت خصوصی */ }
+    applyTheme();
+  });
+
   // ---------- راه‌اندازی هر محتوای تازه (بار اول و پس از هر جابه‌جایی htmx) ----------
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));
@@ -242,6 +268,7 @@
       var button = saved && box.querySelector('[data-set-unit="' + saved + '"]:not([disabled])');
       if (button) setUnit(box, saved);
     });
+    applyTheme();
     all(root, "canvas[data-trend]").forEach(drawTrend);
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduced && !(root.id === "live")) all(root, "[data-countup]").forEach(countUp);

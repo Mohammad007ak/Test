@@ -5,37 +5,42 @@
   font-display: swap;
 }
 
-/* ---------- توکن‌ها: «شب زمردی» — تیره، خلوت، یک رنگ تأکیدی زنده ---------- */
+/* ---------- توکن‌ها: «شب زمردی» با دو حالت؛ data-theme را اسکریپت سر صفحه می‌گذارد ---------- */
 :root {
   color-scheme: dark;
-  /* سطح‌ها: از سیاه آبی‌فام تا خاکستری ذغالی */
-  --bg: #07090c;
-  --surface: #10141a;
-  --surface-2: #181d25;
-  --surface-3: #212833;
-  --hairline: rgba(255, 255, 255, .07);
-  --border: #232a34;
+  /* سطح‌ها */
+  --bg: #0d1116;
+  --surface: #151a21;
+  --surface-2: #1c222b;
+  --surface-3: #262d38;
+  --hairline: rgba(255, 255, 255, .08);
+  --border: #2a313c;
   /* متن */
   --text: #f3f6f9;
-  --text-2: #b9c1cc;
-  --muted: #7c8693;
+  --text-2: #c0c8d2;
+  --muted: #8a94a1;
   /* تأکید: زمردی نعنایی با گرادیان به لیمویی */
   --accent: #3ee8a6;
   --accent-2: #b8f35c;
-  --accent-soft: rgba(62, 232, 166, .12);
+  --accent-soft: rgba(62, 232, 166, .13);
   --accent-glow: rgba(62, 232, 166, .35);
   --on-accent: #03150e;
   --grad: linear-gradient(120deg, var(--accent), var(--accent-2));
   /* معنا */
   --good: #3ee8a6;
   --bad: #ff6b6b;
-  --bad-soft: rgba(255, 107, 107, .12);
+  --bad-soft: rgba(255, 107, 107, .13);
   --warn: #ffc857;
-  --warn-soft: rgba(255, 200, 87, .1);
-  --hero-1: #0d3b2d;
-  --hero-2: #07130f;
-  --shadow: 0 1px 0 var(--hairline) inset, 0 8px 24px rgba(0, 0, 0, .35);
-  --shadow-lg: 0 -12px 48px rgba(0, 0, 0, .6);
+  --warn-soft: rgba(255, 200, 87, .11);
+  /* کارت ثروت خالص در هر دو حالت تیره و درخشان است */
+  --hero-1: #104a37;
+  --hero-2: #0a1a15;
+  --shadow: 0 1px 0 var(--hairline) inset, 0 8px 24px rgba(0, 0, 0, .28);
+  --shadow-lg: 0 -12px 48px rgba(0, 0, 0, .55);
+  --float-shadow: 0 16px 40px rgba(0, 0, 0, .5);
+  --glow-1: rgba(62, 232, 166, .15);
+  --glow-2: rgba(184, 243, 92, .07);
+  --desk-bg: #0b0e12;
   --radius: 22px;
   --radius-sm: 14px;
   --tabbar-h: 64px;
@@ -44,7 +49,7 @@
   --ease: cubic-bezier(.2, .8, .2, 1);
   --spring: cubic-bezier(.34, 1.56, .64, 1);
 
-  /* پالت دسته‌ای (ترتیب ثابت؛ رنگ دنبال گروه است) — روشن و اشباع برای زمینه تیره */
+  /* پالت دسته‌ای (ترتیب ثابت؛ رنگ دنبال گروه است) */
   --s0: #6b7480;
   --s1: #5b9cff;
   --s2: #ff8a5b;
@@ -54,6 +59,44 @@
   --s6: #7ee081;
   --s7: #a78bfa;
   --s8: #ff6b6b;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f2f5f4;
+  --surface: #ffffff;
+  --surface-2: #f0f4f2;
+  --surface-3: #e5ebe8;
+  --hairline: rgba(16, 40, 30, .07);
+  --border: #e1e7e4;
+  --text: #0e1714;
+  --text-2: #43514b;
+  --muted: #74807b;
+  --accent: #0ea371;
+  --accent-2: #7cc520;
+  --accent-soft: rgba(14, 163, 113, .1);
+  --accent-glow: rgba(14, 163, 113, .25);
+  --on-accent: #04190f;
+  --good: #0ea371;
+  --bad: #e5484d;
+  --bad-soft: rgba(229, 72, 77, .1);
+  --warn: #a8650a;
+  --warn-soft: rgba(240, 170, 40, .14);
+  --shadow: 0 1px 2px rgba(16, 40, 30, .05), 0 8px 24px rgba(16, 40, 30, .06);
+  --shadow-lg: 0 -12px 40px rgba(16, 40, 30, .16);
+  --float-shadow: 0 12px 32px rgba(16, 40, 30, .14);
+  --glow-1: rgba(14, 163, 113, .1);
+  --glow-2: rgba(124, 197, 32, .07);
+  --desk-bg: #dfe6e3;
+  --s0: #8b949e;
+  --s1: #2f7be5;
+  --s2: #f06a35;
+  --s3: #0ea371;
+  --s4: #dd9f00;
+  --s5: #e5609a;
+  --s6: #3fae4a;
+  --s7: #7c5ce6;
+  --s8: #e5484d;
 }
 
 /* ---------- پایه ---------- */
@@ -67,8 +110,8 @@ body {
   font-size: 15px;
   line-height: 1.65;
   background:
-    radial-gradient(90% 40% at 85% -5%, rgba(62, 232, 166, .13), transparent 70%),
-    radial-gradient(70% 35% at 0% 0%, rgba(184, 243, 92, .06), transparent 70%),
+    radial-gradient(90% 40% at 85% -5%, var(--glow-1), transparent 70%),
+    radial-gradient(70% 35% at 0% 0%, var(--glow-2), transparent 70%),
     var(--bg);
   background-attachment: fixed;
   color: var(--text);
@@ -133,7 +176,7 @@ small { font-size: .8em; }
   backdrop-filter: saturate(1.8) blur(22px);
   -webkit-backdrop-filter: saturate(1.8) blur(22px);
   border: 1px solid var(--hairline);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, .55);
+  box-shadow: var(--float-shadow);
   view-transition-name: tabbar;
 }
 
@@ -202,6 +245,11 @@ a.mini:active, a.card:active { transform: scale(.97); }
 
 /* ---------- قهرمان داشبورد ---------- */
 .hero {
+  --accent: #3ee8a6;
+  --accent-glow: rgba(62, 232, 166, .35);
+  --on-accent: #03150e;
+  --bad: #ff7b7b;
+  --bad-soft: rgba(255, 107, 107, .16);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -521,7 +569,8 @@ a.mini:active, a.card:active { transform: scale(.97); }
   transition: background .2s var(--ease), color .2s;
 }
 
-.seg a.on { background: var(--surface-3); color: var(--text); box-shadow: 0 1px 0 var(--hairline) inset, 0 4px 12px rgba(0, 0, 0, .3); }
+.seg a.on { background: var(--surface-3); color: var(--text); box-shadow: var(--shadow); }
+:root[data-theme="light"] .seg a.on { background: var(--surface); }
 
 /* ---------- حالت خالی و خوش‌آمد ---------- */
 .empty {
@@ -947,7 +996,7 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
   body {
     background:
       radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent),
-      #0b0e12;
+      var(--desk-bg);
     display: grid;
     place-items: center;
   }
@@ -1101,7 +1150,7 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
 .flow-numbers .free strong.neg { color: var(--bad); }
 .cat-fill { box-shadow: 0 0 10px color-mix(in srgb, var(--c) 45%, transparent); }
 .legend .dot { box-shadow: 0 0 8px color-mix(in srgb, var(--c) 60%, transparent); }
-.notice { border: 1px solid rgba(255, 200, 87, .18); }
+.notice { border: 1px solid color-mix(in srgb, var(--warn) 22%, transparent); }
 .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem;
   color: rgba(255, 255, 255, .6); margin-top: 6px; }
 .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
@@ -1110,3 +1159,30 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
 .delta-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 12px; }
 .delta-row .delta { margin-top: 0; white-space: nowrap; }
 .delta-row .delta-when { font-size: .75rem; color: rgba(255, 255, 255, .55); }
+
+/* ---------- انتخاب ظاهر ---------- */
+.theme-pick { display: flex; gap: 8px; padding: 12px 14px; }
+.theme-pick button {
+  flex: 1;
+  font: inherit;
+  font-size: .85rem;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 6px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: border-color .2s, color .2s, transform .2s var(--spring);
+}
+.theme-pick button:active { transform: scale(.95); }
+.theme-pick button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent);
+  box-shadow: 0 0 14px var(--accent-soft); }
+.theme-swatch { width: 100%; height: 44px; border-radius: 10px; border: 1px solid var(--hairline); }
+.theme-swatch.light { background: linear-gradient(135deg, #ffffff 50%, #f0f4f2 50%); }
+.theme-swatch.dark { background: linear-gradient(135deg, #1c222b 50%, #0d1116 50%); }
+.theme-swatch.system { background: linear-gradient(135deg, #ffffff 50%, #0d1116 50%); }

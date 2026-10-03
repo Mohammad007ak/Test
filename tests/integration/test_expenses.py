@@ -121,3 +121,10 @@ class TestSpending:
         client.post("/logout")
         for url in ("/spending", "/spending/new", "/bills"):
             assert client.get(url, follow_redirects=False).status_code == 303
+
+
+def test_more_page_offers_light_dark_and_system_theme(client: TestClient) -> None:
+    page = client.get("/more").text
+    for key in ("system", "light", "dark"):
+        assert f'data-set-theme="{key}"' in page
+    assert 'localStorage.getItem("theme")' in client.get("/").text  # پیش از نمایش صفحه

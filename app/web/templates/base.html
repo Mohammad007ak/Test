@@ -3,8 +3,17 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
+  <script>
+    // ظاهر پیش از نمایش صفحه تعیین می‌شود تا رنگ‌ها چشمک نزنند
+    (function () {
+      var choice = "system";
+      try { choice = localStorage.getItem("theme") || "system"; } catch (e) {}
+      var dark = choice === "dark" || (choice === "system" && !matchMedia("(prefers-color-scheme: light)").matches);
+      document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#07090c">
+  <meta name="theme-color" content="#0d1116">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="{{ s.APP_NAME }}">
