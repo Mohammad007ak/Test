@@ -43,9 +43,30 @@ def test_parsian_withdrawal() -> None:
     assert p.occurred_at == datetime(2026, 9, 28, 14, 31, tzinfo=UTC)  # ۶ مهر ۱۸:۰۱ تهران
 
 
-def test_parsian_plus_sign_is_deposit() -> None:
-    deposit = PARSIAN.replace("مبلغ:2,000,000-", "مبلغ:2,000,000+")
-    assert ParsianParser().parse(deposit, RECEIVED).direction == "in"
+def test_parsian_deposit_real_sample() -> None:
+    deposit = mask_numbers(prepare((FIXTURES / "parsian" / "deposit.txt").read_text("utf-8")))
+    p = ParsianParser().parse(deposit, RECEIVED)
+    assert (p.direction, p.amount_rial, p.balance_after_rial) == ("in", 2_400_000, 6_417_721)
+    assert p.occurred_at == datetime(2026, 9, 28, 10, 18, tzinfo=UTC)  # ۶ مهر ۱۳:۴۸ تهران
+
+
+def test_parsian_day_in_order() -> None:
+    """واریز ۱۳:۴۸ و برداشت ۱۸:۰۱ همان روز: مانده نهایی مال برداشت است، به هر ترتیبی برسند."""
+    from sqlalchemy import select
+
+    from app.db import Base, make_engine, make_session_factory
+    from app.models import Account
+    from app.sms.pipeline import ingest
+
+    deposit = (FIXTURES / "parsian" / "deposit.txt").read_text("utf-8")
+    withdrawal = (FIXTURES / "parsian" / "withdrawal.txt").read_text("utf-8")
+    engine = make_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with make_session_factory(engine)() as session:
+        ingest(session, withdrawal, RECEIVED)
+        ingest(session, deposit, RECEIVED)  # دیرتر رسید ولی قدیمی‌تر است
+        account = session.scalars(select(Account)).one()
+        assert account.balance_toman == 441_772  # ۴٬۴۱۷٬۷۲۱ ریال پس از برداشت
 
 
 def test_registered() -> None:
