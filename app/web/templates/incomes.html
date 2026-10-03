@@ -1,25 +1,27 @@
 {% extends "base.html" %}
-{% from "_fields.html" import entity_form, row_actions %}
+{% from "_ui.html" import icon, sheet_link, segments, empty_state, fab, bubble %}
 {% block content %}
-<h1>{{ s.NAV.incomes }}</h1>
-<div class="card">
-  {% if p.incomes %}
-  <div class="table-wrap"><table>
-    <thead><tr><th>عنوان</th><th>دوره</th><th class="num">مبلغ</th><th class="num">{{ T.monthly_equivalent }}</th><th></th></tr></thead>
-    <tbody>
+{{ segments("cashflow", "incomes") }}
+{% if p.incomes %}
+  <div class="summary">
+    <span class="mini-label">جمع درآمد ماهانه</span>
+    <strong>{{ p.monthly_income_toman | amt }}</strong>
+    <span class="muted small">پس از اقساط: {{ p.monthly_free_cash_toman | toman_short }}</span>
+  </div>
+  <div class="list">
     {% for income, monthly in p.incomes %}
-      <tr class="{{ 'muted' if not income.active }}">
-        <td>{{ income.name }}{% if not income.active %} <span class="small">({{ T.inactive }})</span>{% endif %}</td>
-        <td>{{ s.FREQUENCIES[income.frequency] }}</td>
-        <td class="num">{{ income.amount_toman | toman }}</td>
-        <td class="num">{{ monthly | toman }}</td>
-        {{ row_actions('incomes', income.id) }}
-      </tr>
+    {% call sheet_link("/incomes/" ~ income.id ~ "/edit", "row " ~ ("dim" if not income.active else "")) %}
+      {{ bubble("cash", 0) }}
+      <span class="row-main">
+        <span class="row-title">{{ income.name }}</span>
+        <span class="row-sub">{{ s.FREQUENCIES[income.frequency] }} · {{ income.amount_toman | toman_short }}{% if not income.active %} · {{ T.inactive }}{% endif %}</span>
+      </span>
+      <span class="row-end"><strong>{{ monthly | amt }}</strong><span class="muted small">{{ T.this_month }}</span></span>
+    {% endcall %}
     {% endfor %}
-    </tbody>
-    <tfoot><tr><th colspan="3">جمع درآمد ماهانه فعال</th><th class="num">{{ p.monthly_income_toman | toman }}</th><th></th></tr></tfoot>
-  </table></div>
-  {% else %}<p class="muted">{{ T.empty }}</p>{% endif %}
-</div>
-{{ entity_form(entity, fields, values, errors, edit_id) }}
+  </div>
+{% else %}
+  {{ empty_state("incomes", "cash") }}
+{% endif %}
+{{ fab("incomes", entity.title) }}
 {% endblock %}

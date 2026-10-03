@@ -1,24 +1,28 @@
 {% extends "base.html" %}
-{% from "_fields.html" import entity_form, row_actions %}
+{% from "_ui.html" import icon, sheet_link, segments, empty_state, fab, bubble %}
 {% block content %}
-<h1>{{ s.NAV.accounts }}</h1>
-<div class="card">
-  {% if p.accounts %}
-  <div class="table-wrap"><table>
-    <thead><tr><th>بانک</th><th>حساب</th><th class="num">موجودی</th><th></th></tr></thead>
-    <tbody>
+{{ segments("assets", "accounts") }}
+{% if p.accounts %}
+  <div class="summary">
+    <span class="mini-label">جمع موجودی</span>
+    <strong>{{ p.accounts | map(attribute="balance_toman") | sum | amt }}</strong>
+    <span class="muted small">{{ p.accounts | length | fa }} حساب</span>
+  </div>
+  <div class="list">
     {% for a in p.accounts %}
-      <tr>
-        <td>{{ s.BANKS.get(a.bank, a.bank) }}{% if a.label %}<div class="muted small">{{ a.label }}</div>{% endif %}</td>
-        <td>****{{ a.account_mask | fa }}</td>
-        <td class="num">{{ a.balance_toman | toman }}
-          <div class="muted small">{{ s.BALANCE_SOURCES.get(a.balance_source) }} · {{ a.balance_updated_at | jalali }}</div></td>
-        {{ row_actions('accounts', a.id) }}
-      </tr>
+    {% call sheet_link("/accounts/" ~ a.id ~ "/edit", "row") %}
+      {{ bubble("bank", 1) }}
+      <span class="row-main">
+        <span class="row-title">{{ a.label or s.BANKS.get(a.bank, a.bank) }}</span>
+        <span class="row-sub">{{ s.BANKS.get(a.bank, a.bank) }} · <span dir="ltr">••{{ a.account_mask | fa }}</span>
+          {% if a.balance_updated_at %} · {{ a.balance_updated_at | jalali(false) }}{% endif %}</span>
+      </span>
+      <span class="row-end"><strong>{{ a.balance_toman | amt }}</strong></span>
+    {% endcall %}
     {% endfor %}
-    </tbody>
-  </table></div>
-  {% else %}<p class="muted">{{ T.empty }}</p>{% endif %}
-</div>
-{{ entity_form(entity, fields, values, errors, edit_id) }}
+  </div>
+{% else %}
+  {{ empty_state("accounts", "bank") }}
+{% endif %}
+{{ fab("accounts", entity.title) }}
 {% endblock %}

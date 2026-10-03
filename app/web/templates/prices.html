@@ -1,22 +1,23 @@
 {% extends "base.html" %}
+{% from "_ui.html" import icon %}
 {% block content %}
-<h1>{{ s.NAV.prices }}</h1>
-<p class="muted small">{{ T.prices_hint }}</p>
-<form method="post" action="/prices" class="card">
-  <div class="table-wrap"><table>
-    <thead><tr><th>{{ T.price_key }}</th><th class="num">آخرین قیمت</th><th>{{ T.price_updated }}</th><th>{{ T.price_toman }}</th></tr></thead>
-    <tbody>
+<p class="lead">{{ T.prices_hint }}</p>
+<form method="post" action="/prices" class="form" novalidate>
+  <div class="list">
     {% for row in rows %}
-      <tr class="{{ 'has-error' if errors.get(row.key) }}">
-        <td>{{ row.label }}{% if row.label != row.key %}<div class="muted small" dir="ltr" style="text-align:right">{{ row.key }}</div>{% endif %}</td>
-        <td class="num">{{ row.quote.price_toman | toman if row.quote else T.no_price }}</td>
-        <td class="small muted">{% if row.quote %}{{ row.quote.fetched_at | jalali }} · {{ row.quote.source }}{% endif %}</td>
-        <td><input name="price:{{ row.key }}" inputmode="decimal" autocomplete="off">
-          {% if errors.get(row.key) %}<div class="error">{{ errors[row.key] }}</div>{% endif %}</td>
-      </tr>
+    <div class="row price-row {{ 'has-error' if errors.get(row.key) }}">
+      <span class="row-main">
+        <span class="row-title">{{ row.label }}</span>
+        <span class="row-sub">{% if row.quote %}{{ row.quote.price_toman | toman }} · {{ row.quote.fetched_at | jalali }}{% else %}{{ T.no_price }}{% endif %}</span>
+        {% if errors.get(row.key) %}<span class="error">{{ errors[row.key] }}</span>{% endif %}
+      </span>
+      <span class="input compact has-unit">
+        <input name="price:{{ row.key }}" inputmode="numeric" data-money autocomplete="off" placeholder="{{ T.price_placeholder }}" aria-label="{{ row.label }}">
+        <span class="unit">تومان</span>
+      </span>
+    </div>
     {% endfor %}
-    </tbody>
-  </table></div>
-  <p><button type="submit">{{ T.save }}</button></p>
+  </div>
+  <div class="sticky-actions"><button type="submit" class="btn wide">{{ T.save }}</button></div>
 </form>
 {% endblock %}

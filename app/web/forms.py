@@ -9,7 +9,7 @@ from typing import Any
 import jdatetime
 
 from app.domain.money import format_number, round_toman, to_persian_digits
-from app.domain.normalize import normalize_digits, normalize_text, parse_decimal, parse_int
+from app.domain.normalize import normalize_chars, normalize_digits, parse_decimal, parse_int
 from app.web import strings as s
 
 
@@ -30,6 +30,8 @@ class Field:
     hint: str = ""
     min: int | None = None
     max: int | None = None
+    widget: str = ""  # «chips»: گزینه‌ها به‌صورت دکمه‌های لمسی به‌جای منوی کشویی
+    group: str = ""  # برای دسته‌بندی فیلدهای فرم‌های طولانی
 
     @property
     def unit(self) -> str:
@@ -46,7 +48,7 @@ def _parse_jalali(text: str) -> date:
 
 def _parse_value(spec: Field, raw: str) -> Any:
     if spec.type == "text" or spec.type == "textarea":
-        return normalize_text(raw)
+        return normalize_chars(raw).strip()
     if spec.type == "money":
         return round_toman(parse_decimal(raw))
     if spec.type == "decimal":
@@ -122,13 +124,16 @@ def display_value(spec: Field, value: Any) -> str:
     return str(value)
 
 
-MARKET_OPTIONS = {k: s.PRICE_KEYS[k] for k in (*s.FX_KEYS, *s.COIN_KEYS)}
+CURRENCY_OPTIONS = {k: s.PRICE_KEYS[k] for k in s.FX_KEYS}
+COIN_OPTIONS = {k: s.PRICE_KEYS[k] for k in s.COIN_KEYS}
 
 ASSET_FIELDS = [
-    Field("kind", "نوع", "select", required=True, options=s.ASSET_KINDS),
+    Field("kind", "نوع", "select", required=True, options=s.ASSET_KINDS, widget="chips"),
     Field("name", "نام", "text", required=True, hint="مثلاً «دلار کیف پول» یا «پژو ۲۰۷ مدل ۱۴۰۰»"),
-    Field("market", "کدام", "select", required=True, options=MARKET_OPTIONS,
-          kinds=("fx", "coin")),
+    Field("currency", "ارز", "select", required=True, options=CURRENCY_OPTIONS,
+          kinds=("fx",), widget="chips"),
+    Field("coin_type", "نوع سکه", "select", required=True, options=COIN_OPTIONS,
+          kinds=("coin",), widget="chips"),
     Field("symbol", "نماد", "text", required=True, kinds=("stock", "fund"), hint="مثلاً فولاد"),
     Field("quantity", "مقدار", "decimal", required=True,
           kinds=("fx", "gold", "coin", "stock", "fund"),
@@ -147,7 +152,7 @@ ACCOUNT_FIELDS = [
 ]
 
 LIABILITY_FIELDS = [
-    Field("kind", "نوع", "select", required=True, options=s.LIABILITY_KINDS),
+    Field("kind", "نوع", "select", required=True, options=s.LIABILITY_KINDS, widget="chips"),
     Field("lender", "وام‌دهنده یا طرف حساب", "text", required=True),
     Field("principal_toman", "اصل مبلغ", "money", required=True),
     Field("installment_toman", "مبلغ هر قسط", "money", hint="برای بدهی بدون قسط خالی بگذار"),
@@ -162,7 +167,8 @@ LIABILITY_FIELDS = [
 INCOME_FIELDS = [
     Field("name", "عنوان", "text", required=True, hint="حقوق، اجاره، ..."),
     Field("amount_toman", "مبلغ هر دوره", "money", required=True),
-    Field("frequency", "دوره پرداخت", "select", required=True, options=s.FREQUENCIES),
+    Field("frequency", "دوره پرداخت", "select", required=True, options=s.FREQUENCIES,
+          widget="chips"),
     Field("active", "فعال", "bool"),
 ]
 

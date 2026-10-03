@@ -1,30 +1,41 @@
 {% extends "base.html" %}
-{% from "_fields.html" import entity_form, row_actions %}
+{% from "_ui.html" import icon, sheet_link, segments, empty_state, fab, bubble %}
 {% block content %}
-<h1>{{ s.NAV.assets }}</h1>
-<div class="card">
-  {% if p.assets %}
-  <div class="table-wrap"><table>
-    <thead><tr><th>نام</th><th>نوع</th><th>مقدار</th><th class="num">{{ T.value }}</th><th></th></tr></thead>
-    <tbody>
-    {% for line in p.assets %}{% set a = line.asset %}
-      <tr>
-        <td>{{ a.name }}{% if a.note %}<div class="muted small">{{ a.note }}</div>{% endif %}</td>
-        <td>{{ s.ASSET_KINDS[a.kind] }}{% if a.kind == 'gold' %} <span class="muted small">{{ a.karat | fa }} عیار</span>{% endif %}
-          {% if a.price_key %}<div class="muted small">{{ s.PRICE_KEYS.get(a.price_key, a.price_key) }}</div>{% endif %}</td>
-        <td>{% if a.quantity is not none %}{{ a.quantity | dec }}{% endif %}</td>
-        <td class="num">
-          {% if line.value_toman is none %}<span class="alert warn small">{{ T.needs_price }}</span>
-          {% else %}{{ line.value_toman | toman }}{% endif %}
-          {% if line.price %}<div class="muted small">قیمت: {{ line.price.fetched_at | jalali }}</div>{% endif %}
-          {% if line.stale %}<div class="error">⚠ به‌روزرسانی کن</div>{% endif %}
-        </td>
-        {{ row_actions('assets', a.id) }}
-      </tr>
+{{ segments("assets", "assets") }}
+{% if p.assets %}
+  {% set valued = p.assets | selectattr("value_toman") | map(attribute="value_toman") | sum %}
+  <div class="summary">
+    <span class="mini-label">جمع دارایی‌های ثبت‌شده</span>
+    <strong>{{ valued | amt }}</strong>
+    <span class="muted small">{{ p.assets | length | fa }} مورد</span>
+  </div>
+  {% for kind, lines in p.assets | groupby("asset.kind") %}
+  <h2 class="section-title">{{ s.ASSET_KINDS[kind] }}</h2>
+  <div class="list">
+    {% for line in lines %}{% set a = line.asset %}
+    {% call sheet_link("/assets/" ~ a.id ~ "/edit", "row") %}
+      {{ bubble(s.ASSET_ICONS[kind], s.KIND_SLOT[kind]) }}
+      <span class="row-main">
+        <span class="row-title">{{ a.name }}</span>
+        <span class="row-sub">
+          {% if a.kind == 'gold' %}{{ a.quantity | dec }} گرم · عیار {{ a.karat | fa }}
+          {% elif a.kind == 'fx' %}{{ a.quantity | dec }} {{ s.PRICE_KEYS.get(a.price_key, '') }}
+          {% elif a.kind == 'coin' %}{{ a.quantity | dec }} عدد {{ s.PRICE_KEYS.get(a.price_key, '') }}
+          {% elif a.kind in ('stock', 'fund') %}{{ a.quantity | dec }} واحد
+          {% elif a.manual_value_updated_at %}{{ T.updated_at }} {{ a.manual_value_updated_at | jalali(false) }}{% endif %}
+        </span>
+      </span>
+      <span class="row-end">
+        {% if line.value_toman is none %}<span class="pill warn">{{ T.needs_price }}</span>
+        {% else %}<strong>{{ line.value_toman | amt }}</strong>{% endif %}
+        {% if line.stale %}<span class="pill warn">{{ T.stale_short }}</span>{% endif %}
+      </span>
+    {% endcall %}
     {% endfor %}
-    </tbody>
-  </table></div>
-  {% else %}<p class="muted">{{ T.empty }}</p>{% endif %}
-</div>
-{{ entity_form(entity, fields, values, errors, edit_id) }}
+  </div>
+  {% endfor %}
+{% else %}
+  {{ empty_state("assets", "wallet") }}
+{% endif %}
+{{ fab("assets", entity.title) }}
 {% endblock %}

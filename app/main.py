@@ -25,7 +25,7 @@ from app.web import auth, forms
 from app.web import strings as s
 from app.web.entities import ENTITIES
 from app.web.forms import Field, FormError
-from app.web.render import tehran_today, templates
+from app.web.render import jalali, tehran_today, templates
 
 STATIC_DIR = Path(__file__).parent / "static"
 Form = dict[str, str]
@@ -86,13 +86,38 @@ async def read_form(request: Request) -> Form:
     return {key: str(value) for key, value in form.items()}
 
 
+def wants_fragment(request: Request) -> bool:
+    """درخواست htmx برای تکه‌ای از صفحه (مثل برگه پایین)، نه ناوبری کامل."""
+    return (request.headers.get("HX-Request") == "true"
+            and request.headers.get("HX-Boosted") != "true")
+
+
+def toast(request: Request, message: str) -> None:
+    request.session["toast"] = message
+
+
 def page(request: Request, name: str, context: dict[str, Any], status: int = 200) -> HTMLResponse:
-    return templates.TemplateResponse(request, name, {"active": None, **context},
-                                      status_code=status)
+    active = context.get("active")
+    return templates.TemplateResponse(request, name, {
+        "active": None,
+        "tab": s.TAB_OF_PAGE.get(active, active) if active else None,
+        "title": s.PAGE_TITLES.get(active or "", s.APP_NAME),
+        "toast": request.session.pop("toast", None),
+        **context,
+    }, status_code=status)
 
 
 def redirect(url: str) -> RedirectResponse:
     return RedirectResponse(url, status_code=303)
+
+
+def done(request: Request, url: str, message: str) -> Response:
+    """پایان موفق یک فرم: پیام کوتاه و بازگشت نرم به فهرست."""
+    toast(request, message)
+    if wants_fragment(request):
+        location = json.dumps({"path": url, "target": "body"})
+        return Response(status_code=200, headers={"HX-Location": location})
+    return redirect(url)
 
 
 def _register_routes(app: FastAPI) -> None:
@@ -144,22 +169,23 @@ def _register_routes(app: FastAPI) -> None:
     @app.get("/", response_class=HTMLResponse, dependencies=[LoggedIn])
     def dashboard(request: Request, db: Db) -> Response:
         portfolio = services.build_portfolio(db)
-        services.record_snapshot(db, portfolio, tehran_today())
+        today = tehran_today()
+        services.record_snapshot(db, portfolio, today)
         db.commit()
         history = services.snapshots(db)
         threshold = services.get_decimal_setting(db, "dti_threshold")
         networth = portfolio.networth
-        composition = sorted(portfolio.composition.items(), key=lambda kv: -kv[1])
-        chart = {
-            "composition": {
-                "labels": [s.COMPOSITION_LABELS[k] for k, _ in composition],
-                "values": [v for _, v in composition],
-            },
-            "trend": {
-                "labels": [_jalali_day(h.date) for h in history],
-                "values": [h.networth_toman for h in history],
-            },
-        }
+        previous = next((h for h in reversed(history) if h.date < today), None)
+        change = None
+        if previous is not None:
+            delta = networth.networth_toman - previous.networth_toman
+            base = abs(previous.networth_toman)
+            change = {"delta": delta, "pct": Decimal(delta) / base if base else None,
+                      "date": previous.date}
+        trend = {"labels": [jalali(h.date) for h in history],
+                 "values": [h.networth_toman for h in history]}
+        empty = not (portfolio.assets or portfolio.accounts or portfolio.liabilities
+                     or portfolio.incomes)
         return page(request, "dashboard.html", {
             "active": "dashboard",
             "p": portfolio,
@@ -168,9 +194,16 @@ def _register_routes(app: FastAPI) -> None:
             "gold": portfolio.unit_price("gold18_gram"),
             "threshold": threshold,
             "dti_high": portfolio.dti is not None and portfolio.dti > threshold,
+            "change": change,
+            "composition": _composition(portfolio),
             "has_trend": len(history) > 1,
-            "chart_json": json.dumps(chart, ensure_ascii=False),
+            "trend_json": json.dumps(trend, ensure_ascii=False),
+            "empty": empty,
         })
+
+    @app.get("/more", response_class=HTMLResponse, dependencies=[LoggedIn])
+    def more(request: Request) -> Response:
+        return page(request, "more.html", {"active": "more"})
 
     # ---------- CRUD عمومی دارایی، حساب، بدهی، درآمد ----------
 
@@ -184,19 +217,16 @@ def _register_routes(app: FastAPI) -> None:
             f.name: getattr(obj, f.name) for f in entity.fields}
         return {f.name: forms.display_value(f, raw.get(f.name)) for f in entity.fields}
 
-    def _list_page(request: Request, db: Session, entity: forms.Entity,
-                   form_values: dict[str, str] | None = None, errors: dict[str, str] | None = None,
-                   edit_id: int | None = None, status: int = 200) -> Response:
-        portfolio = services.build_portfolio(db)
-        defaults = {"active": "on", "karat": "۱۸"}
-        return page(request, f"{entity.slug}.html", {
-            "active": entity.slug,
-            "entity": entity,
-            "p": portfolio,
-            "fields": entity.fields,
-            "values": form_values if form_values is not None else defaults,
-            "errors": errors or {},
-            "edit_id": edit_id,
+    def _form(request: Request, entity: forms.Entity, values: dict[str, str],
+              errors: dict[str, str] | None = None, edit_id: int | None = None,
+              status: int = 200) -> Response:
+        """فرم در برگه پایین (htmx) یا به‌صورت صفحه کامل (بدون جاوااسکریپت)."""
+        fragment = wants_fragment(request)
+        if fragment and status >= 400:
+            status = 422  # htmx این کد را جایگزین می‌کند تا خطاها در همان برگه دیده شوند
+        return page(request, "sheet_form.html" if fragment else "form_page.html", {
+            "active": entity.slug, "entity": entity, "fields": entity.fields,
+            "values": values, "errors": errors or {}, "edit_id": edit_id,
         }, status)
 
     def _save(entity: forms.Entity, data: Form, obj: Any | None) -> Any:
@@ -217,7 +247,16 @@ def _register_routes(app: FastAPI) -> None:
 
     @app.get("/{slug}", response_class=HTMLResponse, dependencies=[LoggedIn])
     def entity_list(request: Request, slug: str, db: Db) -> Response:
-        return _list_page(request, db, _entity(slug))
+        entity = _entity(slug)
+        return page(request, f"{slug}.html", {
+            "active": slug, "entity": entity, "p": services.build_portfolio(db)})
+
+    @app.get("/{slug}/new", response_class=HTMLResponse, dependencies=[LoggedIn])
+    def entity_new(request: Request, slug: str) -> Response:
+        entity = _entity(slug)
+        defaults = {"active": "on", "karat": "۱۸"}
+        defaults.update({k: v for k, v in request.query_params.items() if k == "kind"})
+        return _form(request, entity, defaults)
 
     @app.post("/{slug}", response_class=HTMLResponse, dependencies=[LoggedIn])
     async def entity_create(request: Request, slug: str, db: Db) -> Response:
@@ -226,15 +265,15 @@ def _register_routes(app: FastAPI) -> None:
         try:
             db.add(_save(entity, data, None))
         except FormError as exc:
-            return _list_page(request, db, entity, data, exc.errors, status=400)
+            return _form(request, entity, data, exc.errors, status=400)
         db.commit()
-        return redirect(f"/{slug}")
+        return done(request, f"/{slug}", s.TOASTS["created"].format(title=entity.title))
 
     @app.get("/{slug}/{obj_id}/edit", response_class=HTMLResponse, dependencies=[LoggedIn])
     def entity_edit(request: Request, slug: str, obj_id: int, db: Db) -> Response:
         entity = _entity(slug)
         obj = db.get(entity.model, obj_id) or _not_found()
-        return _list_page(request, db, entity, _form_values(entity, obj), edit_id=obj_id)
+        return _form(request, entity, _form_values(entity, obj), edit_id=obj_id)
 
     @app.post("/{slug}/{obj_id}", response_class=HTMLResponse, dependencies=[LoggedIn])
     async def entity_update(request: Request, slug: str, obj_id: int, db: Db) -> Response:
@@ -245,9 +284,9 @@ def _register_routes(app: FastAPI) -> None:
             _save(entity, data, obj)
         except FormError as exc:
             db.rollback()
-            return _list_page(request, db, entity, data, exc.errors, edit_id=obj_id, status=400)
+            return _form(request, entity, data, exc.errors, edit_id=obj_id, status=400)
         db.commit()
-        return redirect(f"/{slug}")
+        return done(request, f"/{slug}", s.TOASTS["updated"])
 
     @app.post("/{slug}/{obj_id}/delete", dependencies=[LoggedIn])
     def entity_delete(request: Request, slug: str, obj_id: int, db: Db) -> Response:
@@ -255,19 +294,23 @@ def _register_routes(app: FastAPI) -> None:
         obj = db.get(entity.model, obj_id) or _not_found()
         db.delete(obj)
         db.commit()
-        if request.headers.get("HX-Request"):
-            return HTMLResponse("")
-        return redirect(f"/{slug}")
+        return done(request, f"/{slug}", s.TOASTS["deleted"].format(title=entity.title))
+
+
+def _composition(portfolio: services.Portfolio) -> list[dict[str, Any]]:
+    """سهم هر گروه دارایی، با شماره رنگ ثابت برای هر گروه."""
+    total = sum(v for v in portfolio.composition.values() if v > 0)
+    rows = []
+    for key, label, kinds, slot in s.COMPOSITION_GROUPS:
+        value = sum(portfolio.composition.get(kind, 0) for kind in kinds)
+        if value > 0 and total:
+            rows.append({"key": key, "label": label, "value": value, "slot": slot,
+                         "pct": Decimal(value) / total})
+    return sorted(rows, key=lambda row: -row["value"])
 
 
 def _not_found() -> Any:
     raise HTTPException(404)
-
-
-def _jalali_day(day: Any) -> str:
-    from app.web.render import jalali
-
-    return jalali(day)
 
 
 def register_extra_routes(app: FastAPI) -> None:
@@ -293,7 +336,7 @@ def register_extra_routes(app: FastAPI) -> None:
             db.rollback()
             return _prices_page(request, db, errors, 400)
         db.commit()
-        return redirect("/prices")
+        return done(request, "/prices", s.TOASTS["prices"])
 
     @app.get("/loan", response_class=HTMLResponse, dependencies=[LoggedIn])
     def loan_page(request: Request, db: Db) -> Response:
@@ -338,7 +381,7 @@ def register_extra_routes(app: FastAPI) -> None:
             if value is not None:
                 services.set_setting(db, key, str(value))
         db.commit()
-        return _settings_page(request, db, message=s.T["saved"])
+        return done(request, "/settings", s.TOASTS["settings"])
 
     @app.get("/export.json", dependencies=[LoggedIn])
     def export(db: Db) -> Response:
@@ -359,21 +402,22 @@ def register_extra_routes(app: FastAPI) -> None:
 _MONEY = Field("x", "", "money")
 
 LOAN_FIELDS = [
-    Field("amount", "مبلغ وام", "money", required=True),
-    Field("months", "تعداد اقساط (ماه)", "int", required=True, min=1, max=600),
-    Field("installment", "مبلغ قسط", "money", hint="اگر نمی‌دانی خالی بگذار و نرخ اسمی را بده"),
-    Field("nominal_rate", "نرخ اسمی سالانه", "percent"),
-    Field("upfront_fee", "کارمزد و هزینه‌های ابتدایی", "money"),
-    Field("guarantor_cost", "هزینه ضامن", "money"),
-    Field("insurance", "بیمه", "money"),
-    Field("blocked_deposit", "سپرده بلوکه‌شده", "money"),
-    Field("blocked_months", "مدت بلوکه (ماه)", "int", min=0, max=600),
-    Field("blocked_rate", "سود سالانه سپرده بلوکه", "percent"),
-    Field("averaging_deposit", "مبلغ سپرده معدل‌گیری", "money"),
-    Field("averaging_months", "چند ماه قبل از وام", "int", min=0, max=120),
-    Field("averaging_rate", "سود سالانه سپرده معدل‌گیری", "percent"),
-    Field("monthly_income", "درآمد ماهانه", "money"),
-    Field("current_installments", "اقساط فعلی ماهانه", "money"),
+    Field("amount", "مبلغ وام", "money", required=True, group="main"),
+    Field("months", "تعداد اقساط (ماه)", "int", required=True, min=1, max=600, group="main"),
+    Field("installment", "مبلغ قسط", "money", group="main",
+          hint="اگر نمی‌دانی خالی بگذار و نرخ اسمی را بده"),
+    Field("nominal_rate", "نرخ اسمی سالانه", "percent", group="main"),
+    Field("upfront_fee", "کارمزد و هزینه‌های ابتدایی", "money", group="fees"),
+    Field("guarantor_cost", "هزینه ضامن", "money", group="fees"),
+    Field("insurance", "بیمه", "money", group="fees"),
+    Field("blocked_deposit", "سپرده بلوکه‌شده", "money", group="blocked"),
+    Field("blocked_months", "مدت بلوکه (ماه)", "int", min=0, max=600, group="blocked"),
+    Field("blocked_rate", "سود سالانه سپرده بلوکه", "percent", group="blocked"),
+    Field("averaging_deposit", "مبلغ سپرده معدل‌گیری", "money", group="averaging"),
+    Field("averaging_months", "چند ماه قبل از وام", "int", min=0, max=120, group="averaging"),
+    Field("averaging_rate", "سود سالانه سپرده معدل‌گیری", "percent", group="averaging"),
+    Field("monthly_income", "درآمد ماهانه", "money", group="budget"),
+    Field("current_installments", "اقساط فعلی ماهانه", "money", group="budget"),
 ]
 
 SETTINGS_FIELDS = [
@@ -451,10 +495,17 @@ def _price_keys(db: Session) -> list[str]:
 def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = None,
                  status: int = 200) -> Response:
     quotes = services.latest_quotes(db)
-    rows = [{"key": key, "label": s.PRICE_KEYS.get(key, key), "quote": quotes.get(key)}
+    rows = [{"key": key, "label": _price_label(key), "quote": quotes.get(key)}
             for key in _price_keys(db)]
     return page(request, "prices.html", {"active": "prices", "rows": rows,
                                          "errors": errors or {}}, status)
+
+
+def _price_label(key: str) -> str:
+    if key in s.PRICE_KEYS:
+        return s.PRICE_KEYS[key]
+    kind, _, symbol = key.partition(":")
+    return f"{symbol} · {s.ASSET_KINDS.get(kind, kind)}" if symbol else key
 
 
 def _toman_field(raw: str) -> int:

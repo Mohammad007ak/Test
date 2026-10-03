@@ -40,13 +40,18 @@ _SCALES = ((Decimal(10) ** 12, "هزار میلیارد"), (Decimal(10) ** 9, "�
            (Decimal(10) ** 6, "میلیون"))
 
 
-def format_toman_short(toman: int) -> str:
-    """۸۱٬۲۰۰٬۰۰۰ تومان → «۸۱٫۲ میلیون تومان»."""
+def toman_short_parts(toman: int) -> tuple[str, str]:
+    """۸۱٬۲۰۰٬۰۰۰ → («۸۱٫۲»، «میلیون تومان»)؛ برای نمایش عدد درشت و واحد ریز."""
     for scale, name in _SCALES:
         if abs(toman) >= scale:
             text = format_number(Decimal(toman) / scale, 1).removesuffix("٫۰")
-            return f"{text} {name} تومان"
-    return format_toman(toman)
+            return text, f"{name} تومان"
+    return format_number(toman), "تومان"
+
+
+def format_toman_short(toman: int) -> str:
+    """۸۱٬۲۰۰٬۰۰۰ تومان → «۸۱٫۲ میلیون تومان»."""
+    return " ".join(toman_short_parts(toman))
 
 
 def format_percent(rate: Decimal, places: int = 1) -> str:

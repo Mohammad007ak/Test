@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 import jdatetime
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 
 from app.domain.money import (
     format_number,
@@ -14,6 +15,7 @@ from app.domain.money import (
     format_toman,
     format_toman_short,
     to_persian_digits,
+    toman_short_parts,
 )
 from app.web import strings
 from app.web.forms import plain_decimal
@@ -36,6 +38,11 @@ def tehran_today() -> date:
     return datetime.now(TEHRAN).date()
 
 
+def _amount(toman: int) -> Markup:
+    number, unit = toman_short_parts(toman)
+    return Markup('<span class="amt">{}<small>{}</small></span>').format(number, unit)
+
+
 def _number(value: Decimal | int | None, places: int = 0) -> str:
     return "" if value is None else format_number(value, places)
 
@@ -48,6 +55,7 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters.update(
     toman=format_toman,
     toman_short=format_toman_short,
+    amt=_amount,
     num=_number,
     percent=_percent,
     jalali=jalali,

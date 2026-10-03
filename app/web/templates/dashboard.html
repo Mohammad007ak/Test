@@ -1,95 +1,141 @@
 {% extends "base.html" %}
+{% from "_ui.html" import icon, sheet_link, bubble %}
+{% block appbar %}
+  <div class="greet"><span class="muted small">{{ s.APP_NAME }}</span><h1>{{ T.networth }}</h1></div>
+{% endblock %}
 {% block content %}
 {% set nw = networth.networth_toman %}
-<div class="grid">
-  <div class="card stat hero">
-    <div class="label">{{ T.networth }}</div>
-    <div class="value {{ 'neg' if nw < 0 }}">{{ nw | toman_short }}</div>
-    <div class="sub">{{ nw | toman }}</div>
+
+{% if empty %}
+<section class="card welcome">
+  <div class="bubble s1 big">{{ icon("spark") }}</div>
+  <h2>{{ T.welcome_title }}</h2>
+  <p class="muted">{{ T.welcome_body }}</p>
+  <ol class="steps">
+    {% for step in T.welcome_steps %}<li>{{ step }}</li>{% endfor %}
+  </ol>
+  <div class="actions-row">
+    {% call sheet_link("/assets/new", "btn") %}{{ icon("plus") }} {{ T.add_asset }}{% endcall %}
+    {% call sheet_link("/liabilities/new", "btn ghost") %}{{ icon("plus") }} {{ T.add_liability }}{% endcall %}
+    {% call sheet_link("/incomes/new", "btn ghost") %}{{ icon("plus") }} {{ T.add_income }}{% endcall %}
   </div>
-  <div class="card stat">
-    <div class="label">{{ T.in_usd }}</div>
-    {% if usd %}<div class="value">{{ networth.in_unit(usd) | num }} $</div>
-    <div class="sub">نرخ: {{ usd | toman }}</div>
-    {% else %}<div class="sub"><a href="/prices">{{ T.no_unit_price.format(name='دلار') }}</a></div>{% endif %}
+</section>
+{% else %}
+
+<section class="hero" data-unit="toman" data-unit-switch>
+  <div class="hero-top">
+    <span class="hero-label">{{ T.networth }}</span>
+    <div class="unit-toggle" role="tablist" aria-label="{{ T.unit_toggle }}">
+      <button type="button" data-set-unit="toman" aria-selected="true">تومان</button>
+      <button type="button" data-set-unit="usd" {{ 'disabled' if not usd }}>دلار</button>
+      <button type="button" data-set-unit="gold" {{ 'disabled' if not gold }}>طلا</button>
+    </div>
   </div>
-  <div class="card stat">
-    <div class="label">{{ T.in_gold }}</div>
-    {% if gold %}<div class="value">{{ networth.in_unit(gold) | num(1) }} گرم</div>
-    <div class="sub">نرخ: {{ gold | toman }}</div>
-    {% else %}<div class="sub"><a href="/prices">{{ T.no_unit_price.format(name='طلا') }}</a></div>{% endif %}
+  <div class="hero-value">
+    <span data-unit-value="toman">{{ nw | amt }}</span>
+    {% if usd %}<span data-unit-value="usd">{{ networth.in_unit(usd) | num }} <small>دلار</small></span>{% endif %}
+    {% if gold %}<span data-unit-value="gold">{{ networth.in_unit(gold) | num(1) }} <small>گرم طلا</small></span>{% endif %}
   </div>
+  <div class="hero-sub">
+    <span data-unit-value="toman">{{ nw | toman }}</span>
+    {% if usd %}<span data-unit-value="usd">هر دلار {{ usd | toman }}</span>{% endif %}
+    {% if gold %}<span data-unit-value="gold">هر گرم طلای ۱۸ {{ gold | toman }}</span>{% endif %}
+  </div>
+  {% if change and change.delta != 0 %}
+  <div class="delta {{ 'up' if change.delta > 0 else 'down' }}">
+    {{ icon("up" if change.delta > 0 else "down") }}
+    <span>{{ change.delta | abs | toman_short }}{% if change.pct is not none %} ({{ change.pct | abs | percent }}){% endif %}</span>
+    <span class="delta-when">{{ T.since_last.format(date=change.date | jalali) }}</span>
+  </div>
+  {% endif %}
+</section>
+
+<div class="pair">
+  <a href="/assets" class="card mini">
+    <span class="mini-label">{{ T.total_assets }}</span>
+    <strong>{{ p.assets_toman | amt }}</strong>
+  </a>
+  <a href="/liabilities" class="card mini">
+    <span class="mini-label">{{ T.total_liabilities }}</span>
+    <strong>{{ p.liabilities_toman | amt }}</strong>
+  </a>
 </div>
 
-{% if p.unvalued_assets %}
-<div class="alert warn">{{ T.needs_price_warning.format(count=p.unvalued_assets | length | fa) }}
-  {% for line in p.unvalued_assets %}<a href="/prices">{{ line.asset.name }}</a>{{ '، ' if not loop.last }}{% endfor %}</div>
+{% if p.unvalued_assets or p.stale_assets %}
+<section class="notices">
+  {% if p.unvalued_assets %}
+  <a href="/prices" class="notice warn">
+    {{ icon("tag") }}
+    <span><strong>{{ p.unvalued_assets | length | fa }} دارایی بدون قیمت</strong>
+      <small>{% for line in p.unvalued_assets %}{{ line.asset.name }}{{ '، ' if not loop.last }}{% endfor %} — در جمع حساب نشده</small></span>
+    {{ icon("chev", "end") }}
+  </a>
+  {% endif %}
+  {% for line in p.stale_assets %}
+  {% call sheet_link("/assets/" ~ line.asset.id ~ "/edit", "notice warn") %}
+    {{ icon("clock") }}
+    <span><strong>{{ line.asset.name }}</strong><small>ارزش بیش از ۳۰ روز است به‌روز نشده</small></span>
+    {{ icon("chev", "end") }}
+  {% endcall %}
+  {% endfor %}
+</section>
 {% endif %}
-{% if p.stale_assets %}
-<div class="alert warn">{{ T.stale_warning }}
-  {% for line in p.stale_assets %}<a href="/assets/{{ line.asset.id }}/edit#form">{{ line.asset.name }}</a>{{ '، ' if not loop.last }}{% endfor %}</div>
+
+<section class="card">
+  <div class="card-head"><h2>{{ T.cashflow }}</h2><a href="/incomes" class="small">جزئیات</a></div>
+  <div class="flow-numbers">
+    <div><span class="mini-label">{{ T.monthly_income }}</span><strong>{{ p.monthly_income_toman | amt }}</strong></div>
+    <div><span class="mini-label">{{ T.monthly_installments }}</span><strong>{{ p.monthly_installments_toman | amt }}</strong></div>
+    <div><span class="mini-label">{{ T.free_cash }}</span><strong class="{{ 'neg' if p.monthly_free_cash_toman < 0 }}">{{ p.monthly_free_cash_toman | amt }}</strong></div>
+  </div>
+  {% if p.dti is not none %}
+  {% set dti_pct = [p.dti * 100, 100] | min %}
+  <div class="meter {{ 'over' if dti_high }}" role="meter" aria-valuenow="{{ dti_pct | round(1) }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ T.dti }}">
+    <span class="meter-fill" style="--w: {{ dti_pct }}%"></span>
+    <span class="meter-mark" style="--at: {{ threshold * 100 }}%" title="آستانه"></span>
+  </div>
+  <div class="meter-legend">
+    <span>{{ T.dti }}: <strong class="{{ 'neg' if dti_high }}">{{ p.dti | percent }}</strong></span>
+    <span class="muted">آستانه {{ threshold | percent(0) }}</span>
+  </div>
+  {% if dti_high %}<div class="alert danger">{{ icon("alert") }} {{ T.dti_warning.format(threshold=threshold | percent(0)) }}</div>{% endif %}
+  {% else %}
+  <p class="muted small">برای دیدن نسبت اقساط به درآمد، {% call sheet_link("/incomes/new") %}درآمدت را ثبت کن{% endcall %}.</p>
+  {% endif %}
+</section>
+
+{% if composition %}
+<section class="card">
+  <div class="card-head"><h2>{{ T.composition }}</h2></div>
+  <div class="stack-bar" role="img" aria-label="{{ T.composition }}">
+    {% for row in composition %}<span class="seg-fill s{{ row.slot }}" style="--w: {{ row.pct * 100 }}%" title="{{ row.label }}: {{ row.pct | percent }}"></span>{% endfor %}
+  </div>
+  <ul class="legend">
+    {% for row in composition %}
+    <li><span class="dot s{{ row.slot }}"></span><span class="legend-label">{{ row.label }}</span>
+      <span class="legend-pct">{{ row.pct | percent }}</span><span class="legend-value">{{ row.value | amt }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
 {% endif %}
 
-<div class="grid">
-  <div class="card stat"><div class="label">{{ T.total_assets }}</div><div class="value">{{ p.assets_toman | toman_short }}</div></div>
-  <div class="card stat"><div class="label">{{ T.total_liabilities }}</div><div class="value">{{ p.liabilities_toman | toman_short }}</div></div>
-</div>
+<section class="card">
+  <div class="card-head"><h2>{{ T.trend }}</h2></div>
+  {% if has_trend %}
+    <div class="chart-box"><canvas data-trend='{{ trend_json }}' aria-label="{{ T.trend }}"></canvas></div>
+  {% else %}
+    <p class="muted small">{{ T.trend_empty }}</p>
+  {% endif %}
+</section>
 
-<div class="card">
-  <h2>{{ T.cashflow }}</h2>
-  <div class="grid">
-    <div class="stat"><div class="label">{{ T.monthly_income }}</div><div class="value">{{ p.monthly_income_toman | toman_short }}</div></div>
-    <div class="stat"><div class="label">{{ T.monthly_installments }}</div><div class="value">{{ p.monthly_installments_toman | toman_short }}</div></div>
-    <div class="stat"><div class="label">{{ T.free_cash }}</div><div class="value {{ 'neg' if p.monthly_free_cash_toman < 0 }}">{{ p.monthly_free_cash_toman | toman_short }}</div></div>
+<section>
+  <h2 class="section-title">{{ T.quick_actions }}</h2>
+  <div class="quick">
+    {% call sheet_link("/assets/new", "quick-btn") %}<span class="bubble s1">{{ icon("plus") }}</span>{{ T.add_asset }}{% endcall %}
+    {% call sheet_link("/liabilities/new", "quick-btn") %}<span class="bubble s2">{{ icon("plus") }}</span>{{ T.add_liability }}{% endcall %}
+    <a href="/prices" class="quick-btn"><span class="bubble s3">{{ icon("tag") }}</span>{{ T.update_prices }}</a>
+    <a href="/loan" class="quick-btn"><span class="bubble s7">{{ icon("calc") }}</span>{{ s.NAV.loan }}</a>
   </div>
-  <div style="margin-top:12px">
-    <div class="label small muted">{{ T.dti }}: <strong>{{ p.dti | percent }}</strong> <span class="muted">(آستانه {{ threshold | percent(0) }})</span></div>
-    {% if p.dti is not none %}
-    <div class="bar {{ 'over' if dti_high }}"><span style="width: {{ [p.dti * 100, 100] | min }}%"></span></div>
-    {% endif %}
-    {% if dti_high %}<div class="alert danger small" style="margin-top:8px">{{ T.dti_warning.format(threshold=threshold | percent(0)) }}</div>{% endif %}
-  </div>
-</div>
-
-<div class="grid">
-  <div class="card">
-    <h2>{{ T.composition }}</h2>
-    {% if p.composition %}<div class="chart-box"><canvas id="composition"></canvas></div>
-    {% else %}<p class="muted">{{ T.empty }}</p>{% endif %}
-  </div>
-  <div class="card">
-    <h2>{{ T.trend }}</h2>
-    {% if has_trend %}<div class="chart-box"><canvas id="trend"></canvas></div>
-    {% else %}<p class="muted small">{{ T.trend_empty }}</p>{% endif %}
-  </div>
-</div>
-{% endblock %}
-{% block scripts %}
-<script src="/static/js/chart.min.js"></script>
-<script>
-(function () {
-  var data = {{ chart_json | safe }};
-  var css = getComputedStyle(document.documentElement);
-  var text = css.getPropertyValue("--muted").trim();
-  Chart.defaults.font.family = "Vazirmatn";
-  Chart.defaults.color = text;
-  var fa = new Intl.NumberFormat("fa-IR", { notation: "compact", maximumFractionDigits: 1 });
-  var palette = ["#0f766e", "#2563eb", "#d97706", "#7c3aed", "#db2777", "#059669", "#64748b", "#ea580c", "#0891b2", "#a16207", "#4b5563"];
-  var c = document.getElementById("composition");
-  if (c) new Chart(c, {
-    type: "doughnut",
-    data: { labels: data.composition.labels, datasets: [{ data: data.composition.values, backgroundColor: palette, borderWidth: 0 }] },
-    options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom", rtl: true },
-      tooltip: { rtl: true, callbacks: { label: function (ctx) { return ctx.label + ": " + fa.format(ctx.raw) + " تومان"; } } } } }
-  });
-  var t = document.getElementById("trend");
-  if (t) new Chart(t, {
-    type: "line",
-    data: { labels: data.trend.labels, datasets: [{ data: data.trend.values, borderColor: palette[0], tension: .25, pointRadius: 2 }] },
-    options: { maintainAspectRatio: false, plugins: { legend: { display: false },
-      tooltip: { rtl: true, callbacks: { label: function (ctx) { return fa.format(ctx.raw) + " تومان"; } } } },
-      scales: { y: { ticks: { callback: function (v) { return fa.format(v); } } } } }
-  });
-})();
-</script>
+</section>
+{% endif %}
 {% endblock %}

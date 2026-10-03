@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% block header %}{% endblock %}
-{% block content %}
-<div class="card auth">
-  <h1>{{ s.APP_NAME }} · {{ T.login_title }}</h1>
-  {% if error %}<div class="alert danger">{{ error }}</div>{% endif %}
-  <form method="post" action="/login">
-    <label for="password">{{ T.password }}</label>
-    <input id="password" type="password" name="password" autocomplete="current-password" required autofocus>
-    <p><button type="submit">{{ T.login }}</button></p>
+{% from "_ui.html" import icon %}
+{% block shell %}
+<main class="auth">
+  <div class="auth-logo">{{ icon("wallet") }}</div>
+  <h1>{{ s.APP_NAME }}</h1>
+  <p class="muted">برای ادامه رمز عبورت را وارد کن.</p>
+  {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
+  <form method="post" action="/login" class="form">
+    <div class="input"><input id="password" type="password" name="password" autocomplete="current-password" placeholder="{{ T.password }}" aria-label="{{ T.password }}" required autofocus></div>
+    <button type="submit" class="btn wide">{{ T.login }}</button>
   </form>
-</div>
+</main>
 {% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, bubble %}
+{% block content %}
+<h2 class="section-title">{{ T.more_data }}</h2>
+<div class="list">
+  <a href="/prices" class="row">{{ bubble("tag", 3) }}<span class="row-main"><span class="row-title">{{ s.PAGE_TITLES.prices }}</span><span class="row-sub">ثبت قیمت دلار، طلا، سکه و نمادها</span></span>{{ icon("chev", "end") }}</a>
+  <a href="/export.json" class="row" hx-boost="false" download>{{ bubble("download", 1) }}<span class="row-main"><span class="row-title">{{ T.export }}</span><span class="row-sub">{{ T.export_hint }}</span></span>{{ icon("chev", "end") }}</a>
+</div>
+<h2 class="section-title">{{ T.more_account }}</h2>
+<div class="list">
+  <a href="/settings" class="row">{{ bubble("gear", 0) }}<span class="row-main"><span class="row-title">{{ s.PAGE_TITLES.settings }}</span><span class="row-sub">آستانه نسبت اقساط و تورم فرضی</span></span>{{ icon("chev", "end") }}</a>
+  <form method="post" action="/logout" class="row-form">
+    <button type="submit" class="row danger">{{ bubble("logout", 0) }}<span class="row-main"><span class="row-title">{{ T.logout }}</span></span></button>
+  </form>
+</div>
+<p class="footnote">{{ s.APP_NAME }} · {{ T.version }}</p>
+{% endblock %}

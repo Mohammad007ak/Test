@@ -1,0 +1,21 @@
+{% from "_fields.html" import field %}
+{% from "_ui.html" import icon %}
+{% set action = "/" ~ entity.slug ~ ("/" ~ edit_id if edit_id else "") %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#sheet-body" hx-swap="innerHTML"
+      class="form" data-kind-form novalidate>
+  <div class="sheet-head">
+    <h2>{{ (T.edit ~ " " ~ entity.title) if edit_id else (entity.title ~ " " ~ T.new) }}</h2>
+    <a href="/{{ entity.slug }}" class="icon-btn" data-close aria-label="{{ T.close }}">{{ icon("close") }}</a>
+  </div>
+  {% if errors %}<div class="alert danger">{{ icon("alert") }} چند مورد نیاز به اصلاح دارد.</div>{% endif %}
+  <div class="fields">
+    {% for f in fields %}{{ field(f, values, errors) }}{% endfor %}
+  </div>
+  <div class="sheet-actions">
+    <button type="submit" class="btn wide">{{ T.save }}</button>
+    {% if edit_id %}
+      <button type="submit" class="btn danger-ghost" formaction="{{ action }}/delete" formnovalidate
+              hx-post="{{ action }}/delete" hx-confirm="{{ T.confirm_delete }}" aria-label="{{ T.delete }}">{{ icon("trash") }}</button>
+    {% endif %}
+  </div>
+</form>

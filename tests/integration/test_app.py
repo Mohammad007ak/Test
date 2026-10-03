@@ -74,7 +74,7 @@ class TestDataEntry:
         with db(client) as s:
             quote = s.scalars(select(PriceQuote)).one()
             assert quote.price_toman == 8_000_000
-        assert "۱۰۰٬۰۰۰٬۰۰۰ تومان" in client.get("/assets").text
+        assert "۱۰۰<small>میلیون تومان" in client.get("/assets").text
 
     def test_stock_symbol_builds_price_key(self, client: TestClient) -> None:
         client.post("/assets", data={"kind": "stock", "name": "فولاد", "symbol": "فولاد",
@@ -82,7 +82,7 @@ class TestDataEntry:
         assert "۱۰۰۰" in client.get("/assets").text
         with db(client) as s:
             assert s.scalars(select(Asset)).one().price_key == "stock:فولاد"
-        assert "stock:فولاد" in client.get("/prices").text
+        assert "فولاد · سهام" in client.get("/prices").text
 
     def test_manual_asset_sets_updated_at(self, client: TestClient) -> None:
         client.post("/assets", data={"kind": "car", "name": "۲۰۷",
@@ -123,7 +123,7 @@ class TestDataEntry:
             "kind": "bank_loan", "lender": "ملت", "principal_toman": "100000000",
             "installment_toman": "5000000", "installments_total": "24",
             "installments_paid": "10"})
-        assert "۷۰٬۰۰۰٬۰۰۰ تومان" in client.get("/liabilities").text  # 14 × 5M
+        assert "۷۰<small>میلیون تومان" in client.get("/liabilities").text  # 14 × 5M
         response = client.post(f"/liabilities/{loan.id}/delete", headers={"HX-Request": "true"})
         assert response.status_code == 200
         with db(client) as s:
@@ -139,7 +139,7 @@ class TestDataEntry:
 class TestDashboard:
     def test_totals_add_up_and_snapshot_recorded(self, client: TestClient) -> None:
         client.post("/prices", data={"price:usd": "100000", "price:gold18_gram": "8000000"})
-        client.post("/assets", data={"kind": "fx", "name": "دلار", "market": "usd",
+        client.post("/assets", data={"kind": "fx", "name": "دلار", "currency": "usd",
                                      "quantity": "1000"})                   # 100M
         client.post("/accounts", data={"bank": "melli", "account_mask": "5678",
                                        "balance_toman": "50000000"})       # 50M
@@ -153,9 +153,9 @@ class TestDashboard:
                                           "installments_total": "4"})      # 12M, 3M/month
 
         page = client.get("/").text
-        assert "۱۰۸ میلیون تومان" in page   # 150M − 42M
-        assert "۱٬۰۸۰ $" in page
-        assert "۱۳٫۵ گرم" in page
+        assert "۱۰۸<small>میلیون تومان" in page   # 150M − 42M
+        assert "۱٬۰۸۰ <small>دلار" in page
+        assert "۱۳٫۵ <small>گرم طلا" in page
         assert "۵٫۰٪" in page               # 3M / 60M
         with db(client) as s:
             snap = s.scalars(select(NetworthSnapshot)).one()
@@ -163,9 +163,9 @@ class TestDashboard:
                 150_000_000, 42_000_000, 108_000_000)
 
     def test_missing_price_warning(self, client: TestClient) -> None:
-        client.post("/assets", data={"kind": "coin", "name": "سکه", "market": "coin_emami",
+        client.post("/assets", data={"kind": "coin", "name": "سکه", "coin_type": "coin_emami",
                                      "quantity": "2"})
-        assert "قیمت بازار ندارد" in client.get("/").text
+        assert "دارایی بدون قیمت" in client.get("/").text
 
 
 class TestLoanAndSettings:
@@ -194,3 +194,41 @@ class TestLoanAndSettings:
         data = client.get("/export.json").json()
         assert data["accounts"][0]["account_mask"] == "1234"
         assert "settings" not in data  # هش رمز و کلید نشست بیرون نمی‌رود
+
+
+class TestSheets:
+    """فرم‌ها در برگه پایین با htmx."""
+
+    HX = {"HX-Request": "true"}
+
+    def test_new_form_is_fragment_for_htmx(self, client: TestClient) -> None:
+        fragment = client.get("/assets/new", headers=self.HX).text
+        assert "<html" not in fragment and 'name="kind"' in fragment
+        full = client.get("/assets/new").text
+        assert "<html" in full
+
+    def test_boosted_navigation_gets_full_page(self, client: TestClient) -> None:
+        page = client.get("/assets/new", headers={**self.HX, "HX-Boosted": "true"}).text
+        assert "<html" in page
+
+    def test_validation_error_stays_in_sheet(self, client: TestClient) -> None:
+        response = client.post("/incomes", data={"name": "", "amount_toman": "x",
+                                                 "frequency": "monthly"}, headers=self.HX)
+        assert response.status_code == 422
+        assert "<html" not in response.text and "عدد نامعتبر" in response.text
+
+    def test_success_navigates_with_toast(self, client: TestClient) -> None:
+        response = client.post("/incomes", data={"name": "حقوق", "amount_toman": "۶۵٬۰۰۰٬۰۰۰",
+                                                 "frequency": "monthly", "active": "on"},
+                               headers=self.HX)
+        assert '"path": "/incomes"' in response.headers["HX-Location"]
+        page = client.get("/incomes").text
+        assert "درآمد اضافه شد" in page
+        assert "درآمد اضافه شد" not in client.get("/incomes").text  # فقط یک بار
+
+
+def test_names_keep_persian_digits(client: TestClient) -> None:
+    client.post("/assets", data={"kind": "car", "name": "پژو ۲۰۷ مدل ۱۴۰۰",
+                                 "manual_value_toman": "1"})
+    with db(client) as s:
+        assert s.scalars(select(Asset)).one().name == "پژو ۲۰۷ مدل ۱۴۰۰"

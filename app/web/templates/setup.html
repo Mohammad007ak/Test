@@ -1,16 +1,15 @@
 {% extends "base.html" %}
-{% block header %}{% endblock %}
-{% block content %}
-<div class="card auth">
+{% from "_ui.html" import icon %}
+{% block shell %}
+<main class="auth">
+  <div class="auth-logo">{{ icon("lock") }}</div>
   <h1>{{ T.setup_title }}</h1>
-  <p class="muted small">{{ T.setup_hint }}</p>
-  {% if error %}<div class="alert danger">{{ error }}</div>{% endif %}
-  <form method="post" action="/setup">
-    <label for="password">{{ T.password }}</label>
-    <input id="password" type="password" name="password" autocomplete="new-password" minlength="8" required autofocus>
-    <label for="password_repeat" style="margin-top:8px">{{ T.password_repeat }}</label>
-    <input id="password_repeat" type="password" name="password_repeat" autocomplete="new-password" minlength="8" required>
-    <p><button type="submit">{{ T.save }}</button></p>
+  <p class="muted">{{ T.setup_hint }}</p>
+  {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
+  <form method="post" action="/setup" class="form">
+    <div class="input"><input id="password" type="password" name="password" autocomplete="new-password" minlength="8" placeholder="{{ T.password }}" aria-label="{{ T.password }}" required autofocus></div>
+    <div class="input"><input id="password_repeat" type="password" name="password_repeat" autocomplete="new-password" minlength="8" placeholder="{{ T.password_repeat }}" aria-label="{{ T.password_repeat }}" required></div>
+    <button type="submit" class="btn wide">{{ T.save }}</button>
   </form>
-</div>
+</main>
 {% endblock %}

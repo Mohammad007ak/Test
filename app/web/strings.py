@@ -151,3 +151,127 @@ T = {
     "export_hint": "همه داده‌ها به‌صورت یک فایل JSON (برای پشتیبان یا انتقال).",
     "saved": "ذخیره شد.",
 }
+
+# ---------- پوسته اپ (نوار پایین، عنوان صفحه‌ها، پیام‌ها) ----------
+
+# (کلید فعال، آدرس، برچسب، آیکون)
+TABS: tuple[tuple[str, str, str, str], ...] = (
+    ("dashboard", "/", "خانه", "home"),
+    ("assets", "/assets", "دارایی", "wallet"),
+    ("cashflow", "/liabilities", "اقساط و درآمد", "flow"),
+    ("loan", "/loan", "تحلیل وام", "calc"),
+    ("more", "/more", "بیشتر", "more"),
+)
+
+# کدام تب برای هر صفحه روشن باشد
+TAB_OF_PAGE: dict[str, str] = {
+    "assets": "assets",
+    "accounts": "assets",
+    "liabilities": "cashflow",
+    "incomes": "cashflow",
+    "prices": "more",
+    "settings": "more",
+}
+
+# زبانه‌های بالای صفحه برای صفحه‌های جفتی
+SEGMENTS: dict[str, tuple[tuple[str, str], ...]] = {
+    "assets": (("assets", "دارایی‌ها"), ("accounts", "حساب‌های بانکی")),
+    "cashflow": (("liabilities", "بدهی و اقساط"), ("incomes", "درآمدها")),
+}
+
+ASSET_ICONS: dict[str, str] = {
+    "fx": "dollar", "gold": "gold", "coin": "coin", "stock": "chart", "fund": "pie",
+    "car": "car", "real_estate": "building", "receivable": "handshake", "cash": "cash",
+    "other": "box",
+}
+LIABILITY_ICONS: dict[str, str] = {
+    "bank_loan": "bank", "bnpl": "bag", "credit_card": "card", "personal": "handshake",
+    "other": "box",
+}
+
+# گروه‌بندی ترکیب دارایی با رنگ ثابت برای هر گروه (رنگ دنبال موجودیت است، نه رتبه)
+COMPOSITION_GROUPS: tuple[tuple[str, str, tuple[str, ...], int], ...] = (
+    # (کلید، برچسب، انواع دارایی، شماره رنگ در پالت دسته‌ای؛ ۰ = خاکستری «سایر»)
+    ("bank", "حساب بانکی", ("bank",), 1),
+    ("fx", "ارز", ("fx",), 3),
+    ("gold", "طلا", ("gold",), 4),
+    ("coin", "سکه", ("coin",), 2),
+    ("bourse", "بورس", ("stock", "fund"), 7),
+    ("car", "خودرو", ("car",), 5),
+    ("real_estate", "ملک", ("real_estate",), 6),
+    ("other", "سایر", ("receivable", "cash", "other"), 0),
+)
+
+PAGE_TITLES: dict[str, str] = {
+    "assets": "دارایی‌ها",
+    "accounts": "حساب‌های بانکی",
+    "liabilities": "بدهی و اقساط",
+    "incomes": "درآمدها",
+    "prices": "قیمت‌ها",
+    "loan": "تحلیلگر وام",
+    "settings": "تنظیمات",
+    "more": "بیشتر",
+}
+
+EMPTY_STATES: dict[str, tuple[str, str]] = {
+    "assets": ("هنوز دارایی‌ای ثبت نکرده‌ای",
+               "طلا، ارز، سکه، سهام، خودرو یا ملک — هر چه داری اضافه کن تا تصویر کامل شود."),
+    "accounts": ("حسابی ثبت نشده",
+                 "موجودی حساب‌های بانکی‌ات را وارد کن؛ فقط ۴ رقم آخر حساب ذخیره می‌شود."),
+    "liabilities": ("بدهی‌ای ثبت نشده",
+                    "وام، اقساط خرید، کارت اعتباری یا بدهی شخصی را اضافه کن."),
+    "incomes": ("درآمدی ثبت نشده",
+                "حقوق، اجاره یا هر درآمد تکراری را اضافه کن تا جریان نقدی حساب شود."),
+}
+
+TOASTS: dict[str, str] = {
+    "created": "{title} اضافه شد",
+    "updated": "تغییرات ذخیره شد",
+    "deleted": "{title} حذف شد",
+    "prices": "قیمت‌ها ثبت شد",
+    "settings": "تنظیمات ذخیره شد",
+}
+
+T.update({
+    "new": "جدید",
+    "close": "بستن",
+    "total": "جمع",
+    "this_month": "در ماه",
+    "since_last": "نسبت به {date}",
+    "quick_actions": "میان‌برها",
+    "add_asset": "دارایی",
+    "add_liability": "بدهی",
+    "add_income": "درآمد",
+    "update_prices": "قیمت‌ها",
+    "welcome_title": "خوش آمدی 👋",
+    "welcome_body": "سه قدم تا اولین تصویر کامل از ثروتت:",
+    "welcome_steps": ("دارایی‌ها و حساب‌هایت را اضافه کن",
+                      "بدهی‌ها و اقساط را وارد کن",
+                      "درآمدهای ماهانه را ثبت کن"),
+    "of_income": "از درآمد",
+    "left_over": "باقی می‌ماند",
+    "go_prices": "ثبت قیمت",
+    "more_data": "داده‌ها",
+    "more_account": "حساب کاربری",
+    "advanced": "جزئیات بیشتر",
+    "updated_at": "به‌روزرسانی",
+    "per_unit": "هر واحد",
+    "stale_short": "قدیمی",
+    "unit_toggle": "واحد نمایش",
+    "loan_empty": "مشخصات وام را وارد کن تا نرخ واقعی و هزینه‌های پنهانش را ببینی.",
+    "loan_new": "تحلیل جدید",
+    "price_placeholder": "قیمت جدید",
+    "version": "نسخه صفر",
+})
+
+LOAN_GROUPS: tuple[tuple[str, str, bool], ...] = (
+    ("main", "مشخصات وام", True),
+    ("fees", "کارمزد، ضامن و بیمه", False),
+    ("blocked", "سپرده بلوکه", False),
+    ("averaging", "معدل‌گیری", False),
+    ("budget", "درآمد و اقساط فعلی", False),
+)
+
+KIND_SLOT: dict[str, int] = {
+    kind: slot for key, _label, kinds, slot in COMPOSITION_GROUPS for kind in (*kinds, key)
+}
