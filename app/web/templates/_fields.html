@@ -14,7 +14,7 @@
       {% for key, label in f.options.items() %}
         <label class="chip">
           <input type="radio" name="{{ f.name }}" value="{{ key }}" {{ 'checked' if v == key or (not v and loop.first) }}>
-          <span>{% if f.name == 'kind' and key in s.ASSET_ICONS %}<svg class="i" aria-hidden="true"><use href="#i-{{ s.ASSET_ICONS[key] }}"></use></svg>{% elif f.name == 'kind' and key in s.LIABILITY_ICONS %}<svg class="i" aria-hidden="true"><use href="#i-{{ s.LIABILITY_ICONS[key] }}"></use></svg>{% endif %}{{ label }}</span>
+          <span>{% if f.name == 'kind' and key in s.ASSET_ICONS %}<svg class="i" aria-hidden="true"><use href="#i-{{ s.ASSET_ICONS[key] }}"></use></svg>{% elif f.name == 'kind' and key in s.LIABILITY_ICONS %}<svg class="i" aria-hidden="true"><use href="#i-{{ s.LIABILITY_ICONS[key] }}"></use></svg>{% elif f.name == 'category' %}<svg class="i" aria-hidden="true"><use href="#i-{{ s.CATEGORY_ICONS.get(key, 'tag') }}"></use></svg>{% endif %}{{ label }}</span>
         </label>
       {% endfor %}
     </div>

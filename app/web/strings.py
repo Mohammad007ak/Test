@@ -454,12 +454,12 @@ DEPOSIT_CATEGORIES: dict[str, str] = {
 CATEGORY_LABELS: dict[str, str] = {**EXPENSE_CATEGORIES, **DEPOSIT_CATEGORIES,
                                    "uncategorized": "بدون دسته"}
 CATEGORY_ICONS: dict[str, str] = {
-    "food": "bag", "housing": "building", "bills": "alert", "transport": "car",
-    "shopping": "bag", "health": "spark", "education": "pie", "fun": "spark",
-    "subscriptions": "clock", "gifts": "handshake", "installment": "bank", "transfer": "flow",
+    "food": "food", "housing": "building", "bills": "bolt", "transport": "car",
+    "shopping": "cart", "health": "heart", "education": "book", "fun": "plane",
+    "subscriptions": "repeat", "gifts": "gift", "installment": "bank", "transfer": "swap",
     "other": "box", "uncategorized": "box",
-    "salary": "cash", "business": "chart", "rent_in": "building", "investment": "pie",
-    "refund": "flow", "gift": "handshake", "loan_in": "bank",
+    "salary": "briefcase", "business": "store", "rent_in": "key", "investment": "trend",
+    "refund": "undo", "gift": "gift", "loan_in": "bank",
 }
 CATEGORY_SLOT: dict[str, int] = {
     key: (i % 8) + 1 for i, key in enumerate(DEPOSIT_CATEGORIES)
