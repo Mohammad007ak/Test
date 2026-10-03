@@ -29,7 +29,7 @@ from app.sms.parsers.base import ParsedSms
 TEHRAN = ZoneInfo("Asia/Tehran")
 
 _HEADER = "بانک سامان"
-_AMOUNT = re.compile(r"^(برداشت|واریز) مبلغ\s+([\d,]+)\s*(?:ریال)?\s*(.*)$", re.M)
+_AMOUNT = re.compile(r"^(برداشت|واریز) مبلغ[ \t]+([\d,]+)[ \t]*(?:ریال)?[ \t]*(.*)$", re.M)
 _ACCOUNT = re.compile(r"^(?:از|به) (\d{0,4})\*+(\d{4})$", re.M)
 _BALANCE = re.compile(r"^مانده (-?[\d,]+)$", re.M)
 _DATE = re.compile(r"^(\d{4})/(\d{1,2})/(\d{1,2})$", re.M)
