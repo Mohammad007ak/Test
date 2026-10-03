@@ -38,11 +38,13 @@
     <h3>راه ۱: فایل در iCloud Drive (پیشنهادی)</h3>
     <ol>
       <li>در اپ Shortcuts روی آیفون: <b>Automation ← + ← Message</b>؛ «Message Contains» را مثلاً روی «مانده» بگذار و <b>Run Immediately</b> را روشن کن.</li>
-      <li>اکشن <b>Append to Text File</b>: فایل <code>Shortcuts/bank_sms.txt</code> در iCloud Drive، با این متن:
+      <li>اکشن <b>Append to Text File</b>: فایل <code>bank_sms.txt</code> (پوشه Shortcuts در iCloud Drive)، با این متن:
         <pre dir="ltr">--- [Current Date (ISO 8601)]
 [Shortcut Input → Content]</pre></li>
-      <li>روی مک در <code>.env</code> بنویس:
-        <pre dir="ltr">FINASSIST_SMS_FILE="/Users/&lt;نام&gt;/Library/Mobile Documents/com~apple~CloudDocs/Shortcuts/bank_sms.txt"</pre>
+      <li>روی مک بعد از اولین پیامک، مسیر فایل را با این دستور پیدا کن:
+        <pre dir="ltr">find ~/Library/Mobile\ Documents -name bank_sms.txt</pre>
+        و در فایل <code>.env</code> پروژه بنویس:
+        <pre dir="ltr">FINASSIST_SMS_FILE="&lt;مسیری که دستور بالا نشان داد&gt;"</pre>
         برنامه این فایل را هر دقیقه می‌خواند. {% if watched_file %}<b>فعال:</b> <code dir="ltr">{{ watched_file }}</code>{% else %}<b>هنوز تنظیم نشده.</b>{% endif %}</li>
     </ol>
     <h3>راه ۲: ارسال مستقیم (گوشی و مک در یک شبکه)</h3>
