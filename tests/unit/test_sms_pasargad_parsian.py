@@ -29,9 +29,12 @@ def test_pasargad_withdrawal() -> None:
     assert p.occurred_at == datetime(2026, 9, 28, 8, 15, tzinfo=UTC)  # ۶ مهر ۱۱:۴۵ تهران
 
 
-def test_pasargad_plus_sign_is_deposit() -> None:
-    deposit = PASARGAD.replace("-911,000", "+911,000")
-    assert PasargadParser().parse(deposit, RECEIVED).direction == "in"
+def test_pasargad_deposit_real_sample() -> None:
+    deposit = mask_numbers(prepare((FIXTURES / "pasargad" / "deposit.txt").read_text("utf-8")))
+    p = PasargadParser().parse(deposit, RECEIVED)
+    assert (p.direction, p.amount_rial, p.balance_after_rial) == ("in", 550_000_000, 736_818_262)
+    assert (p.account_prefix, p.account_mask) == ("777", "4541")
+    assert p.occurred_at == datetime(2026, 9, 25, 10, 47, tzinfo=UTC)  # ۳ مهر ۱۴:۱۷ تهران
 
 
 def test_parsian_withdrawal() -> None:
