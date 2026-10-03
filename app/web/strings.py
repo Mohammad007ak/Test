@@ -452,6 +452,7 @@ CATEGORY_ICONS: dict[str, str] = {
 CATEGORY_SLOT: dict[str, int] = {
     key: (i % 8) + 1 for i, key in enumerate(EXPENSE_CATEGORIES)
 } | {"uncategorized": 0, "other": 0}
+WEEKDAYS: tuple[str, ...] = ("شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه")
 JALALI_MONTHS: tuple[str, ...] = ("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
                                   "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
 
@@ -478,4 +479,5 @@ T.update({
     "fixed_monthly": "هزینه‌های ثابت ماهانه",
     "cash_expense": "دستی",
     "details": "جزئیات",
+    "greeting": "سلام",
 })

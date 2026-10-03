@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon, sheet_link, bubble %}
 {% block appbar %}
-  <div class="greet"><span class="muted small">{{ s.APP_NAME }}</span><h1>{{ T.networth }}</h1></div>
+  <div class="greet"><span class="muted small">{{ today | jalali_long }}</span><h1>{{ T.greeting }}</h1></div>
 {% endblock %}
 {% block content %}
 {% set nw = networth.networth_toman %}
@@ -42,7 +42,7 @@
     </div>
   </div>
   <div class="hero-value">
-    <span data-unit-value="toman">{{ nw | amt }}</span>
+    <span data-unit-value="toman" data-countup="{{ nw }}">{{ nw | amt }}</span>
     {% if usd %}<span data-unit-value="usd">{{ networth.in_unit(usd) | num }} <small>دلار</small></span>{% endif %}
     {% if gold %}<span data-unit-value="gold">{{ networth.in_unit(gold) | num(1) }} <small>گرم طلا</small></span>{% endif %}
   </div>
@@ -51,24 +51,37 @@
     {% if usd %}<span data-unit-value="usd">هر دلار {{ usd | toman }}</span>{% endif %}
     {% if gold %}<span data-unit-value="gold">هر گرم طلای ۱۸ {{ gold | toman }}</span>{% endif %}
   </div>
+  {% if spark_line %}
+  <svg class="spark" viewBox="0 0 300 56" preserveAspectRatio="none" aria-hidden="true">
+    <defs><linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3ee8a6" stop-opacity=".35"/><stop offset="1" stop-color="#3ee8a6" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path class="area" d="{{ spark_area }}"/>
+    <path class="line" d="{{ spark_line }}" pathLength="1"/>
+  </svg>
+  {% endif %}
   {% if prices_at %}
   <div class="live-badge">{% if poll_seconds %}<span class="pulse"></span>{% endif %}قیمت‌ها {{ prices_at | jalali }}</div>
   {% endif %}
   {% if change and change.delta != 0 %}
-  <div class="delta {{ 'up' if change.delta > 0 else 'down' }}">
-    {{ icon("up" if change.delta > 0 else "down") }}
-    <span>{{ change.delta | abs | toman_short }}{% if change.pct is not none %} ({{ change.pct | abs | percent }}){% endif %}</span>
-    <span class="delta-when">{{ T.since_last.format(date=change.date | jalali) }}</span>
+  <div class="delta-row">
+    <span class="delta {{ 'up' if change.delta > 0 else 'down' }}">
+      {{ icon("up" if change.delta > 0 else "down") }}
+      <span>{{ change.delta | abs | toman_short }}{% if change.pct is not none %} · {{ change.pct | abs | percent }}{% endif %}</span>
+    </span>
+    <span class="delta-when">{{ T.since_last.format(date=change.date | jalali(false)) }}</span>
   </div>
   {% endif %}
 </section>
 
 <div class="pair">
   <a href="/assets" class="card mini">
+    {{ bubble("wallet", 3) }}
     <span class="mini-label">{{ T.total_assets }}</span>
     <strong>{{ p.assets_toman | amt }}</strong>
   </a>
   <a href="/liabilities" class="card mini">
+    {{ bubble("bank", 8) }}
     <span class="mini-label">{{ T.total_liabilities }}</span>
     <strong>{{ p.liabilities_toman | amt }}</strong>
   </a>
@@ -100,7 +113,7 @@
     <div><span class="mini-label">{{ T.monthly_income }}</span><strong>{{ p.monthly_income_toman | amt }}</strong></div>
     <div><span class="mini-label">{{ T.monthly_installments }}</span><strong>{{ p.monthly_installments_toman | amt }}</strong></div>
     <a href="/bills"><span class="mini-label">{{ T.fixed_expenses }}</span><strong>{{ p.monthly_fixed_expenses_toman | amt }}</strong></a>
-    <div><span class="mini-label">{{ T.free_cash }}</span><strong class="{{ 'neg' if p.monthly_free_cash_toman < 0 }}">{{ p.monthly_free_cash_toman | amt }}</strong></div>
+    <div class="free"><span class="mini-label">{{ T.free_cash }}</span><strong class="{{ 'neg' if p.monthly_free_cash_toman < 0 }}">{{ p.monthly_free_cash_toman | amt }}</strong></div>
   </div>
   {% if p.dti is not none %}
   {% set dti_pct = [p.dti * 100, 100] | min %}

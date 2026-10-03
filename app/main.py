@@ -51,7 +51,7 @@ from app.web.common import (
 )
 from app.web.entities import ENTITIES
 from app.web.forms import Field, FormError
-from app.web.render import jalali, tehran_today
+from app.web.render import jalali, sparkline, tehran_today
 from app.web.sms_routes import queue_count, register_sms_routes
 from app.web.spending_routes import parse_month, register_spending_routes
 
@@ -221,6 +221,7 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
                       "date": previous.date}
         trend = {"labels": [jalali(h.date) for h in history],
                  "values": [h.networth_toman for h in history]}
+        spark = sparkline([h.networth_toman for h in history][-30:])
         empty = not (portfolio.assets or portfolio.accounts or portfolio.liabilities
                      or portfolio.incomes or portfolio.expenses)
         return page(request, "dashboard.html", {
@@ -238,6 +239,8 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
             "sms_queue": queue_count(db),
             "prices_at": max((q.fetched_at for q in portfolio.quotes.values()), default=None),
             "trend_json": json.dumps(trend, ensure_ascii=False),
+            "today": today,
+            "spark_line": spark[0], "spark_area": spark[1],
             "empty": empty,
             "spending": services.month_spending(db, *parse_month(None)),
         })

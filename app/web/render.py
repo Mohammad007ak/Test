@@ -49,6 +49,33 @@ def tehran_today() -> date:
     return datetime.now(TEHRAN).date()
 
 
+def jalali_long(day: date) -> str:
+    """۳ اکتبر ۲۰۲۶ → «شنبه ۱۱ مهر»."""
+    j = jdatetime.date.fromgregorian(date=day)
+    weekday = strings.WEEKDAYS[j.weekday()]
+    return f"{weekday} {to_persian_digits(str(j.day))} {strings.JALALI_MONTHS[j.month - 1]}"
+
+
+def sparkline(values: list[int], width: int = 300, height: int = 56) -> tuple[str, str]:
+    """مسیر SVG خط و سطح زیر آن؛ راست‌به‌چپ: قدیمی‌ترین راست، جدیدترین چپ."""
+    if len(values) < 2:
+        return "", ""
+    low, high = min(values), max(values)
+    pad = height * 0.08
+    span = high - low
+
+    def y(v: int) -> float:
+        if not span:
+            return height / 2
+        return round(pad + (high - v) / span * (height - 2 * pad), 1)
+
+    step = width / (len(values) - 1)
+    points = [(round(width - i * step, 1), y(v)) for i, v in enumerate(values)]
+    line = " ".join(f"{'M' if i == 0 else 'L'}{x},{yy}" for i, (x, yy) in enumerate(points))
+    area = f"{line} L{points[-1][0]},{height} L{points[0][0]},{height} Z"
+    return line, area
+
+
 def _amount(toman: int) -> Markup:
     number, unit = toman_short_parts(toman)
     return Markup('<span class="amt">{}<small>{}</small></span>').format(number, unit)
@@ -82,5 +109,6 @@ templates.env.filters.update(
     jalali=jalali,
     fa=lambda v: to_persian_digits(str(v)),
     dec=plain_decimal,
+    jalali_long=jalali_long,
 )
 templates.env.globals.update(s=strings, T=strings.T, static=static_url)

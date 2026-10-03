@@ -197,6 +197,35 @@
     });
   }
 
+  // ---------- شمارش عدد درشت از صفر تا مقدار (فقط بار اول، نه تازه‌سازی خودکار) ----------
+  function countUp(el) {
+    var number = el.querySelector(".amt") ? el.querySelector(".amt").firstChild : null;
+    if (!number || number.nodeType !== 3) return;
+    var text = number.textContent.trim();
+    var latin = toLatin(text).replace(/[٬,]/g, "").replace("٫", ".");
+    var target = Number(latin);
+    if (!isFinite(target) || target === 0) return;
+    var places = (latin.split(".")[1] || "").length;
+    var fmt = new Intl.NumberFormat("fa-IR", { minimumFractionDigits: places, maximumFractionDigits: places });
+    var start = null;
+    var duration = 1100;
+    function frame(now) {
+      if (start === null) start = now;
+      var p = Math.min((now - start) / duration, 1);
+      var eased = 1 - Math.pow(2, -10 * p);
+      number.textContent = p < 1 ? fmt.format(target * eased) : text;
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // تازه‌سازی خودکار داشبورد: بدون انیمیشن ورود دوباره
+  document.addEventListener("htmx:beforeSwap", function (e) {
+    if (e.detail.target && e.detail.target.id === "live" && e.detail.serverResponse) {
+      e.detail.serverResponse = e.detail.serverResponse.replace('class="live"', 'class="live refreshed"');
+    }
+  });
+
   // ---------- راه‌اندازی هر محتوای تازه (بار اول و پس از هر جابه‌جایی htmx) ----------
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));
@@ -214,6 +243,8 @@
       if (button) setUnit(box, saved);
     });
     all(root, "canvas[data-trend]").forEach(drawTrend);
+    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduced && !(root.id === "live")) all(root, "[data-countup]").forEach(countUp);
   }
 
   function start() {
