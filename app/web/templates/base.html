@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="{{ s.APP_NAME }}">
-  <meta name="htmx-config" content='{"globalViewTransitions": true, "defaultSwapStyle": "innerHTML", "responseHandling": [{"code": "204", "swap": false}, {"code": "[234]..", "swap": true}, {"code": "...", "swap": false, "error": true}]}'>
+  <meta name="htmx-config" content='{"globalViewTransitions": true, "defaultSwapStyle": "innerHTML", "historyCacheSize": 0, "refreshOnHistoryMiss": true, "responseHandling": [{"code": "204", "swap": false}, {"code": "[234]..", "swap": true}, {"code": "...", "swap": false, "error": true}]}'>
   <link rel="manifest" href="{{ static('manifest.webmanifest') }}">
   <link rel="apple-touch-icon" href="{{ static('icon.png') }}">
   <link rel="icon" type="image/png" href="{{ static('icon.png') }}">
