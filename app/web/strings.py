@@ -389,3 +389,34 @@ PRICE_KEYS: dict[str, str] = {
     **GOLD_PRICE_KEYS,
     **{f"crypto:{code}": name for code, name in CRYPTO_NAMES.items()},
 }
+
+# ---------- پیامک بانکی ----------
+PAGE_TITLES["sms"] = "پیامک‌های بانکی"
+TAB_OF_PAGE["sms"] = "more"
+DIRECTIONS: dict[str, str] = {"in": "واریز", "out": "برداشت"}
+SMS_STATUS: dict[str, str] = {"parsed": "ثبت شد", "failed": "نیاز به بررسی", "ignored": "نادیده"}
+TOASTS.update({
+    "sms_imported": "{parsed} ثبت شد · {failed} نیاز به بررسی · {duplicate} تکراری",
+    "sms_completed": "تراکنش ثبت شد",
+    "sms_ignored": "پیامک کنار گذاشته شد",
+    "sms_token": "توکن تازه ساخته شد؛ Shortcut را به‌روز کن",
+})
+T.update({
+    "sms_queue": "نیاز به بررسی",
+    "sms_queue_empty": "صف بررسی خالی است.",
+    "sms_recent": "پیامک‌های اخیر",
+    "sms_none": "هنوز پیامکی نرسیده.",
+    "sms_complete": "تکمیل",
+    "sms_ignore": "نادیده بگیر",
+    "sms_review_title": "تکمیل پیامک",
+    "sms_upload": "واردکردن فایل پیامک‌ها",
+    "sms_upload_hint": "فایل متنی که Shortcut ساخته (هر پیامک با خط «--- زمان» شروع می‌شود).",
+    "sms_choose_file": "انتخاب فایل",
+    "sms_setup": "راه‌اندازی دریافت خودکار",
+    "sms_token_label": "توکن (هدر X-Ingest-Token)",
+    "sms_rotate": "ساخت توکن تازه",
+    "sms_notice": "{count} پیامک بانکی نیاز به بررسی دارد",
+    "sms_more": "دریافت از Shortcuts و صف بررسی",
+    "sms_parsers_note": "پارسر اختصاصی برای بانک‌ها با رسیدن نمونه پیامک‌ها اضافه می‌شود؛ تا آن موقع "
+                        "پیامک‌ها این‌جا با چند ضربه تکمیل می‌شوند.",
+})

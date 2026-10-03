@@ -5,6 +5,13 @@
 {% endblock %}
 {% block content %}
 {% set nw = networth.networth_toman %}
+{% if sms_queue %}
+<a href="/sms" class="notice warn">
+  {{ icon("card") }}
+  <span><strong>{{ T.sms_notice.format(count=sms_queue | fa) }}</strong></span>
+  {{ icon("chev", "end") }}
+</a>
+{% endif %}
 
 {% if empty %}
 <section class="card welcome">

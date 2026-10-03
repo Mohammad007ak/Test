@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, sheet_link, bubble %}
+{% block content %}
+<h2 class="section-title">{{ T.sms_queue }}{% if queue %} ({{ queue | length | fa }}){% endif %}</h2>
+{% if queue %}
+<div class="list">
+  {% for sms in queue %}
+  <div class="row tall static sms-row">
+    {{ bubble("alert", 4) }}
+    <span class="row-main">
+      <span class="sms-text">{{ sms.text_masked }}</span>
+      <span class="row-sub">{{ sms.received_at | jalali }}{% if sms.error %} · {{ sms.error }}{% endif %}</span>
+      <span class="sms-actions">
+        {% call sheet_link("/sms/" ~ sms.id ~ "/review", "btn small-btn") %}{{ T.sms_complete }}{% endcall %}
+        <form method="post" action="/sms/{{ sms.id }}/ignore"><button class="btn ghost small-btn" type="submit">{{ T.sms_ignore }}</button></form>
+      </span>
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="lead">{{ T.sms_queue_empty }}</p>
+{% endif %}
+<p class="lead small">{{ T.sms_parsers_note }}</p>
+
+<section class="card">
+  <h2>{{ T.sms_upload }}</h2>
+  <p class="muted small">{{ T.sms_upload_hint }}</p>
+  <form method="post" action="/sms/upload" enctype="multipart/form-data" class="form upload-form">
+    <input type="file" name="file" accept=".txt,text/plain" required>
+    <button type="submit" class="btn">{{ icon("download") }} {{ T.sms_upload }}</button>
+  </form>
+</section>
+
+<details class="card disclosure">
+  <summary>{{ T.sms_setup }}</summary>
+  <div class="setup">
+    <h3>راه ۱: فایل در iCloud Drive (پیشنهادی)</h3>
+    <ol>
+      <li>در اپ Shortcuts روی آیفون: <b>Automation ← + ← Message</b>؛ «Message Contains» را مثلاً روی «مانده» بگذار و <b>Run Immediately</b> را روشن کن.</li>
+      <li>اکشن <b>Append to Text File</b>: فایل <code>Shortcuts/bank_sms.txt</code> در iCloud Drive، با این متن:
+        <pre dir="ltr">--- [Current Date (ISO 8601)]
+[Shortcut Input → Content]</pre></li>
+      <li>روی مک در <code>.env</code> بنویس:
+        <pre dir="ltr">FINASSIST_SMS_FILE="/Users/&lt;نام&gt;/Library/Mobile Documents/com~apple~CloudDocs/Shortcuts/bank_sms.txt"</pre>
+        برنامه این فایل را هر دقیقه می‌خواند. {% if watched_file %}<b>فعال:</b> <code dir="ltr">{{ watched_file }}</code>{% else %}<b>هنوز تنظیم نشده.</b>{% endif %}</li>
+    </ol>
+    <h3>راه ۲: ارسال مستقیم (گوشی و مک در یک شبکه)</h3>
+    <ol>
+      <li>برنامه را با <code dir="ltr">--host 0.0.0.0</code> اجرا کن.</li>
+      <li>در همان Automation به‌جای Append، اکشن <b>Get Contents of URL</b>: روش <b>POST</b>، بدنه <b>JSON</b> با کلید <code>text</code> = محتوای پیامک، و هدر <code>X-Ingest-Token</code>.</li>
+      <li>آدرس: <code dir="ltr">{{ endpoint | replace("127.0.0.1", "آدرس-مک") }}</code></li>
+    </ol>
+    <label class="label">{{ T.sms_token_label }}</label>
+    <div class="token-row"><code dir="ltr" class="token">{{ token }}</code></div>
+    <form method="post" action="/sms/token"><button class="btn ghost small-btn" type="submit">{{ T.sms_rotate }}</button></form>
+  </div>
+</details>
+
+<h2 class="section-title">{{ T.sms_recent }}</h2>
+{% if recent %}
+<div class="list">
+  {% for sms in recent %}
+  <div class="row tall static sms-row {{ 'dim' if sms.parse_status == 'ignored' }}">
+    {{ bubble("card" if sms.parse_status == "parsed" else "box", 1 if sms.parse_status == "parsed" else 0) }}
+    <span class="row-main">
+      <span class="sms-text">{{ sms.text_masked }}</span>
+      <span class="row-sub">{{ sms.received_at | jalali }} · {{ s.SMS_STATUS[sms.parse_status] }}{% if sms.parser %} · {{ sms.parser }}{% endif %}{% if sms.error and sms.parse_status == 'ignored' %} · {{ sms.error }}{% endif %}</span>
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="lead">{{ T.sms_none }}</p>
+{% endif %}
+{% endblock %}

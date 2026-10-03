@@ -23,7 +23,7 @@ class FormError(Exception):
 class Field:
     name: str
     label: str
-    type: str  # text | money | decimal | int | percent | select | date | textarea | bool
+    type: str  # text | money | rial | decimal | int | percent | select | date | textarea | bool
     required: bool = False
     options: Mapping[str, str] = field(default_factory=dict)
     kinds: tuple[str, ...] = ()  # فقط برای این kindها نمایش داده می‌شود
@@ -36,7 +36,7 @@ class Field:
 
     @property
     def unit(self) -> str:
-        return {"money": "تومان", "percent": "٪"}.get(self.type, "")
+        return {"money": "تومان", "rial": "ریال", "percent": "٪"}.get(self.type, "")
 
 
 def _parse_jalali(text: str) -> date:
@@ -51,6 +51,8 @@ def _parse_value(spec: Field, raw: str) -> Any:
     if spec.type == "text" or spec.type == "textarea":
         return normalize_chars(raw).strip()
     if spec.type == "money":
+        return round_toman(parse_decimal(raw))
+    if spec.type == "rial":  # عدد همان‌طور که در پیامک بانک آمده
         return round_toman(parse_decimal(raw))
     if spec.type == "decimal":
         return parse_decimal(raw)

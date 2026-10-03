@@ -2,16 +2,16 @@
 
 import asyncio
 import json
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect as sa_inspect
@@ -26,15 +26,34 @@ from app.db import Base, make_engine, make_session_factory
 from app.domain.loan import LoanInput, analyze_loan
 from app.domain.money import format_number
 from app.models import Asset, LoanAnalysis, PriceQuote, utcnow
-from app.scheduler import Activity, Pace, refresh_now, run_adaptive
+from app.scheduler import (
+    SMS_FILE_SECONDS,
+    Activity,
+    Pace,
+    import_sms_file,
+    refresh_now,
+    run_adaptive,
+    run_every,
+)
+from app.sms.llm import DisabledLLM
 from app.web import auth, forms
 from app.web import strings as s
+from app.web.common import (
+    Db,
+    Form,
+    LoggedIn,
+    done,
+    page,
+    read_form,
+    redirect,
+    wants_fragment,
+)
 from app.web.entities import ENTITIES
 from app.web.forms import Field, FormError
-from app.web.render import jalali, tehran_today, templates
+from app.web.render import jalali, tehran_today
+from app.web.sms_routes import queue_count, register_sms_routes
 
 STATIC_DIR = Path(__file__).parent / "static"
-Form = dict[str, str]
 
 
 def run_migrations(database_url: str) -> None:
@@ -79,18 +98,23 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-        task = None
+        tasks = []
         if schedule and sources and settings.price_refresh_seconds > 0:
-            task = asyncio.create_task(run_adaptive(partial(refresh_now, factory, sources),
-                                                    activity))
+            tasks.append(asyncio.create_task(run_adaptive(
+                partial(refresh_now, factory, sources), activity)))
+        if schedule and settings.sms_file:
+            tasks.append(asyncio.create_task(run_every(
+                partial(import_sms_file, factory, Path(settings.sms_file).expanduser()),
+                SMS_FILE_SECONDS)))
         yield
-        if task:
+        for task in tasks:
             task.cancel()
 
     app = FastAPI(title=s.APP_NAME, docs_url=None, redoc_url=None, openapi_url=None,
                   lifespan=lifespan)
     app.state.session_factory = factory
     app.state.price_sources = sources
+    app.state.llm = DisabledLLM()  # ارائه‌دهنده LLM هنوز انتخاب نشده (SPEC: تصمیم باز)
     app.state.poll_seconds = settings.price_refresh_seconds if sources else 0
 
     @app.middleware("http")
@@ -110,57 +134,10 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
             return Response(status_code=401, headers={"HX-Redirect": "/login"})
         return RedirectResponse("/login", status_code=303)
 
+    register_sms_routes(app, settings)
     register_extra_routes(app)
     _register_routes(app)
     return app
-
-
-def get_db(request: Request) -> Iterator[Session]:
-    with request.app.state.session_factory() as session:
-        yield session
-
-
-Db = Annotated[Session, Depends(get_db)]
-LoggedIn = Depends(auth.require_login)
-
-
-async def read_form(request: Request) -> Form:
-    form = await request.form()
-    return {key: str(value) for key, value in form.items()}
-
-
-def wants_fragment(request: Request) -> bool:
-    """درخواست htmx برای تکه‌ای از صفحه (مثل برگه پایین)، نه ناوبری کامل."""
-    return (request.headers.get("HX-Request") == "true"
-            and request.headers.get("HX-Boosted") != "true")
-
-
-def toast(request: Request, message: str) -> None:
-    request.session["toast"] = message
-
-
-def page(request: Request, name: str, context: dict[str, Any], status: int = 200) -> HTMLResponse:
-    active = context.get("active")
-    return templates.TemplateResponse(request, name, {
-        "active": None,
-        "tab": s.TAB_OF_PAGE.get(active, active) if active else None,
-        "title": s.PAGE_TITLES.get(active or "", s.APP_NAME),
-        "toast": request.session.pop("toast", None),
-        **context,
-    }, status_code=status)
-
-
-def redirect(url: str) -> RedirectResponse:
-    return RedirectResponse(url, status_code=303)
-
-
-def done(request: Request, url: str, message: str) -> Response:
-    """پایان موفق یک فرم: پیام کوتاه و بازگشت نرم به فهرست."""
-    toast(request, message)
-    if wants_fragment(request):
-        location = json.dumps({"path": url, "target": "body"})
-        return Response(status_code=200, headers={"HX-Location": location})
-    return redirect(url)
 
 
 def _register_routes(app: FastAPI) -> None:
@@ -241,6 +218,7 @@ def _register_routes(app: FastAPI) -> None:
             "composition": _composition(portfolio),
             "has_trend": len(history) > 1,
             "poll_seconds": request.app.state.poll_seconds,
+            "sms_queue": queue_count(db),
             "prices_at": max((q.fetched_at for q in portfolio.quotes.values()), default=None),
             "trend_json": json.dumps(trend, ensure_ascii=False),
             "empty": empty,

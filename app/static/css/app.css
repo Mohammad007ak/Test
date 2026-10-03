@@ -1025,3 +1025,26 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
 .source-note { flex-basis: 100%; font-size: .78rem; padding-inline-start: 17px; }
 .source-note.warn { color: var(--warn); }
 .source-note.bad { color: var(--bad); }
+
+/* ---------- پیامک بانکی ---------- */
+.sms-text { white-space: pre-line; font-size: .88rem; line-height: 1.6; }
+.sms-actions { display: flex; gap: 8px; margin-top: 8px; }
+.sms-actions form { margin: 0; }
+.small-btn { min-height: 34px; padding: 0 14px; font-size: .82rem; border-radius: 10px; }
+.sms-quote {
+  white-space: pre-wrap;
+  font: inherit;
+  font-size: .85rem;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 0;
+}
+.upload-form { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+.upload-form input[type="file"] { flex: 1; min-width: 180px; min-height: 0; padding: 8px; }
+.setup h3 { font-size: .92rem; margin: 6px 0; }
+.setup ol { padding-right: 20px; margin: 0 0 10px; font-size: .86rem; color: var(--text-2); }
+.setup li { margin-bottom: 6px; }
+.setup pre, .setup code { font-size: .78rem; background: var(--surface-2); border-radius: 6px; padding: 2px 6px; }
+.setup pre { padding: 8px; white-space: pre-wrap; word-break: break-all; text-align: left; }
+.token { display: block; word-break: break-all; padding: 8px; background: var(--surface-2); border-radius: 8px; margin-bottom: 8px; }

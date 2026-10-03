@@ -33,7 +33,7 @@
         <input id="f-{{ f.name }}" name="{{ f.name }}" value="{{ v }}" autocomplete="off"
           {% if f.type == 'money' %}inputmode="numeric" data-money
           {% elif f.type in ('decimal', 'percent') %}inputmode="decimal" data-num
-          {% elif f.type == 'int' %}inputmode="numeric" data-num
+          {% elif f.type in ('int', 'rial') %}inputmode="numeric" data-num
           {% elif f.type == 'date' %}inputmode="numeric" placeholder="۱۴۰۵/۰۷/۰۹"{% endif %}
           {% if f.suggest and suggestions is defined and suggestions.get(f.suggest) %}list="dl-{{ f.suggest }}"{% endif %}
           {{ 'required' if f.required }}>

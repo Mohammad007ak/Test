@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     timezone: str = "Asia/Tehran"
     price_refresh_seconds: int = 30  # وقتی اپ باز است؛ ۰ = دریافت خودکار خاموش
     price_idle_minutes: int = 60  # وقتی کسی اپ را نگاه نمی‌کند
+    sms_token: str = ""  # توکن اندپوینت پیامک؛ خالی = ساخته و در دیتابیس نگه داشته می‌شود
+    sms_file: str = ""  # مسیر فایل پیامک‌ها (مثلاً در iCloud Drive) که هر دقیقه خوانده می‌شود
 
 
 @lru_cache

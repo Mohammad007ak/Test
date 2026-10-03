@@ -3,6 +3,7 @@
 {% block content %}
 <h2 class="section-title">{{ T.more_data }}</h2>
 <div class="list">
+  <a href="/sms" class="row">{{ bubble("card", 1) }}<span class="row-main"><span class="row-title">{{ s.PAGE_TITLES.sms }}</span><span class="row-sub">{{ T.sms_more }}</span></span>{{ icon("chev", "end") }}</a>
   <a href="/prices" class="row">{{ bubble("tag", 3) }}<span class="row-main"><span class="row-title">{{ s.PAGE_TITLES.prices }}</span><span class="row-sub">ثبت قیمت دلار، طلا، سکه و نمادها</span></span>{{ icon("chev", "end") }}</a>
   <a href="/export.json" class="row" hx-boost="false" download>{{ bubble("download", 1) }}<span class="row-main"><span class="row-title">{{ T.export }}</span><span class="row-sub">{{ T.export_hint }}</span></span>{{ icon("chev", "end") }}</a>
 </div>
