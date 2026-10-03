@@ -20,6 +20,7 @@
   <script src="/static/js/app.js" defer></script>
 </head>
 <body hx-boost="true">
+<div class="device"><div class="screen">
 {% block shell %}
   <header class="appbar">
     <div class="appbar-inner">
@@ -43,5 +44,6 @@
   </dialog>
   {% if toast %}<div class="toast" role="status">{{ toast }}</div>{% endif %}
   {% include "_icons.html" %}
+</div></div>
 </body>
 </html>

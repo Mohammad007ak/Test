@@ -32,6 +32,7 @@
   --radius-sm: 12px;
   --tabbar-h: 64px;
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
   --ease: cubic-bezier(.2, .8, .2, 1);
 
   /* پالت دسته‌ای نمودار (ترتیب ثابت؛ رنگ دنبال گروه دارایی است) */
@@ -116,7 +117,7 @@ small { font-size: .8em; }
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: saturate(1.6) blur(16px);
   -webkit-backdrop-filter: saturate(1.6) blur(16px);
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--safe-t);
   view-transition-name: appbar;
 }
 
@@ -802,7 +803,7 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
   position: fixed;
   z-index: 60;
   left: 50%;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(var(--safe-t) + 12px);
   transform: translateX(-50%);
   background: var(--text);
   color: var(--bg);
@@ -879,12 +880,88 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
   }
 }
 
+/* ---------- روی صفحه بزرگ (مک): اپ داخل قاب آیفون ---------- */
 @media (min-width: 700px) {
-  .appbar-inner { padding-top: 24px; }
-  .appbar h1 { font-size: 1.7rem; }
-  .sheet { inset: 0; margin: auto; max-height: 86dvh; border-radius: 24px; }
-  .sheet[open] { animation: pop .25s var(--ease) both; }
-  .sheet-grip { visibility: hidden; height: 16px; }
+  :root {
+    --device-w: 393px;
+    --device-h: min(852px, calc(100dvh - 40px));
+    --device-top: calc((100dvh - var(--device-h)) / 2);
+    --safe-t: 50px;
+    --safe-b: 22px;
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background:
+      radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent),
+      color-mix(in srgb, var(--bg) 70%, #808890);
+    display: grid;
+    place-items: center;
+  }
+
+  .device {
+    position: relative;
+    width: var(--device-w);
+    height: var(--device-h);
+    border-radius: 52px;
+    background: var(--bg);
+    overflow: hidden;
+    transform: translateZ(0); /* لنگر عناصر fixed (نوار تب، دکمه +، پیام) داخل قاب */
+    box-shadow:
+      0 0 0 11px #1b1d22,
+      0 0 0 13px #3a3d44,
+      0 30px 80px rgba(0, 0, 0, .35);
+  }
+
+  /* جزیره پویا و نشانگر خانه */
+  .device::before {
+    content: "";
+    position: absolute;
+    z-index: 80;
+    top: 11px;
+    left: 50%;
+    width: 120px;
+    height: 34px;
+    border-radius: 20px;
+    background: #000;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .device::after {
+    content: "";
+    position: absolute;
+    z-index: 80;
+    bottom: 8px;
+    left: 50%;
+    width: 134px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--text);
+    opacity: .85;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .screen::-webkit-scrollbar { display: none; }
+  .auth { min-height: 100%; }
+  .fab { left: 16px; }
+
+  /* برگه پایین در لایه بالای صفحه است؛ دستی هم‌اندازه قاب می‌شود */
+  .sheet {
+    inset: auto 0 var(--device-top) 0;
+    width: var(--device-w);
+    max-height: calc(var(--device-h) * .9);
+    border-radius: 24px 24px 52px 52px;
+  }
 }
 
 @media (max-width: 360px) {
