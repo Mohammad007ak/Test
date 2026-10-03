@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
+from app.adapters.prices import FetchedQuote, PriceSourceError
 from app.config import Settings
 from app.main import create_app
 from app.models import Account, Asset, Liability, LoanAnalysis, NetworthSnapshot, PriceQuote
@@ -12,10 +13,24 @@ from app.models import Account, Asset, Liability, LoanAnalysis, NetworthSnapshot
 PASSWORD = "very-secret-1"
 
 
+class StubSource:
+    """منبع قیمت ساختگی برای تست؛ fail=True خطای منبع را شبیه‌سازی می‌کند."""
+
+    name = "stub"
+
+    def __init__(self) -> None:
+        self.fail = False
+
+    def fetch(self) -> list[FetchedQuote]:
+        if self.fail:
+            raise PriceSourceError("قطع")
+        return [FetchedQuote("usd", 102_500), FetchedQuote("gold18_gram", 8_200_000)]
+
+
 @pytest.fixture
 def app_client(tmp_path: Path) -> Iterator[TestClient]:
     settings = Settings(database_url=f"sqlite:///{tmp_path / 'test.db'}", secret_key="test")
-    app = create_app(settings, migrate=True)
+    app = create_app(settings, migrate=True, price_sources=[StubSource()], schedule=False)
     with TestClient(app) as client:
         yield client
 
@@ -232,3 +247,17 @@ def test_names_keep_persian_digits(client: TestClient) -> None:
                                  "manual_value_toman": "1"})
     with db(client) as s:
         assert s.scalars(select(Asset)).one().name == "پژو ۲۰۷ مدل ۱۴۰۰"
+
+
+class TestPriceRefresh:
+    def test_refresh_button_fetches_and_shows_status(self, client: TestClient) -> None:
+        response = client.post("/prices/refresh")
+        assert "۲ قیمت به‌روز شد" in response.text
+        assert "۸٬۲۰۰٬۰۰۰ تومان" in response.text and "۲ قیمت ·" in response.text
+
+    def test_failed_source_keeps_last_prices(self, client: TestClient) -> None:
+        client.post("/prices/refresh")
+        client.app.state.price_sources[0].fail = True  # type: ignore[attr-defined]
+        page = client.post("/prices/refresh").text
+        assert "ناموفق بود؛ آخرین قیمت‌ها حفظ شد" in page
+        assert "۱۰۲٬۵۰۰ تومان" in page and "ناموفق ·" in page

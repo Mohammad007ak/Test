@@ -907,3 +907,10 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
 .page:has(.fab) { padding-bottom: calc(var(--tabbar-h) + var(--safe-b) + 96px); }
 /* مبالغ بزرگ‌اند؛ همیشه تمام‌عرض */
 .field:has(input[data-money]) { grid-column: 1 / -1; }
+
+/* ---------- وضعیت منبع قیمت ---------- */
+.source-card { display: flex; flex-direction: column; gap: 10px; }
+.source-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.status-dot.ok { background: var(--good); }
+.status-dot.bad { background: var(--bad); }

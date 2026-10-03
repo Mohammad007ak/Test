@@ -1,14 +1,34 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon %}
 {% block content %}
+{% if sources %}
+<section class="card source-card">
+  {% for src in sources %}
+  <div class="source-line">
+    {% if src is string %}
+      <span class="status-dot"></span><strong>{{ s.SOURCE_LABELS.get(src, src) }}</strong>
+      <span class="muted small">{{ T.source_never }}</span>
+    {% else %}
+      <span class="status-dot {{ 'ok' if src.ok else 'bad' }}"></span><strong>{{ s.SOURCE_LABELS.get(src.name, src.name) }}</strong>
+      <span class="muted small">{{ (T.source_ok if src.ok else T.source_failed).format(count=src.count | fa, at=src.at | jalali) }}</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <form method="post" action="/prices/refresh" hx-post="/prices/refresh" hx-disabled-elt="find button">
+    <button type="submit" class="btn ghost wide">{{ icon("download") }} {{ T.refresh_now }}</button>
+  </form>
+</section>
 <p class="lead">{{ T.prices_hint }}</p>
+{% else %}
+<p class="lead">{{ T.no_sources }}</p>
+{% endif %}
 <form method="post" action="/prices" class="form" novalidate>
   <div class="list">
     {% for row in rows %}
     <div class="row price-row {{ 'has-error' if errors.get(row.key) }}">
       <span class="row-main">
         <span class="row-title">{{ row.label }}</span>
-        <span class="row-sub">{% if row.quote %}{{ row.quote.price_toman | toman }} · {{ row.quote.fetched_at | jalali }}{% else %}{{ T.no_price }}{% endif %}</span>
+        <span class="row-sub">{% if row.quote %}{{ row.quote.price_toman | toman }} · {{ row.quote.fetched_at | jalali }} · {{ s.SOURCE_LABELS.get(row.quote.source, row.quote.source) }}{% else %}{{ T.no_price }}{% endif %}</span>
         {% if errors.get(row.key) %}<span class="error">{{ errors[row.key] }}</span>{% endif %}
       </span>
       <span class="input compact has-unit">

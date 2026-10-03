@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     secret_key: str = ""
     secure_cookies: bool = False
     timezone: str = "Asia/Tehran"
+    price_refresh_minutes: int = 60  # ۰ = دریافت خودکار خاموش
 
 
 @lru_cache

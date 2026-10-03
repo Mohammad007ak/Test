@@ -1,10 +1,13 @@
 """ساخت اپ FastAPI و مسیرهای وب."""
 
+import asyncio
 import json
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -16,11 +19,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import services
+from app import price_refresh, services
+from app.adapters.prices import SOURCES, PriceSource
 from app.config import Settings, get_settings
 from app.db import Base, make_engine, make_session_factory
 from app.domain.loan import LoanInput, analyze_loan
+from app.domain.money import format_number
 from app.models import Asset, LoanAnalysis, PriceQuote, utcnow
+from app.scheduler import refresh_now, run_periodically
 from app.web import auth, forms
 from app.web import strings as s
 from app.web.entities import ENTITIES
@@ -42,7 +48,13 @@ def run_migrations(database_url: str) -> None:
     command.upgrade(config, "head")
 
 
-def create_app(settings: Settings | None = None, *, migrate: bool = True) -> FastAPI:
+def default_price_sources() -> list[PriceSource]:
+    return [source() for source in SOURCES.values()]
+
+
+def create_app(settings: Settings | None = None, *, migrate: bool = True,
+               price_sources: list[PriceSource] | None = None,
+               schedule: bool = True) -> FastAPI:
     settings = settings or get_settings()
     engine = make_engine(settings.database_url)
     if migrate:
@@ -54,8 +66,22 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True) -> Fas
     with factory() as session:
         secret = auth.session_secret(session, settings.secret_key)
 
-    app = FastAPI(title=s.APP_NAME, docs_url=None, redoc_url=None, openapi_url=None)
+    sources = default_price_sources() if price_sources is None else price_sources
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        task = None
+        if schedule and sources and settings.price_refresh_minutes > 0:
+            task = asyncio.create_task(run_periodically(
+                partial(refresh_now, factory, sources), settings.price_refresh_minutes))
+        yield
+        if task:
+            task.cancel()
+
+    app = FastAPI(title=s.APP_NAME, docs_url=None, redoc_url=None, openapi_url=None,
+                  lifespan=lifespan)
     app.state.session_factory = factory
+    app.state.price_sources = sources
     app.add_middleware(SessionMiddleware, secret_key=secret, session_cookie="finassist",
                        max_age=60 * 60 * 24 * 30, same_site="lax",
                        https_only=settings.secure_cookies)
@@ -338,6 +364,16 @@ def register_extra_routes(app: FastAPI) -> None:
         db.commit()
         return done(request, "/prices", s.TOASTS["prices"])
 
+    @app.post("/prices/refresh", dependencies=[LoggedIn])
+    def prices_refresh(request: Request, db: Db) -> Response:
+        statuses = price_refresh.refresh_all(db, request.app.state.price_sources)
+        fetched = sum(status.count for status in statuses)
+        failed = [status.name for status in statuses if not status.ok]
+        message = s.TOASTS["refreshed"].format(count=format_number(fetched))
+        if failed:
+            message = s.TOASTS["refresh_failed"].format(names="، ".join(failed))
+        return done(request, "/prices", message)
+
     @app.get("/loan", response_class=HTMLResponse, dependencies=[LoggedIn])
     def loan_page(request: Request, db: Db) -> Response:
         portfolio = services.build_portfolio(db)
@@ -497,7 +533,9 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
     quotes = services.latest_quotes(db)
     rows = [{"key": key, "label": _price_label(key), "quote": quotes.get(key)}
             for key in _price_keys(db)]
-    return page(request, "prices.html", {"active": "prices", "rows": rows,
+    sources = [price_refresh.load_status(db, source.name) or source.name
+               for source in request.app.state.price_sources]
+    return page(request, "prices.html", {"active": "prices", "rows": rows, "sources": sources,
                                          "errors": errors or {}}, status)
 
 

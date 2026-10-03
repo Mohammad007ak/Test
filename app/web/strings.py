@@ -123,7 +123,7 @@ T = {
     "price_toman": "قیمت (تومان)",
     "price_updated": "زمان ثبت",
     "price_source": "منبع",
-    "prices_hint": "فعلاً قیمت‌ها دستی وارد می‌شوند؛ دریافت خودکار در مایلستون M2 اضافه می‌شود. "
+    "prices_hint": "قیمت‌ها از منبع خودکار به‌روز می‌شوند و هر قیمتی را می‌توانی دستی بازنویسی کنی. "
                    "برای سهام و صندوق کلید را به شکل stock:نماد یا fund:نماد بنویس.",
     "custom_key": "کلید دلخواه (مثل stock:فولاد)",
     "no_price": "ثبت نشده",
@@ -275,3 +275,16 @@ LOAN_GROUPS: tuple[tuple[str, str, bool], ...] = (
 KIND_SLOT: dict[str, int] = {
     kind: slot for key, _label, kinds, slot in COMPOSITION_GROUPS for kind in (*kinds, key)
 }
+
+TOASTS.update({
+    "refreshed": "{count} قیمت به‌روز شد",
+    "refresh_failed": "دریافت از {names} ناموفق بود؛ آخرین قیمت‌ها حفظ شد",
+})
+SOURCE_LABELS: dict[str, str] = {"alanchand": "الان‌چند", "manual": "دستی"}
+T.update({
+    "refresh_now": "به‌روزرسانی از منبع",
+    "source_never": "هنوز دریافتی انجام نشده",
+    "source_ok": "{count} قیمت · {at}",
+    "source_failed": "ناموفق · {at}",
+    "no_sources": "هنوز منبع خودکاری فعال نیست؛ قیمت‌ها را دستی وارد کن.",
+})
