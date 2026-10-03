@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     signup_allowlist: str = ""
     # صاحب داده‌های نسخه تک‌کاربره؛ با ثبت‌نام این شماره همان داده‌ها را تحویل می‌گیرد
     owner_phone: str = ""
+    # اگر پر باشد، حساب owner_phone با این رمز ساخته یا به‌روز می‌شود (بی‌نیاز از کد پیامکی)
+    owner_password: str = ""
 
 
 @lru_cache

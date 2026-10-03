@@ -26,7 +26,7 @@ from app.config import Settings, get_settings
 from app.db import Base, make_engine, make_session_factory
 from app.domain.loan import LoanInput, analyze_loan
 from app.domain.money import format_number
-from app.domain.phone import mask_phone
+from app.domain.phone import mask_phone, normalize_phone
 from app.models import Asset, LoanAnalysis, PriceQuote, User, UserOwned, utcnow
 from app.otp import LogSender, OtpSender, OtpService, SmsIrSender
 from app.scheduler import Activity, Pace, refresh_now, run_adaptive
@@ -95,6 +95,10 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
 
     with factory() as session:
         secret = auth.session_secret(session, settings.secret_key)
+        if settings.owner_phone and settings.owner_password:
+            if auth.ensure_owner(session, normalize_phone(settings.owner_phone),
+                                 settings.owner_password) is None:
+                log.warning("FINASSIST_OWNER_PASSWORD کوتاه‌تر از ۸ نویسه است؛ نادیده گرفته شد")
 
     sources = default_price_sources(factory) if price_sources is None else price_sources
 

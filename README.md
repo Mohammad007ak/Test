@@ -23,6 +23,7 @@ uv run uvicorn app.asgi:app  # http://127.0.0.1:8000
   - `FINASSIST_SMSIR_API_KEY` و `FINASSIST_SMSIR_TEMPLATE_ID`: کلید و شناسه الگوی تأییدشده در پنل sms.ir.
   - متن پیشنهادی الگوی sms.ir: «کد ورود شما به وزیر: #CODE#»
   - `FINASSIST_OWNER_PHONE`: شماره خودت، تا داده‌های نسخه تک‌کاربره به حسابت برسد.
+  - اختیاری `FINASSIST_OWNER_PASSWORD`: رمز همین حساب؛ بدون نیاز به کد پیامکی ساخته می‌شود و با هر روشن شدن برنامه به این رمز برمی‌گردد.
   - اختیاری: `FINASSIST_SIGNUP_ALLOWLIST` (فقط این شماره‌ها ثبت‌نام کنند) و `FINASSIST_OTP_DAILY_LIMIT`.
 - **HTTPS را سرویس می‌دهد.** کوکی‌ها در ایمیج به‌صورت پیش‌فرض Secure هستند.
 - اگر وابستگی‌ها عوض شد، `requirements.txt` را دوباره بساز:

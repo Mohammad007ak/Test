@@ -104,3 +104,25 @@ class LoginThrottle:
 
     def succeeded(self, client: str) -> None:
         self._failures.pop(client, None)
+
+
+def ensure_owner(session: Session, phone: str, password: str) -> User | None:
+    """حساب صاحب برنامه از متغیر محیطی: ساخته می‌شود، داده تک‌کاربره قبلی را تحویل می‌گیرد
+    و اگر رمز محیطی عوض شده باشد، رمز به‌روز و نشست‌های قبلی باطل می‌شوند."""
+    if len(password) < MIN_PASSWORD_LENGTH:
+        return None
+    user = user_by_phone(session, phone)
+    if user is None:
+        user = session.scalars(select(User).where(User.phone.is_(None))).first() or User()
+        user.phone = phone
+        session.add(user)
+    try:
+        if user.password_hash and _hasher.verify(user.password_hash, password):
+            session.commit()
+            return user
+    except (VerificationError, InvalidHashError):
+        pass
+    user.password_hash = hash_password(password)
+    user.session_version = (user.session_version or 0) + 1
+    session.commit()
+    return user
