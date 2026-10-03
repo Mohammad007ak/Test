@@ -71,3 +71,17 @@ def test_symbols_are_url_encoded() -> None:
                            fetch_html=lambda url: seen.append(url) or FAMELI)
     src.fetch()
     assert seen == ["https://www.shakhesban.com/markets/all?search=%D9%81%D9%85%D9%84%DB%8C"]
+
+
+def test_old_fund_saved_by_full_name_is_found_by_name() -> None:
+    src = ShakhesbanSource(wanted=lambda: ["fund:طلای عیار مفید"], fetch_html=lambda url: AYAR,
+                           today=lambda: TODAY, pause=0)
+    quotes = src.fetch()
+    assert [(q.key, q.price_toman) for q in quotes] == [("fund:طلای عیار مفید", 739_824)]
+
+
+def test_ambiguous_name_is_not_guessed() -> None:
+    src = ShakhesbanSource(wanted=lambda: ["fund:دیبای معیار"], fetch_html=lambda url: AYAR,
+                           today=lambda: TODAY, pause=0)
+    with pytest.raises(PriceSourceError):  # «دیبای معیار» در دو صندوق آمده
+        src.fetch()

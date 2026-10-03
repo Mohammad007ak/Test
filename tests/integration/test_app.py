@@ -309,3 +309,25 @@ class TestStocksAndFunds:
                                      "quantity": "1"})
         page = client.get("/prices").text
         assert "فملی · سهام" in page and "شپدیس" not in page
+
+
+def test_migration_removes_databourse_quotes(tmp_path: Path) -> None:
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine, text
+
+    root = Path(__file__).resolve().parents[2]
+    url = f"sqlite:///{tmp_path / 'old.db'}"
+    config = Config(str(root / "alembic.ini"))
+    config.set_main_option("script_location", str(root / "migrations"))
+    config.set_main_option("sqlalchemy.url", url)
+    command.upgrade(config, "0002")
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO price_quotes (key, price_toman, units, fetched_at, source)"
+                          " VALUES ('stock:فملی', 1, 10, '2026-10-03', 'databourse'),"
+                          " ('usd', 269500, 1, '2026-10-03', 'alanchand')"))
+    command.upgrade(config, "head")
+    with engine.begin() as conn:
+        sources = [r[0] for r in conn.execute(text("SELECT source FROM price_quotes"))]
+    assert sources == ["alanchand"]

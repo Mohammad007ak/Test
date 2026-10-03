@@ -70,6 +70,15 @@ def parse_search(page: str) -> list[Row]:
     return rows
 
 
+def _match(rows: list[Row], query: str) -> Row | None:
+    """اول نماد دقیق؛ وگرنه تنها ردیفی که نامش شامل متن است (دارایی‌های قدیمی با نام کامل صندوق)."""
+    exact = next((r for r in rows if r.symbol == query), None)
+    if exact:
+        return exact
+    by_name = [r for r in rows if query in r.name]
+    return by_name[0] if len(by_name) == 1 else None
+
+
 class ShakhesbanSource:
     name = "shakhesban"
     min_interval = 600  # ثانیه
@@ -98,7 +107,7 @@ class ShakhesbanSource:
                 time.sleep(self._pause)  # فشار کم روی سایت
             symbol = _clean(key.partition(":")[2])
             page = self._get(SEARCH_URL.format(query=quote(symbol)))
-            row = next((r for r in parse_search(page) if r.symbol == symbol), None)
+            row = _match(parse_search(page), symbol)
             if row is None or row.final_rial is None:
                 missing.append(symbol)
                 continue
