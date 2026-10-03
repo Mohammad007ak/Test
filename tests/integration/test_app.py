@@ -359,3 +359,35 @@ def test_migration_removes_databourse_quotes(tmp_path: Path) -> None:
     with engine.begin() as conn:
         sources = [r[0] for r in conn.execute(text("SELECT source FROM price_quotes"))]
     assert sources == ["alanchand"]
+
+
+def test_migration_0005_keeps_transactions_and_allows_manual(tmp_path: Path) -> None:
+    from alembic import command
+    from alembic.autogenerate import compare_metadata
+    from alembic.config import Config
+    from alembic.migration import MigrationContext
+    from sqlalchemy import create_engine, text
+
+    from app.db import Base
+
+    root = Path(__file__).resolve().parents[2]
+    url = f"sqlite:///{tmp_path / 'old.db'}"
+    config = Config(str(root / "alembic.ini"))
+    config.set_main_option("script_location", str(root / "migrations"))
+    config.set_main_option("sqlalchemy.url", url)
+    command.upgrade(config, "0004")
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO accounts (id, bank, account_mask, account_prefix,"
+                          " balance_toman, balance_source)"
+                          " VALUES (1, 'saman', '1234', '', 5, 'sms')"))
+        conn.execute(text("INSERT INTO transactions (account_id, direction, amount_toman,"
+                          " occurred_at) VALUES (1, 'out', 700, '2026-10-01 10:00:00')"))
+    command.upgrade(config, "head")
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO transactions (account_id, direction, amount_toman,"
+                          " occurred_at) VALUES (NULL, 'out', 50, '2026-10-02 10:00:00')"))
+        amounts = [r[0] for r in conn.execute(text("SELECT amount_toman FROM transactions"))]
+        diff = compare_metadata(MigrationContext.configure(conn), Base.metadata)
+    assert amounts == [700, 50]
+    assert diff == []

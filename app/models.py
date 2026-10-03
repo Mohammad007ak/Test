@@ -90,7 +90,9 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
+    # خالی برای خرجی که دستی ثبت شده (نقدی یا بدون حساب)
+    account_id: Mapped[int | None] = mapped_column(
+        ForeignKey("accounts.id", ondelete="CASCADE"))
     direction: Mapped[str] = mapped_column(String(3))
     amount_toman: Mapped[int] = mapped_column(BigInteger)
     balance_after_toman: Mapped[int | None] = mapped_column(BigInteger)
@@ -123,6 +125,19 @@ class IncomeStream(Base):
     name: Mapped[str] = mapped_column(String(200))
     amount_toman: Mapped[int] = mapped_column(BigInteger)
     frequency: Mapped[str] = mapped_column(String(10))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ExpenseStream(Base):
+    """هزینه ثابت تکراری (اجاره، قبض، شهریه)؛ از باقی‌مانده ماهانه کم می‌شود."""
+
+    __tablename__ = "expense_streams"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    amount_toman: Mapped[int] = mapped_column(BigInteger)
+    frequency: Mapped[str] = mapped_column(String(10))
+    category: Mapped[str | None] = mapped_column(String(50))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 

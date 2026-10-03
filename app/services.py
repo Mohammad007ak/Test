@@ -14,15 +14,18 @@ from app.domain.liabilities import (
     monthly_installment_toman,
     remaining_balance_toman,
 )
+from app.domain.spending import CategoryTotal, month_bounds_utc, spending_by_category
 from app.domain.valuation import AssetHolding, NetWorth, asset_value_toman, debt_to_income
 from app.models import (
     Account,
     Asset,
+    ExpenseStream,
     IncomeStream,
     Liability,
     NetworthSnapshot,
     PriceQuote,
     Setting,
+    Transaction,
     utcnow,
 )
 
@@ -105,6 +108,7 @@ class Portfolio:
     incomes: list[tuple[IncomeStream, int]]
     quotes: dict[str, PriceQuote]
     composition: dict[str, int] = field(default_factory=dict)
+    expenses: list[tuple[ExpenseStream, int]] = field(default_factory=list)
 
     @property
     def assets_toman(self) -> int:
@@ -128,8 +132,14 @@ class Portfolio:
         return sum(line.monthly_toman for line in self.liabilities)
 
     @property
+    def monthly_fixed_expenses_toman(self) -> int:
+        return sum(monthly for expense, monthly in self.expenses if expense.active)
+
+    @property
     def monthly_free_cash_toman(self) -> int:
-        return self.monthly_income_toman - self.monthly_installments_toman
+        """درآمد ماهانه منهای اقساط و هزینه‌های ثابت."""
+        return (self.monthly_income_toman - self.monthly_installments_toman
+                - self.monthly_fixed_expenses_toman)
 
     @property
     def dti(self) -> Decimal | None:
@@ -187,6 +197,10 @@ def build_portfolio(session: Session, now: datetime | None = None) -> Portfolio:
         (income, monthly_income_toman(income.amount_toman, income.frequency))
         for income in session.scalars(select(IncomeStream).order_by(IncomeStream.id))
     ]
+    expenses = [
+        (expense, monthly_income_toman(expense.amount_toman, expense.frequency))
+        for expense in session.scalars(select(ExpenseStream).order_by(ExpenseStream.id))
+    ]
     accounts = list(session.scalars(select(Account).order_by(Account.id)))
 
     composition: dict[str, int] = defaultdict(int)
@@ -197,7 +211,8 @@ def build_portfolio(session: Session, now: datetime | None = None) -> Portfolio:
     if account_total:
         composition["bank"] += account_total
 
-    return Portfolio(asset_lines, accounts, liability_lines, incomes, quotes, dict(composition))
+    return Portfolio(asset_lines, accounts, liability_lines, incomes, quotes, dict(composition),
+                     expenses)
 
 
 # ---------- اسنپ‌شات ----------
@@ -216,3 +231,26 @@ def record_snapshot(session: Session, portfolio: Portfolio, day: date) -> Networ
 
 def snapshots(session: Session) -> list[NetworthSnapshot]:
     return list(session.scalars(select(NetworthSnapshot).order_by(NetworthSnapshot.date)))
+
+
+# ---------- خرج‌های واقعی ----------
+
+@dataclass
+class MonthSpending:
+    transactions: list[Transaction]
+    by_category: list[CategoryTotal]
+
+    @property
+    def total_toman(self) -> int:
+        return sum(row.total_toman for row in self.by_category)
+
+
+def month_spending(session: Session, year: int, month: int) -> MonthSpending:
+    """برداشت‌ها و خرج‌های دستی یک ماه شمسی، جدیدترین اول."""
+    start, end = month_bounds_utc(year, month)
+    rows = list(session.scalars(
+        select(Transaction)
+        .where(Transaction.direction == "out", Transaction.occurred_at >= start,
+               Transaction.occurred_at < end)
+        .order_by(Transaction.occurred_at.desc(), Transaction.id.desc())))
+    return MonthSpending(rows, spending_by_category((t.category, t.amount_toman) for t in rows))

@@ -53,6 +53,7 @@ from app.web.entities import ENTITIES
 from app.web.forms import Field, FormError
 from app.web.render import jalali, tehran_today
 from app.web.sms_routes import queue_count, register_sms_routes
+from app.web.spending_routes import parse_month, register_spending_routes
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -136,6 +137,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
         return RedirectResponse("/login", status_code=303)
 
     register_sms_routes(app, settings)
+    register_spending_routes(app)
     register_extra_routes(app)
     _register_routes(app, settings)
     return app
@@ -220,7 +222,7 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
         trend = {"labels": [jalali(h.date) for h in history],
                  "values": [h.networth_toman for h in history]}
         empty = not (portfolio.assets or portfolio.accounts or portfolio.liabilities
-                     or portfolio.incomes)
+                     or portfolio.incomes or portfolio.expenses)
         return page(request, "dashboard.html", {
             "active": "dashboard",
             "p": portfolio,
@@ -237,6 +239,7 @@ def _register_routes(app: FastAPI, settings: Settings) -> None:
             "prices_at": max((q.fetched_at for q in portfolio.quotes.values()), default=None),
             "trend_json": json.dumps(trend, ensure_ascii=False),
             "empty": empty,
+            "spending": services.month_spending(db, *parse_month(None)),
         })
 
     @app.get("/more", response_class=HTMLResponse, dependencies=[LoggedIn])

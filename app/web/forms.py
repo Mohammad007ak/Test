@@ -182,6 +182,30 @@ INCOME_FIELDS = [
     Field("active", "فعال", "bool"),
 ]
 
+BILL_FIELDS = [
+    Field("name", "عنوان", "text", required=True, hint="اجاره، قبض برق، شهریه، بیمه، ..."),
+    Field("amount_toman", "مبلغ هر دوره", "money", required=True),
+    Field("frequency", "دوره پرداخت", "select", required=True, options=s.FREQUENCIES,
+          widget="chips"),
+    Field("category", "دسته", "select", options=s.EXPENSE_CATEGORIES),
+    Field("active", "فعال", "bool"),
+]
+
+SPENDING_FIELDS = [
+    Field("amount_toman", "مبلغ", "money", required=True),
+    Field("category", "دسته", "select", required=True, options=s.EXPENSE_CATEGORIES,
+          widget="chips"),
+    Field("description", "شرح", "text", hint="مثلاً ناهار، تاکسی، سوپرمارکت"),
+    Field("occurred_on", "تاریخ", "date", hint="شمسی؛ خالی = امروز"),
+]
+
+# خرجی که از پیامک بانک آمده: مبلغ و تاریخ از بانک است، فقط دسته و شرح عوض می‌شود
+SPENDING_SMS_FIELDS = [
+    Field("category", "دسته", "select", required=True, options=s.EXPENSE_CATEGORIES,
+          widget="chips"),
+    Field("description", "شرح", "text"),
+]
+
 
 @dataclass(frozen=True)
 class Entity:

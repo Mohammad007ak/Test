@@ -3,7 +3,7 @@
 from typing import Any
 
 from app.domain.normalize import normalize_chars, normalize_digits
-from app.models import Account, Asset, IncomeStream, Liability
+from app.models import Account, Asset, ExpenseStream, IncomeStream, Liability
 from app.web import forms
 from app.web.forms import Entity
 
@@ -90,4 +90,5 @@ ENTITIES: dict[str, Entity] = {
     "liabilities": Entity("liabilities", "بدهی", forms.LIABILITY_FIELDS, Liability,
                           to_model=_liability_to_model, validate=_liability_validate),
     "incomes": Entity("incomes", "درآمد", forms.INCOME_FIELDS, IncomeStream),
+    "bills": Entity("bills", "هزینه ثابت", forms.BILL_FIELDS, ExpenseStream),
 }

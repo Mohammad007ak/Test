@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, sheet_link, segments, empty_state, fab, bubble %}
+{% block content %}
+{{ segments("spending", "bills") }}
+{% if p.expenses %}
+  <div class="summary">
+    <span class="mini-label">{{ T.fixed_monthly }}</span>
+    <strong>{{ p.monthly_fixed_expenses_toman | amt }}</strong>
+    <span class="muted small">{{ T.free_cash }}: {{ p.monthly_free_cash_toman | toman_short }}</span>
+  </div>
+  <div class="list">
+    {% for bill, monthly in p.expenses %}{% set cat = bill.category or "other" %}
+    {% call sheet_link("/bills/" ~ bill.id ~ "/edit", "row " ~ ("dim" if not bill.active else "")) %}
+      {{ bubble(s.CATEGORY_ICONS.get(cat, "box"), s.CATEGORY_SLOT.get(cat, 0)) }}
+      <span class="row-main">
+        <span class="row-title">{{ bill.name }}</span>
+        <span class="row-sub">{{ s.FREQUENCIES[bill.frequency] }} · {{ bill.amount_toman | toman_short }}{% if not bill.active %} · {{ T.inactive }}{% endif %}</span>
+      </span>
+      <span class="row-end"><strong>{{ monthly | amt }}</strong><span class="muted small">{{ T.this_month }}</span></span>
+    {% endcall %}
+    {% endfor %}
+  </div>
+{% else %}
+  {{ empty_state("bills", "building") }}
+{% endif %}
+{{ fab("bills", entity.title) }}
+{% endblock %}

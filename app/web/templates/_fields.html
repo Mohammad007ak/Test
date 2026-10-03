@@ -22,6 +22,7 @@
     <label class="label" for="f-{{ f.name }}">{{ f.label }}{% if not f.required %} <span class="opt">اختیاری</span>{% endif %}</label>
     {% if f.type == 'select' %}
       <select id="f-{{ f.name }}" name="{{ f.name }}" {{ 'required' if f.required }}>
+        {% if not f.required %}<option value="">—</option>{% endif %}
         {% for key, label in f.options.items() %}
           <option value="{{ key }}" {{ 'selected' if v == key }}>{{ label }}</option>
         {% endfor %}

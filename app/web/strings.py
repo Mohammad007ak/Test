@@ -110,7 +110,7 @@ T = {
     "cashflow": "جریان نقدی ماهانه",
     "monthly_income": "درآمد ماهانه",
     "monthly_installments": "اقساط ماهانه",
-    "free_cash": "باقی‌مانده پس از اقساط",
+    "free_cash": "باقی‌مانده ماهانه",
     "dti": "نسبت اقساط به درآمد",
     "dti_warning": "از آستانه {threshold} بیشتر است.",
     "composition": "ترکیب دارایی",
@@ -166,7 +166,7 @@ TABS: tuple[tuple[str, str, str, str], ...] = (
     ("dashboard", "/", "خانه", "home"),
     ("assets", "/assets", "دارایی", "wallet"),
     ("cashflow", "/liabilities", "اقساط و درآمد", "flow"),
-    ("loan", "/loan", "تحلیل وام", "calc"),
+    ("spending", "/spending", "خرج‌ها", "bag"),
     ("more", "/more", "بیشتر", "more"),
 )
 
@@ -423,4 +423,59 @@ T.update({
     "sms_more": "دریافت از Shortcuts و صف بررسی",
     "sms_parsers_note": "پارسر اختصاصی برای بانک‌ها با رسیدن نمونه پیامک‌ها اضافه می‌شود؛ تا آن موقع "
                         "پیامک‌ها این‌جا با چند ضربه تکمیل می‌شوند.",
+})
+
+
+# ---------- هزینه‌ها: هزینه ثابت تکراری و خرج واقعی ----------
+EXPENSE_CATEGORIES: dict[str, str] = {
+    "food": "خوراک و رستوران",
+    "housing": "اجاره و مسکن",
+    "bills": "قبض و شارژ",
+    "transport": "رفت‌وآمد",
+    "shopping": "خرید",
+    "health": "سلامت",
+    "education": "آموزش",
+    "fun": "تفریح و سفر",
+    "subscriptions": "اشتراک‌ها",
+    "gifts": "هدیه و کمک",
+    "installment": "قسط",
+    "transfer": "انتقال به حساب خودم",
+    "other": "سایر",
+}
+CATEGORY_LABELS: dict[str, str] = {**EXPENSE_CATEGORIES, "uncategorized": "بدون دسته"}
+CATEGORY_ICONS: dict[str, str] = {
+    "food": "bag", "housing": "building", "bills": "alert", "transport": "car",
+    "shopping": "bag", "health": "spark", "education": "pie", "fun": "spark",
+    "subscriptions": "clock", "gifts": "handshake", "installment": "bank", "transfer": "flow",
+    "other": "box", "uncategorized": "box",
+}
+CATEGORY_SLOT: dict[str, int] = {
+    key: (i % 8) + 1 for i, key in enumerate(EXPENSE_CATEGORIES)
+} | {"uncategorized": 0, "other": 0}
+JALALI_MONTHS: tuple[str, ...] = ("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+                                  "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
+
+PAGE_TITLES.update({"spending": "خرج‌ها", "bills": "هزینه‌های ثابت", "loan": "تحلیلگر وام"})
+TAB_OF_PAGE.update({"spending": "spending", "bills": "spending", "loan": "more"})
+SEGMENTS["spending"] = (("spending", "خرج‌ها"), ("bills", "هزینه‌های ثابت"))
+NAV.update({"spending": "خرج‌ها", "bills": "هزینه‌های ثابت"})
+EMPTY_STATES.update({
+    "bills": ("هزینه ثابتی ثبت نشده",
+              "اجاره، قبض، شهریه یا هر خرج تکراری را اضافه کن تا باقی‌مانده ماهانه درست حساب شود."),
+    "spending": ("این ماه خرجی ثبت نشده",
+                 "برداشت‌های پیامک بانکی خودکار این‌جا می‌آیند؛ خرج نقدی را دستی اضافه کن."),
+})
+T.update({
+    "fixed_expenses": "هزینه ثابت",
+    "month_spending": "خرج این ماه",
+    "spending_total": "جمع خرج",
+    "by_category": "به تفکیک دسته",
+    "transactions": "تراکنش‌ها",
+    "add_expense": "خرج",
+    "prev_month": "ماه قبل",
+    "next_month": "ماه بعد",
+    "transfer_note": "انتقال به حساب خودت در جمع خرج حساب نمی‌شود.",
+    "fixed_monthly": "هزینه‌های ثابت ماهانه",
+    "cash_expense": "دستی",
+    "details": "جزئیات",
 })

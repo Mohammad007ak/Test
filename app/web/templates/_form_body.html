@@ -13,7 +13,7 @@
   </div>
   <div class="sheet-actions">
     <button type="submit" class="btn wide">{{ T.save }}</button>
-    {% if edit_id %}
+    {% if edit_id and not no_delete %}
       <button type="submit" class="btn danger-ghost" formaction="{{ action }}/delete" formnovalidate
               hx-post="{{ action }}/delete" hx-confirm="{{ T.confirm_delete }}" aria-label="{{ T.delete }}">{{ icon("trash") }}</button>
     {% endif %}
