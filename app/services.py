@@ -265,12 +265,13 @@ class MonthSpending:
         return sum(row.total_toman for row in self.by_category)
 
 
-def month_spending(session: Session, year: int, month: int) -> MonthSpending:
-    """برداشت‌ها و خرج‌های دستی یک ماه شمسی، جدیدترین اول."""
+def month_spending(session: Session, year: int, month: int,
+                   direction: str = "out") -> MonthSpending:
+    """تراکنش‌های یک جهت (out: خرج، in: واریز) در یک ماه شمسی، جدیدترین اول."""
     start, end = month_bounds_utc(year, month)
     rows = list(session.scalars(
         select(Transaction)
-        .where(Transaction.direction == "out", Transaction.occurred_at >= start,
+        .where(Transaction.direction == direction, Transaction.occurred_at >= start,
                Transaction.occurred_at < end)
         .order_by(Transaction.occurred_at.desc(), Transaction.id.desc())))
     return MonthSpending(rows, spending_by_category((t.category, t.amount_toman) for t in rows))

@@ -172,8 +172,11 @@ def _register_routes(app: FastAPI) -> None:
         trend = {"labels": [jalali(h.date) for h in history],
                  "values": [h.networth_toman for h in history]}
         spark = sparkline([h.networth_toman for h in history][-30:])
+        spending = services.month_spending(db, *parse_month(None))
+        deposits = services.month_spending(db, *parse_month(None), direction="in")
         empty = not (portfolio.assets or portfolio.accounts or portfolio.liabilities
-                     or portfolio.incomes or portfolio.expenses)
+                     or portfolio.incomes or portfolio.expenses or spending.transactions
+                     or deposits.transactions)
         return page(request, "dashboard.html", {
             "active": "dashboard",
             "p": portfolio,
@@ -192,7 +195,8 @@ def _register_routes(app: FastAPI) -> None:
             "today": today,
             "spark_line": spark[0], "spark_area": spark[1],
             "empty": empty,
-            "spending": services.month_spending(db, *parse_month(None)),
+            "spending": spending,
+            "deposits": deposits,
         })
 
     # آیفون و مرورگرها این‌ها را بی‌اجازه از ریشه سایت می‌خواهند

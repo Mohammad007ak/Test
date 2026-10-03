@@ -163,7 +163,7 @@ TABS: tuple[tuple[str, str, str, str], ...] = (
     ("dashboard", "/", "خانه", "home"),
     ("assets", "/assets", "دارایی", "wallet"),
     ("cashflow", "/liabilities", "اقساط و درآمد", "flow"),
-    ("spending", "/spending", "خرج‌ها", "bag"),
+    ("spending", "/spending", "دخل و خرج", "bag"),
     ("more", "/more", "بیشتر", "more"),
 )
 
@@ -439,29 +439,49 @@ EXPENSE_CATEGORIES: dict[str, str] = {
     "transfer": "انتقال به حساب خودم",
     "other": "سایر",
 }
-CATEGORY_LABELS: dict[str, str] = {**EXPENSE_CATEGORIES, "uncategorized": "بدون دسته"}
+DEPOSIT_CATEGORIES: dict[str, str] = {
+    "salary": "حقوق",
+    "business": "کسب‌وکار",
+    "rent_in": "اجاره دریافتی",
+    "investment": "سود و سرمایه‌گذاری",
+    "refund": "بازگشت وجه",
+    "gift": "هدیه",
+    "loan_in": "دریافت وام یا قرض",
+    "transfer": "انتقال از حساب خودم",
+    "other": "سایر",
+}
+CATEGORY_LABELS: dict[str, str] = {**EXPENSE_CATEGORIES, **DEPOSIT_CATEGORIES,
+                                   "uncategorized": "بدون دسته"}
 CATEGORY_ICONS: dict[str, str] = {
     "food": "bag", "housing": "building", "bills": "alert", "transport": "car",
     "shopping": "bag", "health": "spark", "education": "pie", "fun": "spark",
     "subscriptions": "clock", "gifts": "handshake", "installment": "bank", "transfer": "flow",
     "other": "box", "uncategorized": "box",
+    "salary": "cash", "business": "chart", "rent_in": "building", "investment": "pie",
+    "refund": "flow", "gift": "handshake", "loan_in": "bank",
 }
 CATEGORY_SLOT: dict[str, int] = {
-    key: (i % 8) + 1 for i, key in enumerate(EXPENSE_CATEGORIES)
-} | {"uncategorized": 0, "other": 0}
+    key: (i % 8) + 1 for i, key in enumerate(DEPOSIT_CATEGORIES)
+} | {key: (i % 8) + 1 for i, key in enumerate(EXPENSE_CATEGORIES)} | {
+    "uncategorized": 0, "other": 0}
 WEEKDAYS: tuple[str, ...] = ("شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه")
 JALALI_MONTHS: tuple[str, ...] = ("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
                                   "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
 
-PAGE_TITLES.update({"spending": "خرج‌ها", "bills": "هزینه‌های ثابت", "loan": "تحلیلگر وام"})
-TAB_OF_PAGE.update({"spending": "spending", "bills": "spending", "loan": "more"})
-SEGMENTS["spending"] = (("spending", "خرج‌ها"), ("bills", "هزینه‌های ثابت"))
+PAGE_TITLES.update({"spending": "خرج‌ها", "deposits": "واریزها", "bills": "هزینه‌های ثابت",
+                    "loan": "تحلیلگر وام"})
+TAB_OF_PAGE.update({"spending": "spending", "deposits": "spending", "bills": "spending",
+                    "loan": "more"})
+SEGMENTS["spending"] = (("spending", "خرج‌ها"), ("deposits", "واریزها"),
+                        ("bills", "هزینه‌های ثابت"))
 NAV.update({"spending": "خرج‌ها", "bills": "هزینه‌های ثابت"})
 EMPTY_STATES.update({
     "bills": ("هزینه ثابتی ثبت نشده",
               "اجاره، قبض، شهریه یا هر خرج تکراری را اضافه کن تا باقی‌مانده ماهانه درست حساب شود."),
     "spending": ("این ماه خرجی ثبت نشده",
                  "برداشت‌های پیامک بانکی خودکار این‌جا می‌آیند؛ خرج نقدی را دستی اضافه کن."),
+    "deposits": ("این ماه واریزی ثبت نشده",
+                 "واریزهای پیامک بانکی خودکار این‌جا می‌آیند؛ دریافت نقدی را دستی اضافه کن."),
 })
 T.update({
     "fixed_expenses": "هزینه ثابت",
@@ -473,6 +493,9 @@ T.update({
     "prev_month": "ماه قبل",
     "next_month": "ماه بعد",
     "transfer_note": "انتقال به حساب خودت در جمع خرج حساب نمی‌شود.",
+    "transfer_note_in": "انتقال از حساب خودت در جمع واریز حساب نمی‌شود.",
+    "deposit_total": "جمع واریز",
+    "month_deposits": "واریز این ماه",
     "fixed_monthly": "هزینه‌های ثابت ماهانه",
     "cash_expense": "دستی",
     "details": "جزئیات",

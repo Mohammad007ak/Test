@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon, sheet_link, segments, empty_state, fab, bubble %}
 {% block content %}
-{{ segments("spending", "spending") }}
+{{ segments("spending", flow.slug) }}
 <nav class="month-nav" aria-label="ماه">
-  <a href="/spending?m={{ prev }}" class="icon-btn" aria-label="{{ T.prev_month }}">{{ icon("chev") }}</a>
+  <a href="/{{ flow.slug }}?m={{ prev }}" class="icon-btn" aria-label="{{ T.prev_month }}">{{ icon("chev") }}</a>
   <strong>{{ month_label }}</strong>
-  <a href="/spending?m={{ next }}" class="icon-btn" aria-label="{{ T.next_month }}">{{ icon("chev", "end") }}</a>
+  <a href="/{{ flow.slug }}?m={{ next }}" class="icon-btn" aria-label="{{ T.next_month }}">{{ icon("chev", "end") }}</a>
 </nav>
 <div class="summary">
-  <span class="mini-label">{{ T.spending_total }}</span>
+  <span class="mini-label">{{ flow.total_label }}</span>
   <strong>{{ result.total_toman | amt }}</strong>
   {% if fixed_toman %}<span class="muted small">{{ T.fixed_monthly }}: {{ fixed_toman | toman_short }}</span>{% endif %}
 </div>
@@ -25,7 +25,7 @@
     </li>
     {% endfor %}
   </ul>
-  {% if result.transactions | selectattr("category", "equalto", "transfer") | list %}<p class="muted small">{{ T.transfer_note }}</p>{% endif %}
+  {% if result.transactions | selectattr("category", "equalto", "transfer") | list %}<p class="muted small">{{ flow.transfer_note }}</p>{% endif %}
 </section>
 {% endif %}
 
@@ -33,7 +33,7 @@
 <h2 class="section-title">{{ T.transactions }}</h2>
 <div class="list">
   {% for tx in result.transactions %}{% set cat = tx.category or "uncategorized" %}
-  {% call sheet_link("/spending/" ~ tx.id ~ "/edit", "row " ~ ("dim" if cat == "transfer" else "")) %}
+  {% call sheet_link("/" ~ flow.slug ~ "/" ~ tx.id ~ "/edit", "row " ~ ("dim" if cat == "transfer" else "")) %}
     {{ bubble(s.CATEGORY_ICONS.get(cat, "box"), s.CATEGORY_SLOT.get(cat, 0)) }}
     <span class="row-main">
       <span class="row-title">{{ tx.description or s.CATEGORY_LABELS.get(cat, cat) }}</span>
@@ -41,7 +41,7 @@
         {% if tx.account_id and tx.account_id in accounts %}{{ s.BANKS.get(accounts[tx.account_id].bank, '') }}{% else %}{{ T.cash_expense }}{% endif %}</span>
     </span>
     <span class="row-end">
-      <strong>{{ tx.amount_toman | amt }}</strong>
+      <strong class="{{ 'pos' if flow.direction == 'in' }}">{{ '+' if flow.direction == 'in' }}{{ tx.amount_toman | amt }}</strong>
       {% if cat == "uncategorized" %}<span class="pill warn">{{ s.CATEGORY_LABELS.uncategorized }}</span>
       {% else %}<span class="pill">{{ s.CATEGORY_LABELS.get(cat, cat) }}</span>{% endif %}
     </span>
@@ -49,7 +49,7 @@
   {% endfor %}
 </div>
 {% else %}
-  {{ empty_state("spending", "bag") }}
+  {{ empty_state(flow.slug, "bag" if flow.direction == "out" else "cash") }}
 {% endif %}
-{{ fab("spending", "خرج") }}
+{{ fab(flow.slug, flow.manual.title) }}
 {% endblock %}

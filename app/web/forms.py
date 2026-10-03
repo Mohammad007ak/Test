@@ -206,6 +206,20 @@ SPENDING_SMS_FIELDS = [
     Field("description", "شرح", "text"),
 ]
 
+DEPOSIT_FIELDS = [
+    Field("amount_toman", "مبلغ", "money", required=True),
+    Field("category", "دسته", "select", required=True, options=s.DEPOSIT_CATEGORIES,
+          widget="chips"),
+    Field("description", "شرح", "text", hint="مثلاً حقوق مهر، عیدی، فروش وسیله"),
+    Field("occurred_on", "تاریخ", "date", hint="شمسی؛ خالی = امروز"),
+]
+
+DEPOSIT_SMS_FIELDS = [
+    Field("category", "دسته", "select", required=True, options=s.DEPOSIT_CATEGORIES,
+          widget="chips"),
+    Field("description", "شرح", "text"),
+]
+
 
 @dataclass(frozen=True)
 class Entity:

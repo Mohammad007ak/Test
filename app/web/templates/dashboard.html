@@ -134,6 +134,8 @@
 <section class="card">
   <div class="card-head"><h2>{{ T.month_spending }}</h2><a href="/spending" class="small">{{ T.details }}</a></div>
   <a href="/spending" class="spend-total"><strong>{{ spending.total_toman | amt }}</strong></a>
+  <a href="/deposits" class="spend-in"><span class="muted small">{{ T.month_deposits }}</span>
+    <strong class="pos">+{{ deposits.total_toman | amt }}</strong></a>
   {% if spending.by_category %}
   {% set top = spending.by_category[0].total_toman %}
   <ul class="cat-bars">
