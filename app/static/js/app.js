@@ -88,6 +88,25 @@
     drag = null;
   });
 
+  // ---------- خطای درخواست: به‌جای اینکه هیچ اتفاقی نیفتد، پیام کوتاه ----------
+  function showToast(message) {
+    var old = document.querySelector(".toast");
+    if (old) old.remove();
+    var toast = document.createElement("div");
+    toast.className = "toast";
+    toast.setAttribute("role", "status");
+    toast.textContent = message;
+    (document.querySelector(".screen") || document.body).appendChild(toast);
+    setTimeout(function () { toast.remove(); }, 3000);
+  }
+
+  function requestFailed(e) {
+    if (e.detail.elt && e.detail.elt.id === "live") return; // تازه‌سازی پس‌زمینه بی‌صدا
+    showToast(document.body.getAttribute("data-error-message"));
+  }
+  document.addEventListener("htmx:responseError", requestFailed);
+  document.addEventListener("htmx:sendError", requestFailed);
+
   // ---------- مبلغ با جداکننده هزارگان و نمایش «۸۱٫۲ میلیون تومان» ----------
   function formatMoney(input) {
     var digits = toLatin(input.value).replace(/\D/g, "").replace(/^0+(?=\d)/, "");

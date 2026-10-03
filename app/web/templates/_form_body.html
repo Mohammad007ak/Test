@@ -5,7 +5,7 @@
       class="form" data-kind-form novalidate>
   <div class="sheet-head">
     <h2>{{ (T.edit ~ " " ~ entity.title) if edit_id else (entity.title ~ " " ~ T.new) }}</h2>
-    <a href="/{{ entity.slug }}" class="icon-btn" data-close aria-label="{{ T.close }}">{{ icon("close") }}</a>
+    <a href="/{{ entity.slug }}" class="icon-btn" data-close hx-boost="false" aria-label="{{ T.close }}">{{ icon("close") }}</a>
   </div>
   {% if errors %}<div class="alert danger">{{ icon("alert") }} چند مورد نیاز به اصلاح دارد.</div>{% endif %}
   <div class="fields">

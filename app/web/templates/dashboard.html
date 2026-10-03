@@ -28,7 +28,7 @@
   </div>
 </section>
 {% else %}
-<div id="live" class="live"
+<div id="live" class="live" hx-disinherit="*"
      {% if poll_seconds %}hx-get="/" hx-select="#live" hx-target="this" hx-swap="outerHTML"
      hx-trigger="every {{ poll_seconds }}s [document.visibilityState === 'visible' && !document.getElementById('sheet').open]"{% endif %}>
 
@@ -125,8 +125,8 @@
   </div>
   <ul class="legend">
     {% for row in composition %}
-    <li><span class="dot s{{ row.slot }}"></span><span class="legend-label">{{ row.label }}</span>
-      <span class="legend-pct">{{ row.pct | percent }}</span><span class="legend-value">{{ row.value | amt }}</span></li>
+    <li><a href="{{ '/accounts' if row.key == 'bank' else '/assets' }}"><span class="dot s{{ row.slot }}"></span><span class="legend-label">{{ row.label }}</span>
+      <span class="legend-pct">{{ row.pct | percent }}</span><span class="legend-value">{{ row.value | amt }}</span></a></li>
     {% endfor %}
   </ul>
 </section>

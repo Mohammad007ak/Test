@@ -4,7 +4,7 @@
 <form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#sheet-body" hx-swap="innerHTML" class="form" novalidate>
   <div class="sheet-head">
     <h2>{{ T.sms_review_title }}</h2>
-    <a href="/sms" class="icon-btn" data-close aria-label="{{ T.close }}">{{ icon("close") }}</a>
+    <a href="/sms" class="icon-btn" data-close hx-boost="false" aria-label="{{ T.close }}">{{ icon("close") }}</a>
   </div>
   <pre class="sms-quote">{{ sms.text_masked }}</pre>
   {% if errors %}<div class="alert danger">{{ icon("alert") }} چند مورد نیاز به اصلاح دارد.</div>{% endif %}

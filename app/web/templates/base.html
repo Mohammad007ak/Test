@@ -20,7 +20,7 @@
   <script src="{{ static('js/chart.min.js') }}" defer></script>
   <script src="{{ static('js/app.js') }}" defer></script>
 </head>
-<body hx-boost="true">
+<body hx-boost="true" data-error-message="{{ T.request_failed }}">
 <div class="device"><div class="screen">
 {% block shell %}
   <header class="appbar">

@@ -3,6 +3,7 @@
 import json
 from collections.abc import Iterator
 from typing import Annotated, Any
+from urllib.parse import urlsplit
 
 from fastapi import Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -58,6 +59,8 @@ def done(request: Request, url: str, message: str) -> Response:
     """پایان موفق یک فرم: پیام کوتاه و بازگشت نرم به فهرست."""
     toast(request, message)
     if wants_fragment(request):
-        location = json.dumps({"path": url, "target": "body"})
+        # برگه از هر صفحه‌ای باز شده باشد (مثلاً خانه)، همان صفحه تازه می‌شود
+        current = urlsplit(request.headers.get("HX-Current-URL", "")).path
+        location = json.dumps({"path": current or url, "target": "body"})
         return Response(status_code=200, headers={"HX-Location": location})
     return redirect(url)

@@ -262,6 +262,17 @@ class TestSheets:
         assert "درآمد اضافه شد" in page
         assert "درآمد اضافه شد" not in client.get("/incomes").text  # فقط یک بار
 
+    def test_sheet_opened_on_home_returns_to_home(self, client: TestClient) -> None:
+        response = client.post("/incomes", data={"name": "حقوق", "amount_toman": "1000",
+                                                 "frequency": "monthly"},
+                               headers=self.HX | {"HX-Current-URL": "http://x/"})
+        assert '"path": "/"' in response.headers["HX-Location"]
+
+    def test_home_live_region_does_not_leak_select_to_sheets(self, client: TestClient) -> None:
+        client.post("/incomes", data={"name": "حقوق", "amount_toman": "1000",
+                                      "frequency": "monthly"})
+        assert 'id="live" class="live" hx-disinherit="*"' in client.get("/").text
+
 
 def test_names_keep_persian_digits(client: TestClient) -> None:
     client.post("/assets", data={"kind": "car", "name": "پژو ۲۰۷ مدل ۱۴۰۰",
