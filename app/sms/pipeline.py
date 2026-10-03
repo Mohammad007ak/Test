@@ -35,6 +35,9 @@ def _validate(parsed: ParsedSms) -> str | None:
     if parsed.account_mask and not (len(parsed.account_mask) == 4
                                     and parsed.account_mask.isdigit()):
         return "۴ رقم آخر حساب نامعتبر"
+    if parsed.account_prefix and not (len(parsed.account_prefix) <= 4
+                                      and parsed.account_prefix.isdigit()):
+        return "ابتدای شماره حساب نامعتبر"
     if not parsed.bank:
         return "بانک مشخص نیست"
     return None
@@ -44,7 +47,7 @@ class AmbiguousAccount(ValueError):
     pass
 
 
-def _account(session: Session, bank: str, mask: str) -> Account:
+def _account(session: Session, bank: str, mask: str, prefix: str = "") -> Account:
     if not mask:  # پیامک بدون شماره حساب (مثل بلو): تنها حساب همان بانک
         accounts = session.scalars(select(Account).where(Account.bank == bank)).all()
         if len(accounts) > 1:
@@ -52,17 +55,25 @@ def _account(session: Session, bank: str, mask: str) -> Account:
                                    "حساب را از صف بررسی مشخص کن")
         if accounts:
             return accounts[0]
-    account = session.scalars(select(Account).where(Account.bank == bank,
-                                                    Account.account_mask == mask)).first()
+    same_end = session.scalars(select(Account).where(Account.bank == bank,
+                                                     Account.account_mask == mask)).all()
+    account = next((a for a in same_end if a.account_prefix == prefix), None)
+    if account is None and prefix:
+        # حسابی که دستی و بدون ابتدای شماره ثبت شده، اگر یکتاست همان است
+        unprefixed = [a for a in same_end if not a.account_prefix]
+        if len(unprefixed) == 1:
+            account = unprefixed[0]
+            account.account_prefix = prefix
     if account is None:
-        account = Account(bank=bank, account_mask=mask, balance_toman=0, balance_source="sms")
+        account = Account(bank=bank, account_mask=mask, account_prefix=prefix,
+                          balance_toman=0, balance_source="sms")
         session.add(account)
         session.flush()
     return account
 
 
 def _apply(session: Session, sms: SmsInbox, parsed: ParsedSms, parser: str) -> Transaction:
-    account = _account(session, parsed.bank, parsed.account_mask)
+    account = _account(session, parsed.bank, parsed.account_mask, parsed.account_prefix)
     occurred = parsed.occurred_at or sms.received_at
     balance = rial_to_toman(parsed.balance_after_rial) if parsed.balance_after_rial else None
     transaction = Transaction(
@@ -80,14 +91,14 @@ def _apply(session: Session, sms: SmsInbox, parsed: ParsedSms, parser: str) -> T
     return transaction
 
 
-def _try_parsers(text: str, parsers: Sequence[BankParser],
+def _try_parsers(text: str, received_at: datetime, parsers: Sequence[BankParser],
                  llm: LLMClient) -> tuple[ParsedSms | None, str, list[str]]:
     errors: list[str] = []
     for parser in parsers:
         if not parser.can_parse(text):
             continue
         try:
-            parsed = parser.parse(text)
+            parsed = parser.parse(text, received_at)
         except Exception as exc:  # یک پارسر خراب نباید خط پردازش را بشکند
             errors.append(f"{parser.name}: {exc}")
             continue
@@ -121,7 +132,7 @@ def ingest(session: Session, raw_text: str, received_at: datetime,
 
     session.add(sms)
     session.flush()
-    parsed, parser_name, errors = _try_parsers(text, parsers, llm or DisabledLLM())
+    parsed, parser_name, errors = _try_parsers(text, received_at, parsers, llm or DisabledLLM())
     if parsed is None:
         sms.error = " · ".join(errors) or NO_PARSER
         session.commit()

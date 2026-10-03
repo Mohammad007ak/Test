@@ -7,8 +7,10 @@
 
 from app.sms.parsers.base import BankParser, ParsedSms
 from app.sms.parsers.blu import BluParser
+from app.sms.parsers.parsian import ParsianParser
+from app.sms.parsers.pasargad import PasargadParser
 from app.sms.parsers.saman import SamanParser
 
-PARSERS: list[BankParser] = [SamanParser(), BluParser()]
+PARSERS: list[BankParser] = [SamanParser(), BluParser(), PasargadParser(), ParsianParser()]
 
 __all__ = ["PARSERS", "BankParser", "ParsedSms"]

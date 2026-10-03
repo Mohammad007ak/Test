@@ -23,15 +23,31 @@ def prepare(raw: str) -> str:
     return "\n".join(line.strip() for line in text.strip().split("\n"))
 
 
+CARD_DIGITS = 16  # کارت و شبا: فقط ۴ رقم آخر
+PREFIX_MAX = 4
+
+
+def account_prefix(raw: str) -> str:
+    """ابتدای شماره حساب: گروه اول اگر جداکننده دارد (۴ رقم یا کمتر)، وگرنه ۳ رقم اول."""
+    first = re.split(r"[-. ]", raw, maxsplit=1)[0]
+    return first if len(first) <= PREFIX_MAX and first != raw else re.sub(r"\D", "", raw)[:3]
+
+
 def _mask(match: re.Match[str]) -> str:
-    digits = re.sub(r"\D", "", match.group(0))
+    raw = match.group(0)
+    digits = re.sub(r"\D", "", raw)
     if len(digits) < MIN_MASKED_DIGITS:
-        return match.group(0)
-    return "*" * (len(digits) - 4) + digits[-4:]
+        return raw
+    prefix = "" if len(digits) >= CARD_DIGITS else account_prefix(raw)
+    return prefix + "*" * (len(digits) - len(prefix) - 4) + digits[-4:]
 
 
 def mask_numbers(text: str) -> str:
-    """هر رشته ارقام (با - . یا فاصله) با دست‌کم ۱۰ رقم → فقط ۴ رقم آخر دیده می‌شود."""
+    """کارت و شبا → فقط ۴ رقم آخر؛ حساب (۱۰ تا ۱۵ رقم) → ابتدای شماره + ۴ رقم آخر.
+
+    ابتدای شماره (کد شعبه یا نوع حساب) دو حساب یک نفر را که ۴ رقم آخرشان یکی است از هم
+    جدا می‌کند (تصمیم کاربر، ۱۱ مهر ۱۴۰۵؛ استثنای قاعده «فقط ۴ رقم آخر» در SPEC).
+    """
     return _NUMBER_RUN.sub(_mask, text)
 
 

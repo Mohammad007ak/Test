@@ -23,7 +23,7 @@ class SampleBankParser:
     def can_parse(self, text: str) -> bool:
         return text.startswith("بانک نمونه")
 
-    def parse(self, text: str) -> ParsedSms:
+    def parse(self, text: str, received_at: datetime) -> ParsedSms:
         amount = re.search(r"(برداشت|واریز) ([\d,]+)", text)
         balance = re.search(r"مانده ([\d,]+)", text)
         mask = re.search(r"\*+(\d{4})", text)
@@ -111,7 +111,7 @@ def test_existing_manual_account_is_reused(session: Session) -> None:
 
 def test_failing_parser_falls_through_to_queue(session: Session) -> None:
     class Broken(SampleBankParser):
-        def parse(self, text: str) -> ParsedSms:
+        def parse(self, text: str, received_at: datetime) -> ParsedSms:
             raise ValueError("قالب ناشناخته")
 
     result = ingest(session, SMS, T0, parsers=[Broken()])
@@ -128,7 +128,7 @@ def test_manual_completion_from_queue(session: Session) -> None:
 
 def test_invalid_parser_output_is_rejected(session: Session) -> None:
     class Bad(SampleBankParser):
-        def parse(self, text: str) -> ParsedSms:
+        def parse(self, text: str, received_at: datetime) -> ParsedSms:
             return ParsedSms("mellat", "12", "sideways", -5)
 
     assert ingest(session, SMS, T0, parsers=[Bad()]).status == "failed"

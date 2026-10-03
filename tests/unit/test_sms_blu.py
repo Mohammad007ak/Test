@@ -15,6 +15,8 @@ from app.sms.parsers.blu import BluParser
 from app.sms.pipeline import ingest
 from app.sms.text import mask_numbers, prepare
 
+NOW = datetime(2026, 10, 3, 9, 0, tzinfo=UTC)
+
 WITHDRAWAL = (Path(__file__).parent.parent / "fixtures" / "sms" / "blu" / "withdrawal.txt"
               ).read_text(encoding="utf-8")
 T0 = datetime(2026, 10, 1, 12, 43, tzinfo=UTC)
@@ -24,7 +26,7 @@ def test_withdrawal() -> None:
     text = mask_numbers(prepare(WITHDRAWAL))
     parser = BluParser()
     assert parser.can_parse(text)
-    parsed = parser.parse(text)
+    parsed = parser.parse(text, NOW)
     assert (parsed.bank, parsed.account_mask, parsed.direction) == ("blu", "", "out")
     assert parsed.amount_rial == 30_000_000
     assert parsed.balance_after_rial == 86_552_338
@@ -34,7 +36,7 @@ def test_withdrawal() -> None:
 
 def test_unknown_blu_message_is_not_guessed() -> None:
     with pytest.raises(ValueError):
-        BluParser().parse(prepare("بلو\nکد ورود شما 12345"))
+        BluParser().parse(prepare("بلو\nکد ورود شما 12345"), NOW)
 
 
 def test_not_other_banks() -> None:

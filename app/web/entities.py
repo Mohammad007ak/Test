@@ -54,11 +54,15 @@ def _account_validate(values: dict[str, Any]) -> dict[str, str]:
     mask = normalize_digits(values.get("account_mask") or "")
     if mask and not (len(mask) == 4 and mask.isascii() and mask.isdigit()):
         return {"account_mask": forms.s.T["mask_hint"]}
+    prefix = normalize_digits(values.get("account_prefix") or "")
+    if prefix and not (len(prefix) <= 4 and prefix.isascii() and prefix.isdigit()):
+        return {"account_prefix": "حداکثر ۴ رقم"}
     return {}
 
 
 def _account_to_model(values: dict[str, Any]) -> dict[str, Any]:
     values["account_mask"] = normalize_digits(values["account_mask"] or "")
+    values["account_prefix"] = normalize_digits(values["account_prefix"] or "")
     return values
 
 

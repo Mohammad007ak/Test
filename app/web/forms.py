@@ -155,6 +155,8 @@ ASSET_FIELDS = [
 ACCOUNT_FIELDS = [
     Field("bank", "بانک", "select", required=True, options=s.BANKS),
     Field("account_mask", "۴ رقم آخر", "text", hint=s.T["mask_hint"]),
+    Field("account_prefix", "ابتدای شماره حساب", "text",
+          hint="اختیاری؛ مثل 814 در 814-20-…؛ دو حساب با ۴ رقم آخر یکسان را جدا می‌کند"),
     Field("label", "عنوان", "text"),
     Field("balance_toman", "موجودی", "money", required=True),
 ]

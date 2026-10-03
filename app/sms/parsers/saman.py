@@ -3,7 +3,7 @@
 نمونه تأییدشده (۱۱ مهر ۱۴۰۵)، پس از پوشاندن شماره:
     بانک سامان
     برداشت مبلغ 127,100 انتقال وجه
-    از *********5671
+    از 814******5671
     مانده 46,294,698
     1405/7/11
     12:10:53
@@ -23,7 +23,7 @@ TEHRAN = ZoneInfo("Asia/Tehran")
 
 _HEADER = "بانک سامان"
 _AMOUNT = re.compile(r"^(برداشت|واریز) مبلغ ([\d,]+)\s*(.*)$", re.M)
-_ACCOUNT = re.compile(r"^(?:از|به) \*+(\d{4})$", re.M)
+_ACCOUNT = re.compile(r"^(?:از|به) (\d{0,4})\*+(\d{4})$", re.M)
 _BALANCE = re.compile(r"^مانده (-?[\d,]+)$", re.M)
 _DATE = re.compile(r"^(\d{4})/(\d{1,2})/(\d{1,2})$", re.M)
 _TIME = re.compile(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", re.M)
@@ -39,7 +39,7 @@ class SamanParser:
     def can_parse(self, text: str) -> bool:
         return text.startswith(_HEADER)
 
-    def parse(self, text: str) -> ParsedSms:
+    def parse(self, text: str, received_at: datetime) -> ParsedSms:
         amount = _AMOUNT.search(text)
         account = _ACCOUNT.search(text)
         if not (amount and account):
@@ -47,7 +47,8 @@ class SamanParser:
         balance = _BALANCE.search(text)
         return ParsedSms(
             bank="saman",
-            account_mask=account.group(1),
+            account_prefix=account.group(1),
+            account_mask=account.group(2),
             direction="out" if amount.group(1) == "برداشت" else "in",
             amount_rial=_rial(amount.group(2)),
             balance_after_rial=_rial(balance.group(1)) if balance else None,

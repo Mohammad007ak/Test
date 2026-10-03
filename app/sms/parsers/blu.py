@@ -39,7 +39,7 @@ class BluParser:
     def can_parse(self, text: str) -> bool:
         return text.split("\n", 1)[0].strip() == _HEADER
 
-    def parse(self, text: str) -> ParsedSms:
+    def parse(self, text: str, received_at: datetime) -> ParsedSms:
         kind = _KIND.search(text)
         amount = _AMOUNT.search(text)
         if not (kind and amount):

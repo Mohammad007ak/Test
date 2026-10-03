@@ -14,7 +14,7 @@
       {{ bubble("bank", 1) }}
       <span class="row-main">
         <span class="row-title">{{ a.label or s.BANKS.get(a.bank, a.bank) }}</span>
-        <span class="row-sub">{{ s.BANKS.get(a.bank, a.bank) }}{% if a.account_mask %} · <span dir="ltr">••{{ a.account_mask | fa }}</span>{% endif %}
+        <span class="row-sub">{{ s.BANKS.get(a.bank, a.bank) }}{% if a.account_mask %} · <span dir="ltr">{{ a.account_prefix | fa }}••{{ a.account_mask | fa }}</span>{% endif %}
           {% if a.balance_updated_at %} · {{ a.balance_updated_at | jalali(false) }}{% endif %}</span>
       </span>
       <span class="row-end"><strong>{{ a.balance_toman | amt }}</strong></span>

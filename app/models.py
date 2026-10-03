@@ -66,6 +66,8 @@ class Account(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     bank: Mapped[str] = mapped_column(String(50))
     account_mask: Mapped[str] = mapped_column(String(4))
+    # ابتدای شماره حساب (کد شعبه/نوع)؛ حساب‌های یک نفر با ۴ رقم آخر یکسان را جدا می‌کند
+    account_prefix: Mapped[str] = mapped_column(String(4), default="", server_default="")
     label: Mapped[str | None] = mapped_column(String(200))
     balance_toman: Mapped[int] = mapped_column(BigInteger, default=0)
     balance_updated_at: Mapped[datetime | None] = mapped_column(UTCDateTime)

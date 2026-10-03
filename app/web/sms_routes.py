@@ -30,6 +30,7 @@ MAX_TEXT = 2000
 REVIEW_FIELDS = [
     Field("bank", "بانک", "select", required=True, options=s.BANKS),
     Field("account_mask", "۴ رقم آخر حساب یا کارت", "text", required=True),
+    Field("account_prefix", "ابتدای شماره حساب", "text", hint="اختیاری، مثل 814"),
     Field("direction", "نوع", "select", required=True, options=s.DIRECTIONS, widget="chips"),
     Field("amount", "مبلغ", "rial", required=True, hint="همان عدد پیامک (ریال)"),
     Field("balance_after", "مانده پس از تراکنش", "rial", hint="اگر پیامک مانده دارد"),
@@ -148,8 +149,12 @@ def register_sms_routes(app: FastAPI, settings: Settings) -> None:
             mask = forms.normalize_digits(v["account_mask"])
             if not (len(mask) == 4 and mask.isdigit()):
                 raise FormError({"account_mask": s.T["mask_hint"]})
+            prefix = forms.normalize_digits(v["account_prefix"] or "")
+            if prefix and not (len(prefix) <= 4 and prefix.isdigit()):
+                raise FormError({"account_prefix": "حداکثر ۴ رقم"})
             complete_manually(db, sms, ParsedSms(
-                bank=v["bank"], account_mask=mask, direction=v["direction"],
+                bank=v["bank"], account_mask=mask, account_prefix=prefix,
+                direction=v["direction"],
                 amount_rial=v["amount"], balance_after_rial=v["balance_after"],
                 description=v["description"] or ""))
         except FormError as exc:
