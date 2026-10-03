@@ -42,6 +42,17 @@ def test_withdrawal_transfer() -> None:
     assert parsed.occurred_at == datetime(2026, 10, 3, 8, 40, 53, tzinfo=UTC)  # ۱۲:۱۰:۵۳ تهران
 
 
+def test_deposit_real_sample() -> None:
+    """واریز قالب کمی متفاوت دارد: دو فاصله، «ریال» چسبیده به عدد، بدون شرح، ساعت بدون ثانیه."""
+    deposit = (FIXTURES / "deposit.txt").read_text(encoding="utf-8")
+    parsed = SamanParser().parse(masked(deposit), NOW)
+    assert (parsed.direction, parsed.amount_rial) == ("in", 847_733_639)
+    assert parsed.balance_after_rial == 909_634_934
+    assert (parsed.account_prefix, parsed.account_mask) == ("2137", "5671")
+    assert parsed.description == ""
+    assert parsed.occurred_at == datetime(2026, 9, 22, 8, 44, tzinfo=UTC)  # ۳۱ شهریور ۱۲:۱۴ تهران
+
+
 def test_other_banks_are_not_claimed() -> None:
     assert not SamanParser().can_parse(masked("بانک ملت\nبرداشت 1,000"))
 
