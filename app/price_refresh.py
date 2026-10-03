@@ -1,6 +1,8 @@
 """دریافت قیمت از منابع، ذخیره تاریخچه و ثبت وضعیت هر منبع.
 
 شکست یک منبع بقیه را متوقف نمی‌کند و آخرین قیمت معتبر همچنان نمایش داده می‌شود.
+ردیف تازه فقط وقتی ثبت می‌شود که قیمت عوض شده باشد؛ وگرنه fetched_at آخرین ردیف
+(زمان آخرین مشاهده) جلو می‌رود تا تاریخچه با دریافت‌های پرتکرار پر نشود.
 """
 
 import json
@@ -11,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.prices import FetchedQuote, PriceSource
 from app.models import PriceQuote, utcnow
-from app.services import get_setting, set_setting
+from app.services import get_setting, latest_quotes, set_setting
 
 STATUS_KEY = "price_source_status:{name}"
 
@@ -36,9 +38,15 @@ def refresh_source(session: Session, source: PriceSource) -> SourceStatus:
     except Exception as exc:  # هر خطای منبع فقط همان منبع را از کار می‌اندازد
         status = SourceStatus(source.name, now, False, 0, f"{type(exc).__name__}: {exc}"[:300])
     else:
+        latest = latest_quotes(session)
         for quote in quotes:
-            session.add(PriceQuote(key=quote.key, price_toman=quote.price_toman,
-                                   fetched_at=now, source=source.name))
+            previous = latest.get(quote.key)
+            if (previous is not None and previous.source == source.name
+                    and previous.price_toman == quote.price_toman):
+                previous.fetched_at = now  # قیمت عوض نشده؛ فقط زمان آخرین مشاهده به‌روز می‌شود
+            else:
+                session.add(PriceQuote(key=quote.key, price_toman=quote.price_toman,
+                                       fetched_at=now, source=source.name))
         status = SourceStatus(source.name, now, bool(quotes), len(quotes),
                               "" if quotes else "هیچ قیمتی دریافت نشد")
     _save_status(session, status)

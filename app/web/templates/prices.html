@@ -23,8 +23,7 @@
 <p class="lead">{{ T.no_sources }}</p>
 {% endif %}
 <form method="post" action="/prices" class="form" novalidate>
-  <div class="list">
-    {% for row in rows %}
+  {% macro price_row(row) %}
     <div class="row price-row {{ 'has-error' if errors.get(row.key) }}">
       <span class="row-main">
         <span class="row-title">{{ row.label }}</span>
@@ -36,8 +35,17 @@
         <span class="unit">تومان</span>
       </span>
     </div>
-    {% endfor %}
+  {% endmacro %}
+  <div class="list">
+    {% for row in rows if row.main %}{{ price_row(row) }}{% endfor %}
   </div>
+  {% set others = rows | rejectattr("main") | list %}
+  {% if others %}
+  <details class="card disclosure other-prices">
+    <summary>سایر ارزها ({{ others | length | fa }})</summary>
+    <div class="list flat">{% for row in others %}{{ price_row(row) }}{% endfor %}</div>
+  </details>
+  {% endif %}
   <div class="sticky-actions"><button type="submit" class="btn wide">{{ T.save }}</button></div>
 </form>
 {% endblock %}

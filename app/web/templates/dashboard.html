@@ -21,6 +21,9 @@
   </div>
 </section>
 {% else %}
+<div id="live" class="live"
+     {% if poll_seconds %}hx-get="/" hx-select="#live" hx-target="this" hx-swap="outerHTML"
+     hx-trigger="every {{ poll_seconds }}s [document.visibilityState === 'visible' && !document.getElementById('sheet').open]"{% endif %}>
 
 <section class="hero" data-unit="toman" data-unit-switch>
   <div class="hero-top">
@@ -41,6 +44,9 @@
     {% if usd %}<span data-unit-value="usd">هر دلار {{ usd | toman }}</span>{% endif %}
     {% if gold %}<span data-unit-value="gold">هر گرم طلای ۱۸ {{ gold | toman }}</span>{% endif %}
   </div>
+  {% if prices_at %}
+  <div class="live-badge">{% if poll_seconds %}<span class="pulse"></span>{% endif %}قیمت‌ها {{ prices_at | jalali }}</div>
+  {% endif %}
   {% if change and change.delta != 0 %}
   <div class="delta {{ 'up' if change.delta > 0 else 'down' }}">
     {{ icon("up" if change.delta > 0 else "down") }}
@@ -137,5 +143,6 @@
     <a href="/loan" class="quick-btn"><span class="bubble s7">{{ icon("calc") }}</span>{{ s.NAV.loan }}</a>
   </div>
 </section>
+</div>
 {% endif %}
 {% endblock %}

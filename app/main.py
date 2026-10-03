@@ -26,7 +26,7 @@ from app.db import Base, make_engine, make_session_factory
 from app.domain.loan import LoanInput, analyze_loan
 from app.domain.money import format_number
 from app.models import Asset, LoanAnalysis, PriceQuote, utcnow
-from app.scheduler import refresh_now, run_periodically
+from app.scheduler import Activity, Pace, refresh_now, run_adaptive
 from app.web import auth, forms
 from app.web import strings as s
 from app.web.entities import ENTITIES
@@ -68,12 +68,15 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
 
     sources = default_price_sources() if price_sources is None else price_sources
 
+    activity = Activity(Pace(active_seconds=settings.price_refresh_seconds,
+                             idle_seconds=settings.price_idle_minutes * 60))
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         task = None
-        if schedule and sources and settings.price_refresh_minutes > 0:
-            task = asyncio.create_task(run_periodically(
-                partial(refresh_now, factory, sources), settings.price_refresh_minutes))
+        if schedule and sources and settings.price_refresh_seconds > 0:
+            task = asyncio.create_task(run_adaptive(partial(refresh_now, factory, sources),
+                                                    activity))
         yield
         if task:
             task.cancel()
@@ -82,6 +85,14 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
                   lifespan=lifespan)
     app.state.session_factory = factory
     app.state.price_sources = sources
+    app.state.poll_seconds = settings.price_refresh_seconds if sources else 0
+
+    @app.middleware("http")
+    async def _track_activity(request: Request, call_next: Any) -> Response:
+        if not request.url.path.startswith("/static"):
+            activity.touch()
+        response: Response = await call_next(request)
+        return response
     app.add_middleware(SessionMiddleware, secret_key=secret, session_cookie="finassist",
                        max_age=60 * 60 * 24 * 30, same_site="lax",
                        https_only=settings.secure_cookies)
@@ -223,6 +234,8 @@ def _register_routes(app: FastAPI) -> None:
             "change": change,
             "composition": _composition(portfolio),
             "has_trend": len(history) > 1,
+            "poll_seconds": request.app.state.poll_seconds,
+            "prices_at": max((q.fetched_at for q in portfolio.quotes.values()), default=None),
             "trend_json": json.dumps(trend, ensure_ascii=False),
             "empty": empty,
         })
@@ -518,7 +531,7 @@ def _settings_page(request: Request, db: Session, values: dict[str, str] | None 
 
 
 def _price_keys(db: Session) -> list[str]:
-    keys = list(s.PRICE_KEYS)
+    keys = list(s.MAIN_PRICE_KEYS) + [k for k in s.PRICE_KEYS if k not in s.MAIN_PRICE_KEYS]
     for key in db.scalars(select(Asset.price_key).where(Asset.price_key.is_not(None))):
         if key not in keys:
             keys.append(key)
@@ -531,7 +544,9 @@ def _price_keys(db: Session) -> list[str]:
 def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = None,
                  status: int = 200) -> Response:
     quotes = services.latest_quotes(db)
-    rows = [{"key": key, "label": _price_label(key), "quote": quotes.get(key)}
+    used = set(db.scalars(select(Asset.price_key).where(Asset.price_key.is_not(None))))
+    rows = [{"key": key, "label": _price_label(key), "quote": quotes.get(key),
+             "main": key in s.MAIN_PRICE_KEYS or key in used or key not in s.PRICE_KEYS}
             for key in _price_keys(db)]
     sources = [price_refresh.load_status(db, source.name) or source.name
                for source in request.app.state.price_sources]

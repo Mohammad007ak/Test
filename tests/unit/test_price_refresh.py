@@ -64,3 +64,21 @@ def test_invalid_quotes_are_dropped(session: Session) -> None:
 def test_unexpected_exception_is_contained(session: Session) -> None:
     status = refresh_all(session, [FakeSource("x", error=ValueError("قالب عوض شد"))])[0]
     assert not status.ok and "ValueError" in status.error
+
+
+def test_unchanged_price_updates_last_seen_without_new_row(session: Session) -> None:
+    source = FakeSource("fake", [FetchedQuote("usd", 102_500)])
+    refresh_all(session, [source])
+    first_seen = latest_quotes(session)["usd"].fetched_at
+    refresh_all(session, [source])
+    rows = session.scalars(select(PriceQuote)).all()
+    assert len(rows) == 1
+    assert rows[0].fetched_at >= first_seen
+
+
+def test_manual_price_is_not_overwritten_in_place(session: Session) -> None:
+    session.add(PriceQuote(key="usd", price_toman=102_500, fetched_at=utcnow(), source="manual"))
+    session.commit()
+    refresh_all(session, [FakeSource("fake", [FetchedQuote("usd", 102_500)])])
+    sources = [r.source for r in session.scalars(select(PriceQuote))]
+    assert sources == ["manual", "fake"]

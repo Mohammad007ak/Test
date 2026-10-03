@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     secret_key: str = ""
     secure_cookies: bool = False
     timezone: str = "Asia/Tehran"
-    price_refresh_minutes: int = 60  # ۰ = دریافت خودکار خاموش
+    price_refresh_seconds: int = 30  # وقتی اپ باز است؛ ۰ = دریافت خودکار خاموش
+    price_idle_minutes: int = 60  # وقتی کسی اپ را نگاه نمی‌کند
 
 
 @lru_cache

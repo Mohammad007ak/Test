@@ -48,16 +48,18 @@ BANKS: dict[str, str] = {
 BALANCE_SOURCES: dict[str, str] = {"manual": "دستی", "sms": "پیامک"}
 
 # کلیدهای قیمت ثابت؛ سهام و صندوق به‌صورت stock:<نماد> و fund:<نماد>
-PRICE_KEYS: dict[str, str] = {
-    "usd": "دلار آمریکا",
-    "eur": "یورو",
+GOLD_PRICE_KEYS: dict[str, str] = {
     "gold18_gram": "طلای ۱۸ عیار (هر گرم)",
+    "gold_mesghal": "آبشده (هر مثقال)",
     "coin_emami": "سکه امامی",
+    "coin_bahar": "سکه بهار آزادی",
     "coin_half": "نیم‌سکه",
     "coin_quarter": "ربع‌سکه",
+    "coin_gram": "سکه گرمی",
 }
-FX_KEYS = ("usd", "eur")
-COIN_KEYS = ("coin_emami", "coin_half", "coin_quarter")
+COIN_KEYS = ("coin_emami", "coin_bahar", "coin_half", "coin_quarter", "coin_gram")
+# قیمت‌های اصلی که همیشه بالای صفحه قیمت‌ها نشان داده می‌شوند
+MAIN_PRICE_KEYS = ("usd", "eur", *GOLD_PRICE_KEYS)
 
 NAV = {
     "dashboard": "داشبورد",
@@ -288,3 +290,49 @@ T.update({
     "source_failed": "ناموفق · {at}",
     "no_sources": "هنوز منبع خودکاری فعال نیست؛ قیمت‌ها را دستی وارد کن.",
 })
+
+
+# ارزهای الان‌چند (کلید = کد ارز، قیمت به ازای یک واحد)
+CURRENCY_NAMES: dict[str, str] = {
+    "usd": "دلار آمریکا",
+    "eur": "یورو",
+    "aed": "درهم",
+    "try": "لیر ترکیه",
+    "gbp": "پوند انگلیس",
+    "cny": "یوان چین",
+    "cad": "دلار کانادا",
+    "aud": "دلار استرالیا",
+    "rub": "روبل روسیه",
+    "iqd": "دینار عراق",
+    "myr": "رینگیت مالزی",
+    "gel": "لاری گرجستان",
+    "azn": "منات آذربایجان",
+    "amd": "درام ارمنستان",
+    "thb": "بات تایلند",
+    "omr": "ریال عمان",
+    "inr": "روپیه هند",
+    "pkr": "روپیه پاکستان",
+    "jpy": "ین ژاپن",
+    "sar": "ریال عربستان",
+    "afn": "افغانی",
+    "sek": "کرون سوئد",
+    "chf": "فرانک سوئیس",
+    "qar": "ریال قطر",
+    "krw": "وون کره جنوبی",
+    "nok": "کرون نروژ",
+    "nzd": "دلار نیوزلند",
+    "sgd": "دلار سنگاپور",
+    "hkd": "دلار هنگ کنگ",
+    "kwd": "دینار کویت",
+    "dkk": "کرون دانمارک",
+    "bhd": "دینار بحرین",
+    "tjs": "سامانی تاجیکستان",
+    "tmt": "منات ترکمنستان",
+    "kgs": "سوم قرقیزستان",
+    "syp": "پوند سوریه",
+    "brl": "رئال برزیل",
+    "ars": "پزو آرژانتین",
+}
+
+FX_KEYS = tuple(CURRENCY_NAMES)
+PRICE_KEYS: dict[str, str] = {**CURRENCY_NAMES, **GOLD_PRICE_KEYS}

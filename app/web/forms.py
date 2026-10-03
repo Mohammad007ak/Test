@@ -130,8 +130,7 @@ COIN_OPTIONS = {k: s.PRICE_KEYS[k] for k in s.COIN_KEYS}
 ASSET_FIELDS = [
     Field("kind", "نوع", "select", required=True, options=s.ASSET_KINDS, widget="chips"),
     Field("name", "نام", "text", required=True, hint="مثلاً «دلار کیف پول» یا «پژو ۲۰۷ مدل ۱۴۰۰»"),
-    Field("currency", "ارز", "select", required=True, options=CURRENCY_OPTIONS,
-          kinds=("fx",), widget="chips"),
+    Field("currency", "ارز", "select", required=True, options=CURRENCY_OPTIONS, kinds=("fx",)),
     Field("coin_type", "نوع سکه", "select", required=True, options=COIN_OPTIONS,
           kinds=("coin",), widget="chips"),
     Field("symbol", "نماد", "text", required=True, kinds=("stock", "fund"), hint="مثلاً فولاد"),
