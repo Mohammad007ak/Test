@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
@@ -22,6 +22,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import price_refresh, services
 from app.adapters.prices import AlanchandSource, PriceSource, ShakhesbanSource
+from app.assistant.client import ChatModel
 from app.config import Settings, get_settings
 from app.db import Base, make_engine, make_session_factory
 from app.domain.loan import LoanInput, analyze_loan
@@ -33,6 +34,7 @@ from app.scheduler import Activity, Pace, refresh_now, run_adaptive
 from app.sms.llm import DisabledLLM
 from app.web import auth, categories, forms
 from app.web import strings as s
+from app.web.assistant_routes import default_chat_model, register_assistant_routes
 from app.web.auth_routes import register_auth_routes
 from app.web.common import (
     Db,
@@ -84,7 +86,8 @@ def default_otp_sender(settings: Settings) -> OtpSender:
 
 def create_app(settings: Settings | None = None, *, migrate: bool = True,
                price_sources: list[PriceSource] | None = None,
-               schedule: bool = True, otp_sender: OtpSender | None = None) -> FastAPI:
+               schedule: bool = True, otp_sender: OtpSender | None = None,
+               chat_model: ChatModel | None | Literal["default"] = "default") -> FastAPI:
     settings = settings or get_settings()
     engine = make_engine(settings.database_url)
     if migrate:
@@ -142,7 +145,10 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
             return Response(status_code=401, headers={"HX-Redirect": "/login"})
         return RedirectResponse("/login", status_code=303)
 
+    if chat_model == "default":
+        chat_model = default_chat_model(settings.llm_url, settings.llm_key, settings.llm_model)
     register_auth_routes(app, settings, otp)
+    register_assistant_routes(app, chat_model, settings.llm_daily_limit)
     register_sms_routes(app)
     register_spending_routes(app)
     register_extra_routes(app)

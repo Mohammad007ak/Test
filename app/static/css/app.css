@@ -1251,3 +1251,40 @@ details.group, details.disclosure { transition: border-color .2s; }
 details[open].group, details[open].disclosure { border-color: color-mix(in srgb, var(--accent) 22%, var(--hairline)); }
 .progress > span, .cat-fill { background-image: linear-gradient(90deg, var(--c, var(--accent)), color-mix(in srgb, var(--c, var(--accent)) 70%, #fff)); }
 .source-card { background: radial-gradient(120% 140% at 100% 0%, var(--accent-soft), transparent 60%), var(--surface); }
+
+/* ---------- از وزیر بپرس ---------- */
+.ask-vazir { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius);
+  color: inherit; text-decoration: none; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--hairline));
+  background: radial-gradient(120% 160% at 100% 0%, var(--accent-soft), transparent 65%), var(--surface);
+  box-shadow: var(--shadow); transition: transform .2s var(--spring); }
+.ask-vazir:active { transform: scale(.98); }
+.ask-vazir img { width: 44px; height: 44px; border-radius: 13px; box-shadow: 0 0 18px var(--accent-glow); }
+.ask-vazir span { flex: 1; display: flex; flex-direction: column; line-height: 1.5; }
+.ask-vazir small { color: var(--muted); font-size: .78rem; }
+.assistant-consent { display: flex; flex-direction: column; gap: 12px; text-align: center; }
+.chat-log { display: flex; flex-direction: column; gap: 10px; }
+.bubble-row { display: flex; align-items: flex-end; gap: 8px; animation: rise .35s var(--ease) both; }
+.bubble-row.me { justify-content: flex-start; flex-direction: row-reverse; }
+.msg-avatar { width: 30px; height: 30px; border-radius: 9px; flex: none; }
+.msg { max-width: 82%; padding: 10px 14px; border-radius: 18px; line-height: 1.8; white-space: pre-wrap;
+  font-size: .93rem; }
+.msg.vazir { background: var(--surface); border: 1px solid var(--hairline); border-bottom-right-radius: 6px;
+  box-shadow: var(--shadow); }
+.msg.me { background: var(--grad); color: var(--on-accent); font-weight: 600; border-bottom-left-radius: 6px; }
+.msg.error { border-color: color-mix(in srgb, var(--bad) 40%, transparent); color: var(--bad); }
+.chat-suggestions { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 2px 16px;
+  scrollbar-width: none; }
+.chat-suggestions::-webkit-scrollbar { display: none; }
+.chip-btn { flex: none; font: inherit; font-size: .82rem; font-weight: 600; padding: 8px 14px;
+  border-radius: 999px; border: 1px solid var(--hairline); background: var(--surface-2);
+  color: var(--text-2); cursor: pointer; white-space: nowrap; }
+.chip-btn:active { transform: scale(.96); }
+.thinking { display: none; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; }
+.thinking.htmx-request { display: flex; }
+.chat-form { position: sticky; bottom: calc(var(--tabbar-h) + var(--safe-b) + 22px); display: flex; gap: 8px;
+  padding: 6px; border-radius: 20px; background: color-mix(in srgb, var(--surface-2) 85%, transparent);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--hairline);
+  box-shadow: var(--float-shadow); z-index: 5; }
+.chat-form input { flex: 1; min-height: 46px; background: transparent; }
+.chat-form .btn { min-height: 46px; width: 52px; padding: 0; }
+.chat-clear { text-align: center; }

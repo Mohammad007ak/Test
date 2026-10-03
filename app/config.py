@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     owner_phone: str = ""
     # اگر پر باشد، حساب owner_phone با این رمز ساخته یا به‌روز می‌شود (بی‌نیاز از کد پیامکی)
     owner_password: str = ""
+    # دستیار «از وزیر بپرس»: مدل زبانی با API سازگار با OpenAI؛ خالی = خاموش
+    llm_url: str = ""
+    llm_key: str = ""
+    llm_model: str = ""
+    llm_daily_limit: int = 30  # سؤال در روز برای هر کاربر
 
 
 @lru_cache

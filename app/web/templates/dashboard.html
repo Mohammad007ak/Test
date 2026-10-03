@@ -15,6 +15,8 @@
 
 {% if empty %}
 {% include "_watchlist.html" %}
+<a href="/assistant" class="ask-vazir"><img src="{{ static('logo.svg') }}" alt=""><span><strong>{{ T.assistant }}</strong><small>{{ T.assistant_teaser }}</small></span>{{ icon("chev", "end") }}</a>
+
 <section class="card welcome">
   <div class="bubble s1 big">{{ icon("spark") }}</div>
   <h2>{{ T.welcome_title }}</h2>
@@ -76,6 +78,8 @@
 </section>
 
 {% include "_watchlist.html" %}
+
+<a href="/assistant" class="ask-vazir"><img src="{{ static('logo.svg') }}" alt=""><span><strong>{{ T.assistant }}</strong><small>{{ T.assistant_teaser }}</small></span>{{ icon("chev", "end") }}</a>
 
 <div class="pair">
   <a href="/assets" class="card mini">
