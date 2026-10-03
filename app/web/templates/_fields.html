@@ -35,10 +35,14 @@
           {% elif f.type in ('decimal', 'percent') %}inputmode="decimal" data-num
           {% elif f.type == 'int' %}inputmode="numeric" data-num
           {% elif f.type == 'date' %}inputmode="numeric" placeholder="۱۴۰۵/۰۷/۰۹"{% endif %}
+          {% if f.suggest and suggestions is defined and suggestions.get(f.suggest) %}list="dl-{{ f.suggest }}"{% endif %}
           {{ 'required' if f.required }}>
         {% if f.unit %}<span class="unit">{{ f.unit }}</span>{% endif %}
       </div>
       {% if f.type == 'money' %}<div class="money-words" aria-live="polite"></div>{% endif %}
+      {% if f.suggest and suggestions is defined and suggestions.get(f.suggest) %}
+      <datalist id="dl-{{ f.suggest }}">{% for name in suggestions[f.suggest] %}<option value="{{ name }}">{% endfor %}</datalist>
+      {% endif %}
     {% endif %}
   {% endif %}
   {% if err %}<div class="error">{{ err }}</div>

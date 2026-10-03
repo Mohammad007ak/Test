@@ -82,3 +82,18 @@ def test_manual_price_is_not_overwritten_in_place(session: Session) -> None:
     refresh_all(session, [FakeSource("fake", [FetchedQuote("usd", 102_500)])])
     sources = [r.source for r in session.scalars(select(PriceQuote))]
     assert sources == ["manual", "fake"]
+
+
+def test_slow_source_is_skipped_until_its_interval_passes(session: Session) -> None:
+    from datetime import timedelta
+
+    from app.price_refresh import due_sources
+
+    fast = FakeSource("fast", [FetchedQuote("usd", 1)])
+    slow = FakeSource("slow", [FetchedQuote("stock:فملی", 28_120, units=10)])
+    slow.min_interval = 600  # type: ignore[attr-defined]
+    assert due_sources(session, [fast, slow]) == [fast, slow]  # هنوز دریافت نشده
+    refresh_all(session, [fast, slow])
+    now = utcnow()
+    assert due_sources(session, [fast, slow], now + timedelta(seconds=30)) == [fast]
+    assert due_sources(session, [fast, slow], now + timedelta(seconds=601)) == [fast, slow]

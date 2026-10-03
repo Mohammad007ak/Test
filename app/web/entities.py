@@ -11,11 +11,19 @@ _UNITS = {"fx": None, "gold": "gram", "coin": "piece", "stock": "share", "fund":
           "crypto": "coin"}
 
 
+def _clean(text: str | None) -> str | None:
+    """فاصله‌های اضافه حذف؛ تا با کلید قیمت منبع (stock:<نماد>، fund:<نام>) یکی شود."""
+    if not text:
+        return None
+    return " ".join(text.split()) or None
+
+
 def _asset_to_model(values: dict[str, Any]) -> dict[str, Any]:
     kind = values["kind"]
     currency = values.pop("currency")
     coin_type = values.pop("coin_type")
-    symbol = values.pop("symbol")
+    symbol = _clean(values.pop("symbol"))
+    fund_name = _clean(values.pop("fund_name"))
     crypto = values.pop("crypto_symbol")
     price_key = {
         "crypto": f"crypto:{crypto}" if crypto else None,
@@ -23,7 +31,7 @@ def _asset_to_model(values: dict[str, Any]) -> dict[str, Any]:
         "coin": coin_type,
         "gold": "gold18_gram",
         "stock": f"stock:{symbol}" if symbol else None,
-        "fund": f"fund:{symbol}" if symbol else None,
+        "fund": f"fund:{fund_name}" if fund_name else None,
     }.get(kind)
     values["price_key"] = price_key
     values["unit"] = currency if kind == "fx" else _UNITS.get(kind)
@@ -36,7 +44,8 @@ def _asset_from_model(asset: Asset) -> dict[str, Any]:
     values["currency"] = key if asset.kind == "fx" else None
     values["coin_type"] = key if asset.kind == "coin" else None
     _, _, code = key.partition(":")
-    values["symbol"] = code if asset.kind in ("stock", "fund") else None
+    values["symbol"] = code if asset.kind == "stock" else None
+    values["fund_name"] = code if asset.kind == "fund" else None
     values["crypto_symbol"] = code if asset.kind == "crypto" else None
     return values
 

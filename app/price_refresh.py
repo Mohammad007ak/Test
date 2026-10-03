@@ -59,6 +59,19 @@ def refresh_all(session: Session, sources: list[PriceSource]) -> list[SourceStat
     return [refresh_source(session, source) for source in sources]
 
 
+def due_sources(session: Session, sources: list[PriceSource],
+                now: datetime | None = None) -> list[PriceSource]:
+    """منابعی که از آخرین دریافتشان دست‌کم min_interval ثانیه گذشته (منبع کند مثل بورس)."""
+    now = now or utcnow()
+    due = []
+    for source in sources:
+        interval = getattr(source, "min_interval", 0)
+        status = load_status(session, source.name) if interval else None
+        if status is None or (now - status.at).total_seconds() >= interval:
+            due.append(source)
+    return due
+
+
 def _save_status(session: Session, status: SourceStatus) -> None:
     set_setting(session, STATUS_KEY.format(name=status.name), json.dumps({
         "at": status.at.isoformat(), "ok": status.ok, "count": status.count,

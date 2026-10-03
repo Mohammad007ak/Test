@@ -263,10 +263,23 @@ def _register_routes(app: FastAPI) -> None:
         fragment = wants_fragment(request)
         if fragment and status >= 400:
             status = 422  # htmx این کد را جایگزین می‌کند تا خطاها در همان برگه دیده شوند
+        suggestions = _symbol_suggestions(request) if entity.slug == "assets" else {}
         return page(request, "sheet_form.html" if fragment else "form_page.html", {
             "active": entity.slug, "entity": entity, "fields": entity.fields,
             "values": values, "errors": errors or {}, "edit_id": edit_id,
+            "suggestions": suggestions,
         }, status)
+
+    def _symbol_suggestions(request: Request) -> dict[str, list[str]]:
+        """نمادهای سهام و نام صندوق‌هایی که منبع قیمت برایشان قیمت دارد."""
+        with request.app.state.session_factory() as db:
+            keys = services.latest_quotes(db)
+        found: dict[str, list[str]] = {"stock": [], "fund": []}
+        for key in keys:
+            prefix, _, name = key.partition(":")
+            if prefix in found:
+                found[prefix].append(name)
+        return {prefix: sorted(names) for prefix, names in found.items()}
 
     def _save(entity: forms.Entity, data: Form, obj: Any | None) -> Any:
         values = forms.parse_form(entity.fields, data)
@@ -531,12 +544,13 @@ def _settings_page(request: Request, db: Session, values: dict[str, str] | None 
 
 
 def _price_keys(db: Session) -> list[str]:
+    """سهام و صندوق‌ها فقط وقتی نمایش داده می‌شوند که دارایی‌ای با آن نماد ثبت شده باشد."""
     keys = list(s.MAIN_PRICE_KEYS) + [k for k in s.PRICE_KEYS if k not in s.MAIN_PRICE_KEYS]
     for key in db.scalars(select(Asset.price_key).where(Asset.price_key.is_not(None))):
         if key not in keys:
             keys.append(key)
     for key in services.latest_quotes(db):
-        if key not in keys:
+        if key not in keys and not key.startswith(("stock:", "fund:")):
             keys.append(key)
     return keys
 

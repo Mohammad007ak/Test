@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.adapters.prices import PriceSource
-from app.price_refresh import refresh_all
+from app.price_refresh import due_sources, refresh_all
 
 log = logging.getLogger("finassist.prices")
 
@@ -55,7 +55,7 @@ class Activity:
 
 def refresh_now(factory: sessionmaker[Session], sources: list[PriceSource]) -> bool:
     with factory() as session:
-        statuses = refresh_all(session, sources)
+        statuses = refresh_all(session, due_sources(session, sources))
     for status in statuses:
         if status.ok:
             log.info("%s: %d قیمت دریافت شد", status.name, status.count)

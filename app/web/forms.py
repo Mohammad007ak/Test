@@ -31,6 +31,7 @@ class Field:
     min: int | None = None
     max: int | None = None
     widget: str = ""  # «chips»: گزینه‌ها به‌صورت دکمه‌های لمسی به‌جای منوی کشویی
+    suggest: str = ""  # پیشنهاد هنگام تایپ از قیمت‌های موجود با این پیشوند (stock، fund)
     group: str = ""  # برای دسته‌بندی فیلدهای فرم‌های طولانی
 
     @property
@@ -136,7 +137,10 @@ ASSET_FIELDS = [
           kinds=("coin",), widget="chips"),
     Field("crypto_symbol", "رمزارز", "select", required=True, options=CRYPTO_OPTIONS,
           kinds=("crypto",)),
-    Field("symbol", "نماد", "text", required=True, kinds=("stock", "fund"), hint="مثلاً فولاد"),
+    Field("symbol", "نماد", "text", required=True, kinds=("stock",), suggest="stock",
+          hint="مثلاً فملی؛ قیمت از دیتابورس می‌آید"),
+    Field("fund_name", "نام صندوق", "text", required=True, kinds=("fund",), suggest="fund",
+          hint="از فهرست انتخاب کن تا با نام صندوق در دیتابورس یکی باشد"),
     Field("quantity", "مقدار", "decimal", required=True,
           kinds=("fx", "gold", "coin", "stock", "fund", "crypto"),
           hint="گرم، عدد سکه، تعداد سهم یا واحد ارز"),

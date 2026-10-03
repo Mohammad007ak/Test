@@ -1,4 +1,4 @@
-{% from "_fields.html" import field %}
+{% from "_fields.html" import field with context %}
 {% from "_ui.html" import icon %}
 {% set action = "/" ~ entity.slug ~ ("/" ~ edit_id if edit_id else "") %}
 <form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#sheet-body" hx-swap="innerHTML"

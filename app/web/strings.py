@@ -285,7 +285,8 @@ TOASTS.update({
     "refreshed": "{count} قیمت به‌روز شد",
     "refresh_failed": "دریافت از {names} ناموفق بود؛ آخرین قیمت‌ها حفظ شد",
 })
-SOURCE_LABELS: dict[str, str] = {"alanchand": "الان‌چند", "manual": "دستی"}
+SOURCE_LABELS: dict[str, str] = {"alanchand": "الان‌چند", "databourse": "دیتابورس",
+                                 "manual": "دستی"}
 T.update({
     "refresh_now": "به‌روزرسانی از منبع",
     "source_never": "هنوز دریافتی انجام نشده",

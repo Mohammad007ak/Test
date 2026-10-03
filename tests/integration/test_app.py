@@ -25,7 +25,10 @@ class StubSource:
         if self.fail:
             raise PriceSourceError("قطع")
         return [FetchedQuote("usd", 102_500), FetchedQuote("gold18_gram", 8_200_000),
-                FetchedQuote("crypto:shib", 1_531_476, units=1_000_000)]
+                FetchedQuote("crypto:shib", 1_531_476, units=1_000_000),
+                FetchedQuote("stock:فملی", 28_120, units=10),
+                FetchedQuote("stock:شپدیس", 12_310, units=10),
+                FetchedQuote("fund:طلای عیار مفید", 515_560, units=10)]
 
 
 @pytest.fixture
@@ -93,7 +96,7 @@ class TestDataEntry:
         assert "۱۰۰<small>میلیون تومان" in client.get("/assets").text
 
     def test_stock_symbol_builds_price_key(self, client: TestClient) -> None:
-        client.post("/assets", data={"kind": "stock", "name": "فولاد", "symbol": "فولاد",
+        client.post("/assets", data={"kind": "stock", "name": "فولاد", "symbol": " فولاد ",
                                      "quantity": "1000"})
         assert "۱۰۰۰" in client.get("/assets").text
         with db(client) as s:
@@ -253,8 +256,8 @@ def test_names_keep_persian_digits(client: TestClient) -> None:
 class TestPriceRefresh:
     def test_refresh_button_fetches_and_shows_status(self, client: TestClient) -> None:
         response = client.post("/prices/refresh")
-        assert "۳ قیمت به‌روز شد" in response.text
-        assert "۸٬۲۰۰٬۰۰۰ تومان" in response.text and "۳ قیمت ·" in response.text
+        assert "۶ قیمت به‌روز شد" in response.text
+        assert "۸٬۲۰۰٬۰۰۰ تومان" in response.text and "۶ قیمت ·" in response.text
 
     def test_failed_source_keeps_last_prices(self, client: TestClient) -> None:
         client.post("/prices/refresh")
@@ -282,3 +285,27 @@ def test_cheap_crypto_is_valued_with_full_precision(client: TestClient) -> None:
     # ۱۰ میلیون × ۱٫۵۳۱۴۷۶ تومان (نه ۲ تومانِ گردشده)
     assert "۱۵٫۳<small>میلیون تومان" in client.get("/assets").text
     assert "۱٫۵۳۱۴۷۶ تومان" in client.get("/prices").text
+
+
+class TestStocksAndFunds:
+    def test_stock_and_fund_valued_from_source(self, client: TestClient) -> None:
+        client.post("/prices/refresh")
+        client.post("/assets", data={"kind": "stock", "name": "مس", "symbol": "فملی",
+                                     "quantity": "۱۰۰۰"})
+        client.post("/assets", data={"kind": "fund", "name": "صندوق طلا",
+                                     "fund_name": "طلای  عیار مفید", "quantity": "۲۰۰"})
+        page = client.get("/assets").text
+        assert "۲٫۸<small>میلیون تومان" in page   # ۱۰۰۰ × ۲٬۸۱۲ تومان
+        assert "۱۰٫۳<small>میلیون تومان" in page  # ۲۰۰ × ۵۱٬۵۵۶ تومان
+
+    def test_form_suggests_known_symbols(self, client: TestClient) -> None:
+        client.post("/prices/refresh")
+        form = client.get("/assets/new", headers={"HX-Request": "true"}).text
+        assert '<option value="فملی">' in form and '<option value="طلای عیار مفید">' in form
+
+    def test_prices_page_lists_only_owned_stocks(self, client: TestClient) -> None:
+        client.post("/prices/refresh")
+        client.post("/assets", data={"kind": "stock", "name": "مس", "symbol": "فملی",
+                                     "quantity": "1"})
+        page = client.get("/prices").text
+        assert "فملی · سهام" in page and "شپدیس" not in page
