@@ -7,6 +7,7 @@
   <p class="muted">{{ T.setup_hint }}</p>
   {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
   <form method="post" action="/setup" class="form">
+    {% if need_code %}<div class="input"><input id="setup_code" type="text" name="setup_code" dir="ltr" autocomplete="off" placeholder="{{ T.setup_code }}" aria-label="{{ T.setup_code }}" required></div>{% endif %}
     <div class="input"><input id="password" type="password" name="password" autocomplete="new-password" minlength="8" placeholder="{{ T.password }}" aria-label="{{ T.password }}" required autofocus></div>
     <div class="input"><input id="password_repeat" type="password" name="password_repeat" autocomplete="new-password" minlength="8" placeholder="{{ T.password_repeat }}" aria-label="{{ T.password_repeat }}" required></div>
     <button type="submit" class="btn wide">{{ T.save }}</button>

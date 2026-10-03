@@ -117,3 +117,9 @@ def test_phone_endpoint_uses_mac_name_for_local_hosts() -> None:
     assert phone_endpoint("127.0.0.1", 8000, "MY-MAC.local") == "http://MY-MAC.local:8000/api/sms"
     assert phone_endpoint("0.0.0.0", 8000, "MY-MAC") == "http://MY-MAC.local:8000/api/sms"
     assert phone_endpoint("192.168.1.5", 8000, "x") == "http://192.168.1.5:8000/api/sms"
+
+
+def test_sms_page_shows_https_endpoint_behind_proxy(client: TestClient) -> None:
+    page = client.get("/sms", headers={"X-Forwarded-Proto": "https",
+                                       "Host": "finassist.example.ir"}).text
+    assert "https://finassist.example.ir/api/sms" in page

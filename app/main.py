@@ -1,6 +1,7 @@
 """ساخت اپ FastAPI و مسیرهای وب."""
 
 import asyncio
+import hmac
 import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -136,29 +137,38 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
 
     register_sms_routes(app, settings)
     register_extra_routes(app)
-    _register_routes(app)
+    _register_routes(app, settings)
     return app
 
 
-def _register_routes(app: FastAPI) -> None:
+def _register_routes(app: FastAPI, settings: Settings) -> None:
+    throttle = auth.LoginThrottle()
+
     # ---------- ورود ----------
 
     @app.get("/setup", response_class=HTMLResponse)
     def setup_form(request: Request, db: Db) -> Response:
         if auth.has_password(db):
             return redirect("/login")
-        return page(request, "setup.html", {})
+        return page(request, "setup.html", {"need_code": bool(settings.setup_code)})
 
     @app.post("/setup", response_class=HTMLResponse)
     async def setup(request: Request, db: Db) -> Response:
         if auth.has_password(db):
             return redirect("/login")
         data = await read_form(request)
+        need_code = bool(settings.setup_code)
+        if need_code and not hmac.compare_digest(
+                data.get("setup_code", "").strip().encode(), settings.setup_code.encode()):
+            return page(request, "setup.html", {"error": s.T["setup_code_wrong"],
+                                                "need_code": need_code}, 403)
         password = data.get("password", "")
         if len(password) < auth.MIN_PASSWORD_LENGTH:
-            return page(request, "setup.html", {"error": s.T["password_short"]}, 400)
+            return page(request, "setup.html", {"error": s.T["password_short"],
+                                                "need_code": need_code}, 400)
         if password != data.get("password_repeat"):
-            return page(request, "setup.html", {"error": s.T["password_mismatch"]}, 400)
+            return page(request, "setup.html", {"error": s.T["password_mismatch"],
+                                                "need_code": need_code}, 400)
         auth.set_password(db, password)
         db.commit()
         request.session["authenticated"] = True
@@ -172,9 +182,14 @@ def _register_routes(app: FastAPI) -> None:
 
     @app.post("/login", response_class=HTMLResponse)
     async def login(request: Request, db: Db) -> Response:
+        client = request.client.host if request.client else ""
+        if not throttle.allowed(client):
+            return page(request, "login.html", {"error": s.T["login_locked"]}, 429)
         data = await read_form(request)
         if not auth.check_password(db, data.get("password", "")):
+            throttle.failed(client)
             return page(request, "login.html", {"error": s.T["wrong_password"]}, 401)
+        throttle.succeeded(client)
         request.session.clear()
         request.session["authenticated"] = True
         return redirect("/")

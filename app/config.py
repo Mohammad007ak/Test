@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/finassist.db"
     secret_key: str = ""
     secure_cookies: bool = False
+    setup_code: str = ""  # روی سرور: بدون این کد کسی نمی‌تواند اولین رمز را بگذارد
     timezone: str = "Asia/Tehran"
     price_refresh_seconds: int = 30  # وقتی اپ باز است؛ ۰ = دریافت خودکار خاموش
     price_idle_minutes: int = 60  # وقتی کسی اپ را نگاه نمی‌کند

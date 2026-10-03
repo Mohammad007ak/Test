@@ -53,12 +53,19 @@ def ingest_token(db: Session, settings: Settings) -> str:
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "0.0.0.0", "::1"}
 
 
-def phone_endpoint(host: str, port: int | None, machine: str | None = None) -> str:
+def phone_endpoint(host: str, port: int | None, machine: str | None = None,
+                   scheme: str = "http") -> str:
     """آدرسی که آیفون باید بزند؛ 127.0.0.1 از گوشی کار نمی‌کند، پس اسم ثابت مک (.local)."""
     if host in _LOCAL_HOSTS:
         name = (machine or socket.gethostname()).split(".")[0]
         host = f"{name}.local"
-    return f"http://{host}{f':{port}' if port else ''}/api/sms"
+    return f"{scheme}://{host}{f':{port}' if port else ''}/api/sms"
+
+
+def _public_scheme(request: Request) -> str:
+    """پشت پروکسی سرور (HTTPS) آدرس واقعی از هدر X-Forwarded-Proto می‌آید."""
+    forwarded = request.headers.get("x-forwarded-proto", "").split(",")[0].strip()
+    return forwarded if forwarded in ("http", "https") else request.url.scheme
 
 
 def queue_count(db: Session) -> int:
@@ -112,7 +119,8 @@ def register_sms_routes(app: FastAPI, settings: Settings) -> None:
         return page(request, "sms.html", {
             "active": "sms", "queue": queue, "recent": recent,
             "token": ingest_token(db, settings),
-            "endpoint": phone_endpoint(request.url.hostname or "", request.url.port),
+            "endpoint": phone_endpoint(request.url.hostname or "", request.url.port,
+                                       scheme=_public_scheme(request)),
             "watched_file": settings.sms_file,
         })
 

@@ -73,6 +73,23 @@ class TestAuth:
         client.post("/login", data={"password": PASSWORD})
         assert client.get("/assets").status_code == 200
 
+    def test_login_locked_after_repeated_failures(self, client: TestClient) -> None:
+        client.post("/logout")
+        for _ in range(5):
+            assert client.post("/login", data={"password": "wrong-pass"}).status_code == 401
+        assert client.post("/login", data={"password": PASSWORD}).status_code == 429
+
+    def test_setup_code_required_when_configured(self, tmp_path: Path) -> None:
+        settings = Settings(database_url=f"sqlite:///{tmp_path / 'c.db'}", secret_key="t",
+                            setup_code="open-sesame")
+        app = create_app(settings, migrate=True, price_sources=[], schedule=False)
+        with TestClient(app) as c:
+            form = {"password": PASSWORD, "password_repeat": PASSWORD}
+            assert c.post("/setup", data=form).status_code == 403
+            response = c.post("/setup", data=form | {"setup_code": "open-sesame"},
+                              follow_redirects=False)
+            assert response.status_code == 303
+
     def test_htmx_request_gets_redirect_header(self, app_client: TestClient) -> None:
         response = app_client.post("/assets/1/delete", headers={"HX-Request": "true"})
         assert response.status_code == 401
