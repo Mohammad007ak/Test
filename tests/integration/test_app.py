@@ -261,3 +261,12 @@ class TestPriceRefresh:
         page = client.post("/prices/refresh").text
         assert "ناموفق بود؛ آخرین قیمت‌ها حفظ شد" in page
         assert "۱۰۲٬۵۰۰ تومان" in page and "ناموفق ·" in page
+
+
+def test_static_assets_are_versioned(client: TestClient) -> None:
+    import re
+
+    page = client.get("/").text
+    css = re.search(r'href="(/static/css/app\.css\?v=[0-9a-f]{10})"', page)
+    assert css, "CSS بدون نشانه نسخه است؛ مرورگر ممکن است نسخه قدیمی را نشان دهد"
+    assert client.get(css.group(1)).status_code == 200

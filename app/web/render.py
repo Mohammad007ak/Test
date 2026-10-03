@@ -1,7 +1,9 @@
 """Jinja2 با فیلترهای فارسی (تومان، درصد، تاریخ شمسی)."""
 
+import hashlib
 from datetime import date, datetime
 from decimal import Decimal
+from functools import cache
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -21,6 +23,14 @@ from app.web import strings
 from app.web.forms import plain_decimal
 
 TEHRAN = ZoneInfo("Asia/Tehran")
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+
+@cache
+def static_url(path: str) -> str:
+    """آدرس فایل استاتیک با نشانه نسخه؛ پس از هر تغییر، مرورگر نسخه کش‌شده قدیمی را کنار می‌گذارد."""
+    digest = hashlib.sha256((STATIC_DIR / path).read_bytes()).hexdigest()[:10]
+    return f"/static/{path}?v={digest}"
 
 
 def jalali(value: datetime | date | None, with_time: bool = True) -> str:
@@ -62,4 +72,4 @@ templates.env.filters.update(
     fa=lambda v: to_persian_digits(str(v)),
     dec=plain_decimal,
 )
-templates.env.globals.update(s=strings, T=strings.T)
+templates.env.globals.update(s=strings, T=strings.T, static=static_url)
