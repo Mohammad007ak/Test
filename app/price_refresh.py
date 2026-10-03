@@ -11,7 +11,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.adapters.prices import FetchedQuote, PriceSource
+from app.adapters.prices import FetchedQuote, PriceSource, PriceSourceError
 from app.models import PriceQuote, utcnow
 from app.services import get_setting, latest_quotes, set_setting
 
@@ -25,6 +25,43 @@ class SourceStatus:
     ok: bool
     count: int
     error: str = ""
+    # برای منبعی که نمادهای کاربران را می‌گیرد (شاخص‌بان)؛ جدا نگه داشته می‌شوند تا
+    # به هر کاربر فقط نمادهای خودش نشان داده شود
+    missing: tuple[str, ...] = ()
+    stale: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True)
+class SourceView:
+    """وضعیت منبع از دید یک کاربر."""
+
+    name: str
+    at: datetime
+    ok: bool
+    count: int
+    note: str = ""
+    idle: bool = False  # کاربر نمادی ندارد که این منبع برایش قیمت بگیرد
+
+
+def view_for_user(status: SourceStatus, user_keys: set[str], per_user: bool) -> SourceView:
+    if not per_user:
+        return SourceView(status.name, status.at, status.ok, status.count, status.error)
+    symbols = {key.partition(":")[2] for key in user_keys}
+    if not symbols:
+        return SourceView(status.name, status.at, True, 0, idle=True)
+    missing = [m for m in status.missing if m in symbols]
+    stale = [f"{sym} (آخرین معامله {day})" for sym, day in status.stale if sym in symbols]
+    parts = []
+    if missing:
+        parts.append("پیدا نشد: " + "، ".join(missing))
+    if stale:
+        parts.append("قیمت قدیمی: " + "، ".join(stale))
+    connection_failed = not status.ok and not status.missing
+    if connection_failed:
+        parts.append(status.error)
+    count = len(symbols) - len(missing)
+    return SourceView(status.name, status.at, not missing and not connection_failed,
+                      max(count, 0), " · ".join(p for p in parts if p))
 
 
 def _valid(quote: FetchedQuote) -> bool:
@@ -36,7 +73,10 @@ def refresh_source(session: Session, source: PriceSource) -> SourceStatus:
     try:
         quotes = [q for q in source.fetch() if _valid(q)]
     except Exception as exc:  # هر خطای منبع فقط همان منبع را از کار می‌اندازد
-        status = SourceStatus(source.name, now, False, 0, f"{type(exc).__name__}: {exc}"[:300])
+        message = str(exc) if isinstance(exc, PriceSourceError) else f"{type(exc).__name__}: {exc}"
+        status = SourceStatus(source.name, now, False, 0, message[:300],
+                              tuple(getattr(source, "missing", ())),
+                              tuple(getattr(source, "stale", ())))
     else:
         latest = latest_quotes(session)
         for quote in quotes:
@@ -50,7 +90,9 @@ def refresh_source(session: Session, source: PriceSource) -> SourceStatus:
                                        units=quote.units, fetched_at=now, source=source.name))
         warning = getattr(source, "warning", "")  # مثلاً نماد پیدانشده یا قیمت قدیمی
         status = SourceStatus(source.name, now, bool(quotes), len(quotes),
-                              warning if quotes else warning or "هیچ قیمتی دریافت نشد")
+                              warning if quotes else warning or "هیچ قیمتی دریافت نشد",
+                              tuple(getattr(source, "missing", ())),
+                              tuple(getattr(source, "stale", ())))
     _save_status(session, status)
     session.commit()
     return status
@@ -92,7 +134,8 @@ def _has_unpriced(session: Session, source: PriceSource) -> bool:
 def _save_status(session: Session, status: SourceStatus) -> None:
     set_setting(session, STATUS_KEY.format(name=status.name), json.dumps({
         "at": status.at.isoformat(), "ok": status.ok, "count": status.count,
-        "error": status.error}, ensure_ascii=False))
+        "error": status.error, "missing": list(status.missing),
+        "stale": [list(pair) for pair in status.stale]}, ensure_ascii=False))
 
 
 def load_status(session: Session, name: str) -> SourceStatus | None:
@@ -101,4 +144,5 @@ def load_status(session: Session, name: str) -> SourceStatus | None:
         return None
     data = json.loads(raw)
     return SourceStatus(name, datetime.fromisoformat(data["at"]), data["ok"], data["count"],
-                        data["error"])
+                        data["error"], tuple(data.get("missing", ())),
+                        tuple((sym, day) for sym, day in data.get("stale", ())))

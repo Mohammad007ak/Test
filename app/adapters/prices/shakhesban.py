@@ -91,6 +91,8 @@ class ShakhesbanSource:
         self._today = today
         self._pause = pause
         self.warning = ""
+        self.missing: list[str] = []
+        self.stale: list[tuple[str, str]] = []  # (نماد، تاریخ شمسی آخرین معامله)
 
     def wanted_keys(self) -> list[str]:
         return self._wanted()
@@ -99,9 +101,10 @@ class ShakhesbanSource:
         return bool(self.wanted_keys())
 
     def fetch(self) -> list[FetchedQuote]:
+        self.missing, self.stale = [], []
         quotes: list[FetchedQuote] = []
         missing: list[str] = []
-        stale: list[str] = []
+        stale: list[tuple[str, str]] = []
         for index, key in enumerate(self._wanted()):
             if index and self._pause:
                 time.sleep(self._pause)  # فشار کم روی سایت
@@ -113,13 +116,14 @@ class ShakhesbanSource:
                 continue
             if row.trade_date and (self._today() - row.trade_date).days > STALE_DAYS:
                 shamsi = jdatetime.date.fromgregorian(date=row.trade_date).strftime("%Y/%m/%d")
-                stale.append(f"{symbol} (آخرین معامله {shamsi})")
+                stale.append((symbol, shamsi))
             quotes.append(FetchedQuote(key, row.final_rial, units=RIAL_PER_TOMAN))
+        self.missing, self.stale = missing, stale
         parts = []
         if missing:
             parts.append("پیدا نشد: " + "، ".join(missing))
         if stale:
-            parts.append("قیمت قدیمی: " + "، ".join(stale))
+            parts.append("قیمت قدیمی: " + "، ".join(f"{s} (آخرین معامله {d})" for s, d in stale))
         self.warning = " · ".join(parts)
         if missing and not quotes:
             raise PriceSourceError(self.warning)

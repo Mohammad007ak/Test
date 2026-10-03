@@ -291,6 +291,7 @@ SOURCE_LABELS: dict[str, str] = {"alanchand": "الان‌چند", "shakhesban":
 T.update({
     "refresh_now": "به‌روزرسانی از منبع",
     "source_never": "هنوز دریافتی انجام نشده",
+    "source_idle": "سهم یا صندوقی ثبت نکرده‌ای؛ کاری برای این منبع نیست",
     "source_ok": "{count} قیمت · {at}",
     "source_failed": "ناموفق · {at}",
     "no_sources": "هنوز منبع خودکاری فعال نیست؛ قیمت‌ها را دستی وارد کن.",

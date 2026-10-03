@@ -534,8 +534,17 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
     rows = [{"key": key, "label": _price_label(key), "quote": quotes.get(key),
              "group": _price_group(key, used)}
             for key in _price_keys(db)]
-    sources = [price_refresh.load_status(db, source.name) or source.name
-               for source in request.app.state.price_sources]
+    user_keys = set(services.owned_market_keys(db))  # فقط نمادهای همین کاربر
+    sources: list[Any] = []
+    for source in request.app.state.price_sources:
+        last = price_refresh.load_status(db, source.name)
+        per_user = hasattr(source, "wanted_keys")
+        if per_user and not user_keys:
+            sources.append(price_refresh.SourceView(source.name, utcnow(), True, 0, idle=True))
+        elif last is None:
+            sources.append(source.name)
+        else:
+            sources.append(price_refresh.view_for_user(last, user_keys, per_user))
     return page(request, "prices.html", {"active": "prices", "rows": rows, "sources": sources,
                                          "errors": errors or {}}, status)
 

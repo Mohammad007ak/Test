@@ -8,10 +8,13 @@
     {% if src is string %}
       <span class="status-dot"></span><strong>{{ s.SOURCE_LABELS.get(src, src) }}</strong>
       <span class="muted small">{{ T.source_never }}</span>
+    {% elif src.idle %}
+      <span class="status-dot"></span><strong>{{ s.SOURCE_LABELS.get(src.name, src.name) }}</strong>
+      <span class="muted small">{{ T.source_idle }}</span>
     {% else %}
       <span class="status-dot {{ 'ok' if src.ok else 'bad' }}"></span><strong>{{ s.SOURCE_LABELS.get(src.name, src.name) }}</strong>
       <span class="muted small">{{ (T.source_ok if src.ok else T.source_failed).format(count=src.count | fa, at=src.at | jalali) }}</span>
-      {% if src.error %}<span class="source-note {{ 'warn' if src.ok else 'bad' }}">{{ src.error }}</span>{% endif %}
+      {% if src.note %}<span class="source-note {{ 'warn' if src.ok else 'bad' }}">{{ src.note }}</span>{% endif %}
     {% endif %}
   </div>
   {% endfor %}
