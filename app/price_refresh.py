@@ -48,15 +48,22 @@ def refresh_source(session: Session, source: PriceSource) -> SourceStatus:
             else:
                 session.add(PriceQuote(key=quote.key, price_toman=quote.price_toman,
                                        units=quote.units, fetched_at=now, source=source.name))
+        warning = getattr(source, "warning", "")  # مثلاً نماد پیدانشده یا قیمت قدیمی
         status = SourceStatus(source.name, now, bool(quotes), len(quotes),
-                              "" if quotes else "هیچ قیمتی دریافت نشد")
+                              warning if quotes else warning or "هیچ قیمتی دریافت نشد")
     _save_status(session, status)
     session.commit()
     return status
 
 
+def _has_work(source: PriceSource) -> bool:
+    """منبعی که فقط برای دارایی‌های کاربر قیمت می‌گیرد، بدون دارایی کاری ندارد."""
+    check = getattr(source, "has_work", None)
+    return check() if check else True
+
+
 def refresh_all(session: Session, sources: list[PriceSource]) -> list[SourceStatus]:
-    return [refresh_source(session, source) for source in sources]
+    return [refresh_source(session, source) for source in sources if _has_work(source)]
 
 
 def due_sources(session: Session, sources: list[PriceSource],
@@ -69,7 +76,17 @@ def due_sources(session: Session, sources: list[PriceSource],
         status = load_status(session, source.name) if interval else None
         if status is None or (now - status.at).total_seconds() >= interval:
             due.append(source)
+        elif _has_unpriced(session, source):  # نماد تازه ثبت‌شده منتظر ۱۰ دقیقه نماند
+            due.append(source)
     return due
+
+
+def _has_unpriced(session: Session, source: PriceSource) -> bool:
+    wanted = getattr(source, "wanted_keys", None)
+    if wanted is None:
+        return False
+    known = latest_quotes(session)
+    return any(key not in known for key in wanted())
 
 
 def _save_status(session: Session, status: SourceStatus) -> None:

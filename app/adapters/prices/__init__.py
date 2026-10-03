@@ -2,13 +2,7 @@
 
 from app.adapters.prices.alanchand import AlanchandSource
 from app.adapters.prices.base import FetchedQuote, PriceSource, PriceSourceError
-from app.adapters.prices.databourse import DatabourseSource
+from app.adapters.prices.shakhesban import ShakhesbanSource
 
-# منابع فعال
-SOURCES: dict[str, type[PriceSource]] = {
-    "alanchand": AlanchandSource,
-    "databourse": DatabourseSource,
-}
-
-__all__ = ["SOURCES", "AlanchandSource", "DatabourseSource", "FetchedQuote", "PriceSource",
-           "PriceSourceError"]
+__all__ = ["AlanchandSource", "FetchedQuote", "PriceSource", "PriceSourceError",
+           "ShakhesbanSource"]

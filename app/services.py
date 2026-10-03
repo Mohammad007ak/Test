@@ -66,6 +66,13 @@ def latest_quotes(session: Session) -> dict[str, PriceQuote]:
     return quotes
 
 
+def owned_market_keys(session: Session) -> list[str]:
+    """کلیدهای قیمت سهام و صندوق‌هایی که کاربر به‌عنوان دارایی ثبت کرده."""
+    keys = session.scalars(select(Asset.price_key).where(Asset.kind.in_(("stock", "fund")),
+                                                         Asset.price_key.is_not(None)))
+    return sorted({key for key in keys if key})
+
+
 def add_quote(session: Session, key: str, price_toman: int, source: str = "manual") -> PriceQuote:
     quote = PriceQuote(key=key, price_toman=price_toman, fetched_at=utcnow(), source=source)
     session.add(quote)

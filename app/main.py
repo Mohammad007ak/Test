@@ -16,11 +16,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import price_refresh, services
-from app.adapters.prices import SOURCES, PriceSource
+from app.adapters.prices import AlanchandSource, PriceSource, ShakhesbanSource
 from app.config import Settings, get_settings
 from app.db import Base, make_engine, make_session_factory
 from app.domain.loan import LoanInput, analyze_loan
@@ -48,8 +48,14 @@ def run_migrations(database_url: str) -> None:
     command.upgrade(config, "head")
 
 
-def default_price_sources() -> list[PriceSource]:
-    return [source() for source in SOURCES.values()]
+def default_price_sources(factory: sessionmaker[Session]) -> list[PriceSource]:
+    """منابع فعال: الان‌چند (ارز، طلا، سکه، رمزارز) و شاخص‌بان (سهام و صندوق‌های کاربر)."""
+
+    def owned() -> list[str]:
+        with factory() as session:
+            return services.owned_market_keys(session)
+
+    return [AlanchandSource(), ShakhesbanSource(wanted=owned)]
 
 
 def create_app(settings: Settings | None = None, *, migrate: bool = True,
@@ -66,7 +72,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     with factory() as session:
         secret = auth.session_secret(session, settings.secret_key)
 
-    sources = default_price_sources() if price_sources is None else price_sources
+    sources = default_price_sources(factory) if price_sources is None else price_sources
 
     activity = Activity(Pace(active_seconds=settings.price_refresh_seconds,
                              idle_seconds=settings.price_idle_minutes * 60))

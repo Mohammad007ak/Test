@@ -28,7 +28,7 @@ class StubSource:
                 FetchedQuote("crypto:shib", 1_531_476, units=1_000_000),
                 FetchedQuote("stock:فملی", 28_120, units=10),
                 FetchedQuote("stock:شپدیس", 12_310, units=10),
-                FetchedQuote("fund:طلای عیار مفید", 515_560, units=10)]
+                FetchedQuote("fund:عیار", 739_824, units=10)]
 
 
 @pytest.fixture
@@ -293,15 +293,15 @@ class TestStocksAndFunds:
         client.post("/assets", data={"kind": "stock", "name": "مس", "symbol": "فملی",
                                      "quantity": "۱۰۰۰"})
         client.post("/assets", data={"kind": "fund", "name": "صندوق طلا",
-                                     "fund_name": "طلای  عیار مفید", "quantity": "۲۰۰"})
+                                     "fund_symbol": " عیار ", "quantity": "۲۰۰"})
         page = client.get("/assets").text
         assert "۲٫۸<small>میلیون تومان" in page   # ۱۰۰۰ × ۲٬۸۱۲ تومان
-        assert "۱۰٫۳<small>میلیون تومان" in page  # ۲۰۰ × ۵۱٬۵۵۶ تومان
+        assert "۱۴٫۸<small>میلیون تومان" in page  # ۲۰۰ × ۷۳٬۹۸۲٫۴ تومان
 
     def test_form_suggests_known_symbols(self, client: TestClient) -> None:
         client.post("/prices/refresh")
         form = client.get("/assets/new", headers={"HX-Request": "true"}).text
-        assert '<option value="فملی">' in form and '<option value="طلای عیار مفید">' in form
+        assert '<option value="فملی">' in form and '<option value="عیار">' in form
 
     def test_prices_page_lists_only_owned_stocks(self, client: TestClient) -> None:
         client.post("/prices/refresh")

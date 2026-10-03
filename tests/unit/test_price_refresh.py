@@ -97,3 +97,42 @@ def test_slow_source_is_skipped_until_its_interval_passes(session: Session) -> N
     now = utcnow()
     assert due_sources(session, [fast, slow], now + timedelta(seconds=30)) == [fast]
     assert due_sources(session, [fast, slow], now + timedelta(seconds=601)) == [fast, slow]
+
+
+class OwnedOnlySource(FakeSource):
+    """مثل شاخص‌بان: فقط برای نمادهای کاربر قیمت می‌گیرد."""
+
+    min_interval = 600
+
+    def __init__(self, keys: list[str]) -> None:
+        super().__init__("owned", [FetchedQuote(k, 10_000, units=10) for k in keys])
+        self.keys = keys
+        self.warning = ""
+
+    def wanted_keys(self) -> list[str]:
+        return self.keys
+
+    def has_work(self) -> bool:
+        return bool(self.keys)
+
+
+def test_source_without_owned_symbols_is_skipped(session: Session) -> None:
+    assert refresh_all(session, [OwnedOnlySource([])]) == []
+
+
+def test_new_symbol_makes_slow_source_due_immediately(session: Session) -> None:
+    from app.price_refresh import due_sources
+
+    source = OwnedOnlySource(["stock:فملی"])
+    refresh_all(session, [source])
+    assert due_sources(session, [source]) == []  # تازه گرفته شده؛ تا ۱۰ دقیقه نه
+    source.keys = ["stock:فملی", "fund:عیار"]  # کاربر نماد تازه اضافه کرد
+    assert due_sources(session, [source]) == [source]
+
+
+def test_warning_is_kept_on_success(session: Session) -> None:
+    source = OwnedOnlySource(["stock:فملی"])
+    source.warning = "پیدا نشد: ناموجود"
+    status = refresh_all(session, [source])[0]
+    assert status.ok and status.error == "پیدا نشد: ناموجود"
+    assert load_status(session, "owned").error == "پیدا نشد: ناموجود"  # type: ignore[union-attr]

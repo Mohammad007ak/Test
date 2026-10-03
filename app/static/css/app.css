@@ -1022,3 +1022,6 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
 
 .other-prices .list.flat { box-shadow: none; margin: 0 0 8px; }
 .other-prices > .list { margin: 0; }
+.source-note { flex-basis: 100%; font-size: .78rem; padding-inline-start: 17px; }
+.source-note.warn { color: var(--warn); }
+.source-note.bad { color: var(--bad); }
