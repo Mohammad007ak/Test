@@ -109,3 +109,11 @@ def test_upload_file(client: TestClient) -> None:
 def test_sms_pages_need_login(client: TestClient) -> None:
     client.post("/logout")
     assert client.get("/sms", follow_redirects=False).status_code == 303
+
+
+def test_phone_endpoint_uses_mac_name_for_local_hosts() -> None:
+    from app.web.sms_routes import phone_endpoint
+
+    assert phone_endpoint("127.0.0.1", 8000, "MY-MAC.local") == "http://MY-MAC.local:8000/api/sms"
+    assert phone_endpoint("0.0.0.0", 8000, "MY-MAC") == "http://MY-MAC.local:8000/api/sms"
+    assert phone_endpoint("192.168.1.5", 8000, "x") == "http://192.168.1.5:8000/api/sms"

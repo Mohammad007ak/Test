@@ -2,6 +2,7 @@
 
 import hmac
 import secrets
+import socket
 import time
 from collections import deque
 from datetime import datetime
@@ -47,6 +48,17 @@ def ingest_token(db: Session, settings: Settings) -> str:
         services.set_setting(db, TOKEN_KEY, token)
         db.commit()
     return token
+
+
+_LOCAL_HOSTS = {"127.0.0.1", "localhost", "0.0.0.0", "::1"}
+
+
+def phone_endpoint(host: str, port: int | None, machine: str | None = None) -> str:
+    """آدرسی که آیفون باید بزند؛ 127.0.0.1 از گوشی کار نمی‌کند، پس اسم ثابت مک (.local)."""
+    if host in _LOCAL_HOSTS:
+        name = (machine or socket.gethostname()).split(".")[0]
+        host = f"{name}.local"
+    return f"http://{host}{f':{port}' if port else ''}/api/sms"
 
 
 def queue_count(db: Session) -> int:
@@ -100,7 +112,7 @@ def register_sms_routes(app: FastAPI, settings: Settings) -> None:
         return page(request, "sms.html", {
             "active": "sms", "queue": queue, "recent": recent,
             "token": ingest_token(db, settings),
-            "endpoint": str(request.base_url).rstrip("/") + "/api/sms",
+            "endpoint": phone_endpoint(request.url.hostname or "", request.url.port),
             "watched_file": settings.sms_file,
         })
 

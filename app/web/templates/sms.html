@@ -35,23 +35,18 @@
 <details class="card disclosure">
   <summary>{{ T.sms_setup }}</summary>
   <div class="setup">
-    <h3>راه ۱: فایل در iCloud Drive (پیشنهادی)</h3>
     <ol>
-      <li>در اپ Shortcuts روی آیفون: <b>Automation ← + ← Message</b>؛ «Message Contains» را مثلاً روی «مانده» بگذار و <b>Run Immediately</b> را روشن کن.</li>
-      <li>اکشن <b>Append to Text File</b>: فایل <code>bank_sms.txt</code> (پوشه Shortcuts در iCloud Drive)، با این متن:
-        <pre dir="ltr">--- [Current Date (ISO 8601)]
-[Shortcut Input → Content]</pre></li>
-      <li>روی مک بعد از اولین پیامک، مسیر فایل را با این دستور پیدا کن:
-        <pre dir="ltr">find ~/Library/Mobile\ Documents -name bank_sms.txt</pre>
-        و در فایل <code>.env</code> پروژه بنویس:
-        <pre dir="ltr">FINASSIST_SMS_FILE="&lt;مسیری که دستور بالا نشان داد&gt;"</pre>
-        برنامه این فایل را هر دقیقه می‌خواند. {% if watched_file %}<b>فعال:</b> <code dir="ltr">{{ watched_file }}</code>{% else %}<b>هنوز تنظیم نشده.</b>{% endif %}</li>
-    </ol>
-    <h3>راه ۲: ارسال مستقیم (گوشی و مک در یک شبکه)</h3>
-    <ol>
-      <li>برنامه را با <code dir="ltr">--host 0.0.0.0</code> اجرا کن.</li>
-      <li>در همان Automation به‌جای Append، اکشن <b>Get Contents of URL</b>: روش <b>POST</b>، بدنه <b>JSON</b> با کلید <code>text</code> = محتوای پیامک، و هدر <code>X-Ingest-Token</code>.</li>
-      <li>آدرس: <code dir="ltr">{{ endpoint | replace("127.0.0.1", "آدرس-مک") }}</code></li>
+      <li>برنامه را روی مک با این دستور روشن کن (تا ترمینال باز است پیامک‌ها می‌رسند):
+        <pre dir="ltr">uv run uvicorn app.asgi:app --host 0.0.0.0</pre></li>
+      <li>در اپ Shortcuts آیفون: <b>Automation ← + ← Message</b>؛ «Message Contains» را روی «مانده» بگذار و <b>Run Immediately</b> را روشن کن. (برای «موجودی» هم یکی دیگر بساز.)</li>
+      <li>اکشن <b>Get Contents of URL</b> با این تنظیمات:
+        <ul>
+          <li>URL: <code dir="ltr">{{ endpoint }}</code></li>
+          <li>Method: <b>POST</b></li>
+          <li>Headers: <code dir="ltr">X-Ingest-Token</code> = توکن پایین</li>
+          <li>Request Body: <b>JSON</b>، فیلد Text با نام <code dir="ltr">text</code> و مقدار <b>Shortcut Input ← Content</b></li>
+        </ul></li>
+      <li>گوشی باید روی همان وای‌فای مک باشد.</li>
     </ol>
     <label class="label">{{ T.sms_token_label }}</label>
     <div class="token-row"><code dir="ltr" class="token">{{ token }}</code></div>
