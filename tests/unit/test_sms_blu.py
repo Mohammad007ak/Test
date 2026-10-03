@@ -34,6 +34,16 @@ def test_withdrawal() -> None:
     assert parsed.occurred_at == datetime(2026, 10, 1, 12, 42, tzinfo=UTC)  # ۹ مهر ۱۶:۱۲ تهران
 
 
+def test_deposit_real_sample() -> None:
+    deposit = (Path(__file__).parent.parent / "fixtures" / "sms" / "blu" / "deposit.txt"
+               ).read_text(encoding="utf-8")
+    parsed = BluParser().parse(mask_numbers(prepare(deposit)), NOW)
+    assert (parsed.direction, parsed.amount_rial) == ("in", 15_000_000)
+    assert parsed.balance_after_rial == 16_570_338
+    assert parsed.description == "واریز پول"
+    assert parsed.occurred_at == datetime(2026, 9, 28, 10, 17, tzinfo=UTC)  # ۶ مهر ۱۳:۴۷ تهران
+
+
 def test_unknown_blu_message_is_not_guessed() -> None:
     with pytest.raises(ValueError):
         BluParser().parse(prepare("بلو\nکد ورود شما 12345"), NOW)
