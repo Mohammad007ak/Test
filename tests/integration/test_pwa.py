@@ -58,8 +58,11 @@ def test_manifest_is_installable(client: TestClient) -> None:
 
 def test_assetlinks_published_by_default(client: TestClient) -> None:
     """اثر انگشت نسخه منتشرشده پیش‌فرض است؛ بدون تنظیم سرور هم اپ تمام‌صفحه باز شود."""
-    target = client.get("/.well-known/assetlinks.json").json()[0]["target"]
-    assert target["sha256_cert_fingerprints"][0].startswith("FA:D5:12:18")
+    links = client.get("/.well-known/assetlinks.json").json()
+    assert links[0]["target"]["sha256_cert_fingerprints"][0].startswith("FA:D5:12:18")
+    # کافه‌بازار هنگام بارگذاری APK همین پیوند را با فضای نام خودش می‌خواهد
+    bazaar = {"namespace": "cafebazaar_twa", "package_name": "ir.getvazir.app"}
+    assert links[1] == {"relation": ["check_validation"], "target": bazaar}
 
 
 def test_assetlinks_configurable(tmp_path: Path) -> None:

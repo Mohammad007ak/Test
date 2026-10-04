@@ -255,10 +255,14 @@ def _register_routes(app: FastAPI) -> None:
         """پیوند دامنه با اپ اندروید (TWA) تا بدون نوار آدرس باز شود."""
         prints = [f.strip().upper() for f in request.app.state.android_cert_sha256.split(",")
                   if f.strip()]
+        package = request.app.state.android_package
         body = [{"relation": ["delegate_permission/common.handle_all_urls"],
-                 "target": {"namespace": "android_app",
-                            "package_name": request.app.state.android_package,
-                            "sha256_cert_fingerprints": prints}}] if prints else []
+                 "target": {"namespace": "android_app", "package_name": package,
+                            "sha256_cert_fingerprints": prints}},
+                # کافه‌بازار موقع بارگذاری APK این پیوند را چک می‌کند (راهنمای TWA بازار)
+                {"relation": ["check_validation"],
+                 "target": {"namespace": "cafebazaar_twa", "package_name": package}},
+                ] if prints else []
         return Response(json.dumps(body), media_type="application/json")
 
     @app.get("/robots.txt", include_in_schema=False)
