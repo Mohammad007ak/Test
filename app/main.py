@@ -20,12 +20,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import price_refresh, services
+from app import price_history, price_refresh, services
 from app.adapters.prices import AlanchandSource, PriceSource, ShakhesbanSource
+from app.adapters.prices.history import AlanchandHistory, HistorySource
 from app.assistant.client import ChatModel
 from app.assistant.prompt import MODES
 from app.config import Settings, get_settings
 from app.db import Base, make_engine, make_session_factory
+from app.domain import indicators
 from app.domain.loan import LoanInput, analyze_loan
 from app.domain.money import format_number
 from app.domain.phone import mask_phone, normalize_phone
@@ -87,6 +89,7 @@ def default_otp_sender(settings: Settings) -> OtpSender:
 
 def create_app(settings: Settings | None = None, *, migrate: bool = True,
                price_sources: list[PriceSource] | None = None,
+               history_sources: list[HistorySource] | None = None,
                schedule: bool = True, otp_sender: OtpSender | None = None,
                chat_model: ChatModel | None | Literal["default"] = "default") -> FastAPI:
     settings = settings or get_settings()
@@ -123,6 +126,8 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
                   lifespan=lifespan)
     app.state.session_factory = factory
     app.state.price_sources = sources
+    app.state.history_sources = (history_sources if history_sources is not None
+                                 else [AlanchandHistory()] if price_sources is None else [])
     app.state.llm = DisabledLLM()  # ارائه‌دهنده LLM هنوز انتخاب نشده (SPEC: تصمیم باز)
     app.state.poll_seconds = settings.price_refresh_seconds if sources else 0
     app.state.otp_sender = otp_sender or default_otp_sender(settings)
@@ -429,6 +434,23 @@ def register_extra_routes(app: FastAPI) -> None:
                         "selected": set(services.watchlist_keys(db)),
                         "labels": _watch_labels(db)})
 
+    @app.get("/prices/chart", response_class=HTMLResponse, dependencies=[LoggedIn])
+    def price_chart(request: Request, db: Db, key: str = "") -> Response:
+        quotes = services.latest_quotes(db)
+        if key not in quotes and key not in s.PRICE_KEYS:
+            raise HTTPException(404)
+        price_history.refresh(db, key, request.app.state.history_sources)
+        data = price_history.series(db, key)
+        quote = quotes.get(key)
+        summary = indicators.summarize(data)
+        bubble = price_history.intrinsic(db, key)
+        return page(request, "price_chart_sheet.html" if wants_fragment(request)
+                    else "price_chart_page.html", {
+                        "active": "prices", "key": key, "label": _price_label(key),
+                        "quote": quote, "change": price_history.change_24h(db, key, quote),
+                        "summary": summary, "bubble": bubble,
+                        "chart_json": json.dumps(_chart_points(data), ensure_ascii=False)})
+
     @app.post("/watchlist", dependencies=[LoggedIn])
     async def watchlist_save(request: Request, db: Db) -> Response:
         form = await request.form()
@@ -567,7 +589,8 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
     quotes = services.latest_quotes(db)
     used = set(db.scalars(select(Asset.price_key).where(Asset.price_key.is_not(None))))
     rows = [{"key": key, "label": _price_label(key), "quote": quotes.get(key),
-             "group": _price_group(key, used)}
+             "group": _price_group(key, used),
+             "change": price_history.change_24h(db, key, quotes.get(key))}
             for key in _price_keys(db)]
     user_keys = set(services.owned_market_keys(db))  # فقط نمادهای همین کاربر
     sources: list[Any] = []
@@ -582,6 +605,12 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
             sources.append(price_refresh.view_for_user(last, user_keys, per_user))
     return page(request, "prices.html", {"active": "prices", "rows": rows, "sources": sources,
                                          "errors": errors or {}}, status)
+
+
+def _chart_points(data: list[tuple[Any, Decimal]]) -> dict[str, list[Any]]:
+    """سری روزانه برای Chart.js (فقط نمایش)؛ عدد بزرگ گرد، عدد کوچک (رمزارز ارزان) با اعشار."""
+    return {"d": [day.isoformat() for day, _v in data],
+            "v": [int(v) if v >= 100 else float(round(v, 6)) for _d, v in data]}
 
 
 def _watch_groups(db: Session) -> list[tuple[str, list[str]]]:

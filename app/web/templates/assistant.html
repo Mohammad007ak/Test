@@ -32,7 +32,7 @@
   </div>
 
   <form id="chat-form" class="chat-composer" method="post" action="/assistant" hx-boost="false">
-    <textarea name="question" rows="1" maxlength="1000" placeholder="{{ T.assistant_placeholder }}" aria-label="{{ T.assistant_placeholder }}" required></textarea>
+    <textarea name="question" rows="1" maxlength="1000" placeholder="{{ T.assistant_placeholder }}" aria-label="{{ T.assistant_placeholder }}" required>{{ prefill }}</textarea>
     <button type="submit" class="chat-send" aria-label="{{ T.assistant_send }}" disabled>{{ icon("up") }}</button>
   </form>
   <p class="chat-disclaimer">{{ disclaimer }}</p>

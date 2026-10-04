@@ -434,6 +434,73 @@
     }, true);
   });
 
+  // ---------- نمودار قیمت با بازه‌های هفته تا پنج سال ----------
+  function drawPriceChart(box) {
+    if (!window.Chart || box.dataset.drawn) return;
+    var canvas = box.querySelector("canvas");
+    if (!canvas) return;
+    box.dataset.drawn = "1";
+    var raw = JSON.parse(box.getAttribute("data-price-chart"));
+    var days = raw.d.map(function (d) { return new Date(d + "T12:00:00"); });
+    var css = getComputedStyle(document.documentElement);
+    var good = css.getPropertyValue("--good").trim(), bad = css.getPropertyValue("--bad").trim();
+    var muted = css.getPropertyValue("--muted").trim(), grid = css.getPropertyValue("--border").trim();
+    var compact = new Intl.NumberFormat("fa-IR", { notation: "compact", maximumFractionDigits: 2 });
+    var dateFmt = new Intl.DateTimeFormat("fa-IR", { year: "2-digit", month: "short", day: "numeric" });
+    var pct = new Intl.NumberFormat("fa-IR", { style: "percent", maximumFractionDigits: 1, signDisplay: "exceptZero" });
+    var label = box.querySelector("[data-range-change]");
+    Chart.defaults.font.family = "Vazirmatn";
+    Chart.defaults.color = muted;
+    var chart = new Chart(canvas, {
+      type: "line",
+      data: { labels: [], datasets: [{ data: [], borderWidth: 2, tension: .25, pointRadius: 0,
+        pointHoverRadius: 4, pointHitRadius: 16, fill: true }] },
+      options: {
+        maintainAspectRatio: false, animation: { duration: 350 },
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { rtl: true, displayColors: false, callbacks: {
+          label: function (c) { return compact.format(c.raw) + " تومان"; } } } },
+        scales: {
+          x: { reverse: true, grid: { display: false }, ticks: { maxTicksLimit: 4, maxRotation: 0 } },
+          y: { position: "right", grid: { color: grid }, border: { display: false },
+            ticks: { maxTicksLimit: 4, callback: function (v) { return compact.format(v); } } }
+        }
+      }
+    });
+    function show(range) {
+      var last = days[days.length - 1];
+      var from = new Date(last.getTime() - range * 86400000);
+      var start = days.findIndex(function (d) { return d >= from; });
+      if (start < 0) start = 0;
+      var values = raw.v.slice(start), labels = days.slice(start).map(function (d) { return dateFmt.format(d); });
+      var up = values[values.length - 1] >= values[0];
+      var color = up ? good : bad;
+      var ctx = canvas.getContext("2d");
+      var fill = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight || 220);
+      fill.addColorStop(0, color + "40"); fill.addColorStop(1, color + "00");
+      var ds = chart.data.datasets[0];
+      ds.data = values; ds.borderColor = color; ds.backgroundColor = fill;
+      chart.data.labels = labels;
+      chart.update();
+      if (label && values.length > 1) {
+        label.textContent = pct.format((values[values.length - 1] - values[0]) / values[0]);
+        label.className = up ? "up" : "down";
+      }
+      box.querySelectorAll("[data-range]").forEach(function (b) {
+        b.setAttribute("aria-selected", b.getAttribute("data-range") === String(range) ? "true" : "false");
+      });
+    }
+    var span = (days[days.length - 1] - days[0]) / 86400000;
+    box.querySelectorAll("[data-range]").forEach(function (b) {
+      var range = Number(b.getAttribute("data-range"));
+      // بازه‌ای که داده‌اش نیست (مثلاً ۵ سال برای رمزارز) غیرفعال می‌شود، مگر کوچک‌ترین بازه
+      if (range > 7 && span < range * 0.6) b.disabled = true;
+      b.addEventListener("click", function () { show(range); });
+    });
+    var initial = span >= 30 * 0.6 ? 30 : 7;
+    show(initial);
+  }
+
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));
     if (root.matches && root.matches(selector)) found.unshift(root);
@@ -451,6 +518,7 @@
     });
     applyTheme();
     all(root, "canvas[data-trend]").forEach(drawTrend);
+    all(root, "[data-price-chart]").forEach(drawPriceChart);
     all(root, "#chat-app").forEach(initChat);
     all(root, "#interview").forEach(initInterview);
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

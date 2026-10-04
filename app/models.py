@@ -235,3 +235,18 @@ class Setting(Base):
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[str] = mapped_column(Text)
+
+
+class PriceHistory(Base):
+    """قیمت پایانی روزانه از آرشیو منابع (برای نمودار و تحلیل)؛ سراسری، نه مال یک کاربر.
+
+    روزهایی که آرشیو ندارد از قیمت‌های خود اپ (price_quotes) پر می‌شود.
+    """
+
+    __tablename__ = "price_history"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    day: Mapped[date] = mapped_column(Date, primary_key=True)  # روز تهران
+    price_toman: Mapped[int] = mapped_column(BigInteger)  # قیمت یک واحد
+    real_price_toman: Mapped[int | None] = mapped_column(BigInteger)  # ارزش ذاتی سکه (حباب)
+    source: Mapped[str] = mapped_column(String(50))

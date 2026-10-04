@@ -859,3 +859,26 @@ T.update({
     "persona_none": "هنوز پرسونا نساختی.",
     "persona_privacy": "این جواب‌ها برای شخصی کردن اپ و جواب‌های وزیر به کار می‌رود.",
 })
+
+# ---------- نمودار قیمت و تحلیل ----------
+CHART_RANGES = (("7", "۱ هفته"), ("30", "۱ ماه"), ("91", "۳ ماه"), ("365", "۱ سال"),
+                ("1825", "۵ سال"))
+TRENDS = {"up": "صعودی", "down": "نزولی", "sideways": "خنثی"}
+RSI_STATES = {"overbought": "اشباع خرید", "oversold": "اشباع فروش", "neutral": "عادی"}
+T.update({
+    "chart_change_24h": "تغییر ۲۴ ساعت",
+    "chart_range_change": "تغییر در این بازه",
+    "chart_no_data": "هنوز تاریخچه‌ای برای این قیمت نیست؛ از امروز ثبت می‌شود.",
+    "chart_since": "داده از {date}",
+    "chart_high_1y": "بالاترین یک سال",
+    "chart_low_1y": "پایین‌ترین یک سال",
+    "chart_trend": "روند کوتاه‌مدت",
+    "chart_rsi": "RSI ۱۴ روزه",
+    "chart_volatility": "نوسان سالانه",
+    "chart_drawdown": "بیشترین افت یک سال",
+    "chart_bubble": "حباب سکه",
+    "chart_bubble_hint": "ارزش ذاتی {value}",
+    "chart_ask": "تحلیل این قیمت را از وزیر بپرس",
+    "chart_ask_q": "تحلیل تکنیکال و فاندامنتال {label} رو بگو",
+    "chart_open": "نمودار",
+})

@@ -287,7 +287,6 @@ def month_spending(session: Session, year: int, month: int,
 WATCHLIST_KEY = "watchlist"
 DEFAULT_WATCHLIST = ("usd", "eur", "gold18_gram", "coin_emami")
 MAX_WATCHLIST = 12
-CHANGE_WINDOW = timedelta(hours=24)
 
 
 @dataclass(frozen=True)
@@ -307,7 +306,7 @@ def set_watchlist(session: Session, keys: list[str]) -> None:
     set_user_setting(session, WATCHLIST_KEY, ",".join(unique))
 
 
-def _price_at(session: Session, key: str, moment: datetime) -> PriceQuote | None:
+def price_at(session: Session, key: str, moment: datetime) -> PriceQuote | None:
     """قیمتی که در آن لحظه معتبر بود: آخرین ردیفی که پیش از آن دیده شده بود."""
     return session.scalars(
         select(PriceQuote).where(PriceQuote.key == key, PriceQuote.first_seen_at <= moment)
@@ -318,14 +317,11 @@ def watchlist(session: Session, now: datetime | None = None) -> list[WatchItem]:
     now = now or utcnow()
     quotes = latest_quotes(session)
     items = []
+    from app.price_history import change_24h
+
     for key in watchlist_keys(session):
         quote = quotes.get(key)
-        change = None
-        if quote is not None:
-            before = _price_at(session, key, now - CHANGE_WINDOW)
-            if before is not None and before.id != quote.id and before.per_unit:
-                change = (quote.per_unit - before.per_unit) / before.per_unit
-        items.append(WatchItem(key, quote, change))
+        items.append(WatchItem(key, quote, change_24h(session, key, quote, now)))
     return items
 
 

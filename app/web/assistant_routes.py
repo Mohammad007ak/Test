@@ -59,6 +59,7 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
             "history": _history(db), "suggestions": _suggestions(db, mode),
             "disclaimer": s.T[f"assistant_disclaimer_{mode}"],
             "pending": list(actions.pending(db).items()),
+            "prefill": request.query_params.get("q", "")[:MAX_QUESTION],
         }, status)
 
     def turn(request: Request, question: str, answer: str, error: bool = False,
@@ -97,6 +98,7 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
             return turn(request, text, s.T["assistant_limit"].format(limit=limit),
                         error=True, status=429)
         text = mask_numbers(text)  # فقط متن پوشانده‌شده به مدل می‌رود
+        db.info["history_sources"] = request.app.state.history_sources
         history = _history(db)
         before = set(actions.pending(db))
         try:

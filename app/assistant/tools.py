@@ -8,6 +8,7 @@
 import json
 import re
 from collections.abc import Callable
+from datetime import timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -15,6 +16,7 @@ import jdatetime
 from sqlalchemy.orm import Session
 
 from app import services
+from app.domain import indicators
 from app.domain.loan import LoanInput, analyze_loan
 from app.domain.spending import TEHRAN
 from app.web import categories
@@ -163,9 +165,86 @@ def loan(db: Session, amount_toman: int, months: int, installment_toman: int | N
     }
 
 
+def _num(value: Decimal | None, places: int = 4) -> float | None:
+    return None if value is None else round(float(value), places)
+
+
+def _sample(data: list[tuple[Any, Decimal]], every: int, limit: int) -> list[list[Any]]:
+    """هر every روز یک نقطه (از آخر به اول)، حداکثر limit نقطه؛ برای دیدن شکل نمودار."""
+    picked = data[::-1][::every][:limit][::-1]
+    return [[day.isoformat(), _num(value, 2)] for day, value in picked]
+
+
+def market(db: Session, key: str) -> dict[str, Any]:
+    """تحلیل تکنیکال و داده بنیادی یک قیمت از تاریخچه روزانه (آرشیو منبع + قیمت‌های اپ)."""
+    from app import price_history
+
+    quotes = services.latest_quotes(db)
+    if key not in quotes and key not in s.PRICE_KEYS:
+        raise ToolError(f"کلید قیمت ناشناخته: {key}؛ نمونه‌ها: {', '.join(s.MAIN_PRICE_KEYS)}")
+    price_history.refresh(db, key, db.info.get("history_sources", []))
+    data = price_history.series(db, key)
+    if len(data) < 2:
+        return {"key": key, "label": _label(key), "error": "هنوز تاریخچه کافی برای این قیمت نیست"}
+    summary = indicators.summarize(data)
+    quote = quotes.get(key)
+    inflation = services.get_decimal_setting(db, "inflation")
+    change_1y = summary["changes"]["1y"]
+    out: dict[str, Any] = {
+        "key": key, "label": _label(key), "unit": "toman",
+        "data_from": summary["from"].isoformat(), "data_to": summary["to"].isoformat(),
+        "data_note": "فقط قیمت پایانی روزانه (بدون سقف، کف و حجم)",
+        "last": _num(summary["last"], 2),
+        "change_24h": _num(price_history.change_24h(db, key, quote)),
+        "changes": {k: _num(v) for k, v in summary["changes"].items()},
+        "high_1y": _num(summary["high_1y"], 2), "low_1y": _num(summary["low_1y"], 2),
+        "distance_from_high_1y": _num(summary["distance_from_high_1y"]),
+        "technical": {k: (_jsonable(summary[k])) for k in (
+            "trend", "sma20", "sma50", "sma200", "ema20", "above_sma50", "above_sma200",
+            "golden_cross", "rsi14", "rsi_state", "macd", "bollinger20", "volatility_90d",
+            "max_drawdown_1y")},
+        "weekly_closes_1y": _sample([p for p in data if p[0] > data[-1][0] - timedelta(days=365)],
+                                    7, 53),
+        "monthly_closes_5y": _sample(data, 30, 61),
+        "fundamental": {
+            "assumed_inflation": _num(inflation),
+            "real_change_1y": None if change_1y is None else
+            _num((1 + change_1y) / (1 + inflation) - 1),
+        },
+    }
+    usd = price_history.series(db, "usd") if key != "usd" else []
+    if usd and change_1y is not None:
+        usd_change = indicators.change_since(usd, indicators.PERIODS["1y"])
+        if usd_change is not None:
+            in_usd = (1 + change_1y) / (1 + usd_change) - 1
+            out["fundamental"]["change_1y_in_usd_terms"] = _num(in_usd)
+            out["fundamental"]["usd_change_1y"] = _num(usd_change)
+    bubble = price_history.intrinsic(db, key)
+    if bubble:
+        day, price, real = bubble
+        out["fundamental"]["coin_intrinsic_value"] = real
+        out["fundamental"]["coin_bubble"] = _num(Decimal(price - real) / real)
+        out["fundamental"]["coin_bubble_date"] = day.isoformat()
+    usd_quote = quotes.get("usd")
+    if key == "gold18_gram" and usd_quote and summary["last"]:
+        # قیمت دلاری هر اونس طلای خالص از روی طلای ۱۸ عیار داخلی (۳۱٫۱۰۳۵ گرم، عیار ۷۵۰)
+        ounce = summary["last"] / Decimal("0.75") * Decimal("31.1035") / usd_quote.per_unit
+        out["fundamental"]["implied_ounce_usd"] = _num(ounce, 1)
+    return out
+
+
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, Decimal):
+        return _num(value, 4)
+    if isinstance(value, dict):
+        return {k: _jsonable(v) for k, v in value.items()}
+    return value
+
+
 _RUNNERS: dict[str, Callable[..., dict[str, Any]]] = {
     "overview": overview, "spending": spending, "compare_months": compare_months,
     "assets": assets, "liabilities": liabilities, "prices": prices, "analyze_loan": loan,
+    "market_analysis": market,
 }
 
 
@@ -216,6 +295,14 @@ TOOLS: list[dict[str, Any]] = [
     _tool("prices", "آخرین قیمت بازار به تومان (دلار usd، یورو eur، طلای ۱۸ gold18_gram، "
                     "سکه coin_emami، رمزارز crypto:btc، سهام stock:<نماد>، صندوق fund:<نماد>).",
           {"keys": {"type": "array", "items": {"type": "string"}}}),
+    _tool("market_analysis", "تحلیل تکنیکال و بنیادی یک قیمت از تاریخچه روزانه تا پنج سال: "
+                             "تغییر ۲۴ساعته، هفتگی، ماهانه، ۳ماهه، سالانه و ۵ساله، سقف و کف "
+                             "سالانه، SMA/EMA، RSI، MACD، بولینگر، نوسان، بیشترین افت، "
+                             "قیمت‌های پایانی هفتگی و ماهانه، بازده واقعی پس از تورم، تغییر به "
+                             "دلار، حباب سکه و قیمت اونس ضمنی طلا.",
+          {"key": {"type": "string", "description": "usd، eur، gold18_gram، coin_emami، "
+                                                    "crypto:btc، stock:<نماد>، fund:<نماد>"}},
+          ["key"]),
     _tool("analyze_loan", "تحلیل یک وام فرضی: نرخ مؤثر و واقعی، هزینه کل و اثر بر نسبت اقساط "
                           "به درآمد همین کاربر. قسط یا نرخ اسمی لازم است.",
           {"amount_toman": {"type": "integer"}, "months": {"type": "integer"},

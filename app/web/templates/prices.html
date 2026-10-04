@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import icon %}
+{% from "_ui.html" import icon, sheet_link %}
 {% block content %}
 {% if sources %}
 <section class="card source-card">
@@ -30,8 +30,10 @@
   {% macro price_row(row) %}
     <div class="row price-row {{ 'has-error' if errors.get(row.key) }}">
       <span class="row-main">
-        <span class="row-title">{{ row.label }}</span>
+        {% call sheet_link("/prices/chart?key=" ~ (row.key | urlencode), "row-title chart-link") %}{{ row.label }} {{ icon("chart") }}{% endcall %}
         <span class="row-sub">{% if row.quote %}{{ row.quote | unit_price }} · {{ row.quote.fetched_at | jalali }} · {{ s.SOURCE_LABELS.get(row.quote.source, row.quote.source) }}{% else %}{{ T.no_price }}{% endif %}</span>
+        {% if row.quote %}{% if row.change is not none and row.change != 0 %}<span class="day-change {{ 'up' if row.change > 0 else 'down' }}">{{ icon("up" if row.change > 0 else "down") }}{{ row.change | abs | percent }} <small>{{ T.chart_change_24h }}</small></span>
+        {% else %}<span class="day-change flat">{{ T.no_change }}</span>{% endif %}{% endif %}
         {% if errors.get(row.key) %}<span class="error">{{ errors[row.key] }}</span>{% endif %}
       </span>
       <span class="input compact has-unit">
