@@ -69,6 +69,10 @@ def test_landing_shows_face_login_and_all_platforms(tmp_path: Path) -> None:
     assert "آیفون" in page and "دسکتاپ" in page and 'href="/install"' in page
 
 
-def test_landing_without_apk_points_android_to_install_page(client: TestClient) -> None:
-    page = client.get("/").text
+def test_landing_without_apk_points_android_to_install_page(tmp_path: Path) -> None:
+    settings = Settings(database_url=f"sqlite:///{tmp_path / 'n.db'}", secret_key="t",
+                        android_apk_url="")
+    with TestClient(create_app(settings, price_sources=[], schedule=False,
+                               otp_sender=FakeSender())) as c:
+        page = c.get("/").text
     assert "دانلود APK" not in page and 'href="/install"' in page

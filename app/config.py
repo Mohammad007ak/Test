@@ -12,10 +12,12 @@ class Settings(BaseSettings):
     secret_key: str = ""
     secure_cookies: bool = False
     # اپ اندروید: لینک دانلود APK (خالی = بدون دکمه)، نام بسته، و اثر انگشت گواهی امضا
-    # برای assetlinks (چند مقدار با ویرگول)
-    android_apk_url: str = ""
+    # برای assetlinks (چند مقدار با ویرگول). هیچ‌کدام راز نیست (assetlinks عمومی است)؛
+    # پیش‌فرض‌ها همان نسخه منتشرشده در گیت‌هاب‌اند تا بدون تنظیم سرور هم کار کند.
+    android_apk_url: str = "https://github.com/Mohammad007ak/Test/releases/latest/download/vazir.apk"
     android_package: str = "ir.getvazir.app"
-    android_cert_sha256: str = ""
+    android_cert_sha256: str = ("FA:D5:12:18:A0:0D:60:1D:9B:A1:A0:44:C6:0D:B6:CA:"
+                                "3E:E1:93:D6:9A:BF:2E:B1:CC:03:82:B1:89:CA:87:2F")
     public_url: str = ""  # آدرس اصلی سایت برای sitemap و canonical، مثل https://getvazir.ir
     timezone: str = "Asia/Tehran"
     price_refresh_seconds: int = 30  # وقتی اپ باز است؛ ۰ = دریافت خودکار خاموش

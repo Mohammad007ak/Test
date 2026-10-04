@@ -73,4 +73,4 @@ uv run ruff check .
      `ANDROID_KEYSTORE_PASSWORD` و `ANDROID_KEY_PASSWORD` (همان رمز)، `ANDROID_KEY_ALIAS` = `vazir`.
   3. با تغییر `android/VERSION` ساخت شروع می‌شود؛ APK امضاشده در Releases منتشر می‌شود:
      `https://github.com/Mohammad007ak/Test/releases/latest/download/vazir.apk`
-  4. در هم‌روش: `FINASSIST_ANDROID_CERT_SHA256` (از خلاصه اجرا) و `FINASSIST_ANDROID_APK_URL` (لینک بالا).
+  4. اثر انگشت و لینک نسخه فعلی پیش‌فرض `app/config.py` است؛ فقط اگر کلید امضا عوض شد، `FINASSIST_ANDROID_CERT_SHA256` (از خلاصه اجرا) و `FINASSIST_ANDROID_APK_URL` را در هم‌روش بگذار یا پیش‌فرض را به‌روز کن.
