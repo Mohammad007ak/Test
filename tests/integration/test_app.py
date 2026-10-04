@@ -405,3 +405,15 @@ def test_migration_0006_on_empty_database_creates_no_user(tmp_path: Path) -> Non
     command.upgrade(config, "head")
     with engine.begin() as conn:
         assert conn.execute(text("SELECT count(*) FROM users")).scalar() == 0
+
+
+def test_body_is_never_a_scroll_container() -> None:
+    """body با overscroll-behavior: none اگر overflow بگیرد، اسکرول ترک‌پد مک روی آن قفل می‌شود."""
+    import re
+
+    from app.web.render import STATIC_DIR
+
+    css = (STATIC_DIR / "css" / "app.css").read_text(encoding="utf-8")
+    for selector, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+        if re.search(r"(^|[\s,(])(html|body)\b", selector):
+            assert "overflow" not in body.replace("overflow-wrap", ""), selector.strip()

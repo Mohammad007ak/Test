@@ -1695,13 +1695,10 @@ a.watch-card:active { transform: scale(.96); border-color: var(--accent); }
   .lx-line .lx-stroke { stroke-dashoffset: 0; } .lx-line .lx-area { opacity: 1; }
 }
 
-/* صفحه معرفی روی دسکتاپ تمام‌عرض است، نه داخل قاب گوشی اپ */
+/* صفحه معرفی روی دسکتاپ پس‌زمینه ساده دارد. body نباید ظرف اسکرول شود (overflow جز visible):
+   با overscroll-behavior: none، اسکرول ترک‌پد و موس مک روی body قفل می‌شد و صفحه پایین نمی‌رفت. */
 @media (min-width: 700px) {
-  html:has(body.site), body.site { height: auto; overflow: auto; }
   body.site { display: block; background: var(--bg); }
-  body.site .device { width: auto; height: auto; border-radius: 0; box-shadow: none; transform: none; overflow: visible; }
-  body.site .device::before, body.site .device::after { display: none; }
-  body.site .screen { height: auto; overflow: visible; }
 }
 
 /* =====================================================================
