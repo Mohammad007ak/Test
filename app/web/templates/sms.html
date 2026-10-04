@@ -23,6 +23,14 @@
 {% endif %}
 <p class="lead small">{{ T.sms_parsers_note }}</p>
 
+<section class="card sms-android">
+  <h2>{{ bubble("android", 3) }} {{ T.sms_android_title }}</h2>
+  <p class="muted small">{{ T.sms_android_body }}</p>
+  <ul class="muted small">{% for line in T.sms_android_points %}<li>{{ line }}</li>{% endfor %}</ul>
+  <a href="{{ android_pair }}" class="btn wide" hx-boost="false">{{ T.sms_android_connect }}</a>
+  <p class="muted small">{{ T.sms_android_hint }} · <a href="{{ android_unpair }}" hx-boost="false">{{ T.sms_android_disconnect }}</a></p>
+</section>
+
 <section class="card">
   <h2>{{ T.sms_upload }}</h2>
   <p class="muted small">{{ T.sms_upload_hint }}</p>

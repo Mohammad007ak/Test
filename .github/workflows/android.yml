@@ -30,6 +30,11 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Check on-device SMS masking and bank filter
+        run: |
+          javac -encoding UTF-8 -d /tmp/smscheck android/app/src/main/java/ir/getvazir/app/SmsText.java android/tests/ir/getvazir/app/SmsTextCheck.java
+          java -cp /tmp/smscheck ir.getvazir.app.SmsTextCheck
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"

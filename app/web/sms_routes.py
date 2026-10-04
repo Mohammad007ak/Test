@@ -6,6 +6,7 @@ import time
 from collections import deque
 from collections.abc import Callable
 from datetime import datetime
+from urllib.parse import quote, urlencode
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
@@ -15,13 +16,14 @@ from starlette.datastructures import UploadFile
 
 from app import services
 from app.db import user_session
-from app.models import SmsInbox, UserSetting, utcnow
+from app.domain.phone import mask_phone
+from app.models import SmsInbox, User, UserSetting, utcnow
 from app.sms.importer import import_text, parse_time
 from app.sms.parsers import ParsedSms
 from app.sms.pipeline import complete_manually, ignore, ingest
 from app.web import forms
 from app.web import strings as s
-from app.web.common import Db, LoggedIn, done, page, read_form, wants_fragment
+from app.web.common import Db, LoggedIn, done, page, read_form, site_url, wants_fragment
 from app.web.forms import Field, FormError
 
 TOKEN_KEY = "sms_ingest_token"
@@ -97,6 +99,18 @@ class _RateLimiter:
         return True
 
 
+ANDROID_PACKAGE = "ir.getvazir.app"
+ANDROID_UNPAIR = f"intent://unpair#Intent;scheme=vazir;package={ANDROID_PACKAGE};end"
+
+
+def android_pair_url(token: str, account: str, site: str) -> str:
+    """لینک اتصال اپ اندروید (PairActivity)؛ بدون اپ، Chrome به صفحه نصب می‌رود."""
+    query = urlencode({"token": token, "account": account})
+    fallback = quote(f"{site}/install", safe="")
+    return (f"intent://pair?{query}#Intent;scheme=vazir;package={ANDROID_PACKAGE};"
+            f"S.browser_fallback_url={fallback};end")
+
+
 def register_sms_routes(app: FastAPI) -> None:
     limiters: dict[int, _RateLimiter] = {}
 
@@ -127,9 +141,13 @@ def register_sms_routes(app: FastAPI) -> None:
                            .order_by(SmsInbox.received_at.desc())).all()
         recent = db.scalars(select(SmsInbox).where(SmsInbox.parse_status != "failed")
                             .order_by(SmsInbox.id.desc()).limit(20)).all()
+        token = ingest_token(db)
+        user = db.get(User, request.state.user_id)
         return page(request, "sms.html", {
-            "active": "sms", "queue": queue, "recent": recent,
-            "token": ingest_token(db),
+            "active": "sms", "queue": queue, "recent": recent, "token": token,
+            "android_pair": android_pair_url(token, mask_phone(user.phone) if user and user.phone
+                                             else "", site_url(request)),
+            "android_unpair": ANDROID_UNPAIR,
             "endpoint": phone_endpoint(request.url.hostname or "", request.url.port,
                                        scheme=_public_scheme(request)),
         })

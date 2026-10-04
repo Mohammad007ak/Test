@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- فقط دریافت پیامک تازه (نه خواندن صندوق پیامک)، و فقط پس از اتصال و تأیید کاربر -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
 
     <application
         android:allowBackup="false"
@@ -44,6 +46,30 @@
                 <data android:scheme="https" android:host="${hostName}" />
             </intent-filter>
         </activity>
+
+        <!-- اتصال پیامک بانکی: سایت intent://pair یا intent://unpair را باز می‌کند -->
+        <activity
+            android:name=".PairActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="vazir" android:host="pair" />
+                <data android:scheme="vazir" android:host="unpair" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name="com.google.androidbrowserhelper.trusted.WebViewFallbackActivity"
