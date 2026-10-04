@@ -10,8 +10,11 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import jdatetime
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
+from starlette.responses import Response
+from starlette.types import Scope
 
 from app.domain.money import (
     format_number,
@@ -28,11 +31,26 @@ TEHRAN = ZoneInfo("Asia/Tehran")
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 
+_VERSIONED = re.compile(r"v-[0-9a-f]{10}[/\\](.+)")
+
+
 @cache
 def static_url(path: str) -> str:
-    """آدرس فایل استاتیک با نشانه نسخه؛ پس از هر تغییر، مرورگر نسخه کش‌شده قدیمی را کنار می‌گذارد."""
+    """آدرس فایل استاتیک با نشانه نسخه در خود مسیر (نه ?v=)؛ CDNهایی مثل آروان که کوئری را
+    نادیده می‌گیرند هم بعد از هر تغییر نسخه تازه را می‌دهند."""
     digest = hashlib.sha256((STATIC_DIR / path).read_bytes()).hexdigest()[:10]
-    return f"/static/{path}?v={digest}"
+    return f"/static/v-{digest}/{path}"
+
+
+class VersionedStatic(StaticFiles):
+    """/static/v-<نسخه>/... همان فایل /static/... است و چون نسخه‌دار است، تا ابد کش می‌شود."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        match = _VERSIONED.fullmatch(path)
+        response = await super().get_response(match.group(1) if match else path, scope)
+        if match and response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
 
 
 def jalali(value: datetime | date | None, with_time: bool = True) -> str:

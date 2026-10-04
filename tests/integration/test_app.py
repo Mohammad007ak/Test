@@ -261,9 +261,13 @@ def test_static_assets_are_versioned(client: TestClient) -> None:
     import re
 
     page = client.get("/").text
-    css = re.search(r'href="(/static/css/app\.css\?v=[0-9a-f]{10})"', page)
+    # نسخه در خود مسیر است، نه ?v=؛ CDNی که کوئری را نادیده می‌گیرد هم نسخه تازه را می‌دهد
+    css = re.search(r'href="(/static/v-[0-9a-f]{10}/css/app\.css)"', page)
     assert css, "CSS بدون نشانه نسخه است؛ مرورگر ممکن است نسخه قدیمی را نشان دهد"
-    assert client.get(css.group(1)).status_code == 200
+    response = client.get(css.group(1))
+    assert response.status_code == 200 and "immutable" in response.headers["cache-control"]
+    assert "immutable" not in client.get("/static/css/app.css").headers.get("cache-control", "")
+    assert client.get("/static/v-0123456789/css/nope.css").status_code == 404
 
 
 def test_cheap_crypto_is_valued_with_full_precision(client: TestClient) -> None:

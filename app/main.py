@@ -14,7 +14,6 @@ from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
@@ -52,7 +51,7 @@ from app.web.entities import ENTITIES, build_entity
 from app.web.forms import Field, FormError
 from app.web.passkey_routes import register_passkey_routes
 from app.web.persona_routes import register_persona_routes
-from app.web.render import jalali, sparkline, tehran_today
+from app.web.render import VersionedStatic, jalali, sparkline, tehran_today
 from app.web.sms_routes import queue_count, register_sms_routes
 from app.web.spending_routes import parse_month, register_spending_routes
 
@@ -152,7 +151,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     app.add_middleware(SessionMiddleware, secret_key=secret, session_cookie="finassist",
                        max_age=60 * 60 * 24 * 30, same_site="lax",
                        https_only=settings.secure_cookies)
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.mount("/static", VersionedStatic(directory=STATIC_DIR), name="static")
 
     @app.exception_handler(auth.LoginRequired)
     async def _to_login(request: Request, _exc: auth.LoginRequired) -> Response:
