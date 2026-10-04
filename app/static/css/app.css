@@ -1644,6 +1644,40 @@ a.watch-card:active { transform: scale(.96); border-color: var(--accent); }
   border-radius: 30px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); }
 .lx-privacy h2 { font-size: 1.4rem; font-weight: 900; }
 .lx-privacy p { color: var(--text-2); line-height: 2; max-width: 560px; }
+/* ورود با چهره: اسکن متحرک */
+.lx-face { display: grid; gap: 26px; align-items: center; justify-items: center; padding: 30px 20px; border-radius: 30px;
+  background: linear-gradient(170deg, #0f2a20, #07090c); color: #f3f6f9; border: 1px solid rgba(62, 232, 166, .2);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .35); }
+.lx-face-text { text-align: center; }
+@media (min-width: 880px) { .lx-face { grid-template-columns: auto 1fr; padding: 40px 48px; justify-items: start; }
+  .lx-face-text { text-align: right; } .lx-face-text .lx-sub { text-align: right; margin-inline: 0; } }
+.lx-face h2 { font-size: clamp(1.45rem, 5.5vw, 2.1rem); font-weight: 900; }
+.lx-face .lx-sub { color: #c0c8d2; }
+.lx-scan { position: relative; width: 150px; height: 150px; display: grid; place-items: center; color: #3ee8a6; }
+.lx-scan > .i { width: 96px; height: 96px; stroke-width: 1.3; filter: drop-shadow(0 0 12px rgba(62, 232, 166, .55)); }
+.lx-scan-ring { position: absolute; inset: 0; border-radius: 40px; border: 1.5px solid rgba(62, 232, 166, .35);
+  animation: scan-ring 3.2s ease-in-out infinite; }
+.lx-scan-line { position: absolute; inset-inline: 22px; top: 22px; height: 2px; border-radius: 2px; background: #3ee8a6;
+  box-shadow: 0 0 14px 3px rgba(62, 232, 166, .7); animation: scan-line 3.2s ease-in-out infinite; }
+.lx-scan-ok { position: absolute; bottom: -6px; inset-inline-end: -6px; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--grad); color: var(--on-accent); box-shadow: 0 8px 22px rgba(62, 232, 166, .45); animation: scan-ok 3.2s ease-in-out infinite; }
+.lx-scan-ok .i { width: 20px; height: 20px; }
+@keyframes scan-line { 0%, 100% { top: 22px; opacity: 0; } 10%, 55% { opacity: 1; } 60% { top: calc(100% - 24px); opacity: 0; } }
+@keyframes scan-ring { 0%, 55% { transform: scale(1); opacity: .6; } 70% { transform: scale(1.08); opacity: 1; border-color: #3ee8a6; } 100% { transform: scale(1); opacity: .6; } }
+@keyframes scan-ok { 0%, 58% { transform: scale(0); } 68% { transform: scale(1.15); } 75%, 92% { transform: scale(1); } 100% { transform: scale(0); } }
+.lx-face-points { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+@media (min-width: 880px) { .lx-face-points { justify-content: flex-start; } }
+.lx-face-points li { padding: 6px 12px; border-radius: 999px; font-size: .8rem; font-weight: 700; color: #3ee8a6;
+  background: rgba(62, 232, 166, .1); border: 1px solid rgba(62, 232, 166, .25); }
+.lx-face-points li::before { content: "✓ "; }
+
+/* همه دستگاه‌ها */
+.lx-apps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.lx-app { display: flex; flex-direction: column; }
+.lx-app p { flex: 1; }
+.lx-app .btn { margin-top: 12px; align-self: flex-start; gap: 6px; }
+@media (max-width: 420px) { .lx-hide-sm { display: none; } }
+
 .lx-faq { margin-bottom: 8px; max-width: 760px; margin-inline: auto; }
 .lx-faq p { color: var(--text-2); line-height: 1.95; padding-top: 8px; }
 .lx-final { margin: 80px auto 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }

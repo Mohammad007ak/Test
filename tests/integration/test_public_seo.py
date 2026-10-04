@@ -56,3 +56,19 @@ def test_robots_and_sitemap(client: TestClient) -> None:
     assert sitemap.headers["content-type"].startswith("application/xml")
     assert "<loc>https://getvazir.ir/</loc>" in sitemap.text
     assert "<loc>https://getvazir.ir/signup</loc>" in sitemap.text
+
+
+def test_landing_shows_face_login_and_all_platforms(tmp_path: Path) -> None:
+    settings = Settings(database_url=f"sqlite:///{tmp_path / 'a.db'}", secret_key="t",
+                        android_apk_url="https://example.com/vazir.apk")
+    with TestClient(create_app(settings, price_sources=[], schedule=False,
+                               otp_sender=FakeSender())) as c:
+        page = c.get("/").text
+    assert "ورود با یک نگاه" in page
+    assert 'href="https://example.com/vazir.apk"' in page and "دانلود APK" in page
+    assert "آیفون" in page and "دسکتاپ" in page and 'href="/install"' in page
+
+
+def test_landing_without_apk_points_android_to_install_page(client: TestClient) -> None:
+    page = client.get("/").text
+    assert "دانلود APK" not in page and 'href="/install"' in page

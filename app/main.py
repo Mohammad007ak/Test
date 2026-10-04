@@ -180,7 +180,8 @@ def _register_routes(app: FastAPI) -> None:
     @app.get("/", response_class=HTMLResponse)
     def dashboard(request: Request, db: Db) -> Response:
         if request.state.user_id is None:  # بازدیدکننده و موتور جستجو: صفحه معرفی
-            return page(request, "landing.html", {"indexable": True, **_landing_data(db)})
+            return page(request, "landing.html", {"indexable": True, **_landing_data(db),
+                                                      "apk_url": request.app.state.android_apk_url})
         portfolio = services.build_portfolio(db)
         today = tehran_today()
         services.record_snapshot(db, portfolio, today)
