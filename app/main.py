@@ -6,7 +6,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
@@ -175,7 +175,7 @@ def _register_routes(app: FastAPI) -> None:
     @app.get("/", response_class=HTMLResponse)
     def dashboard(request: Request, db: Db) -> Response:
         if request.state.user_id is None:  # بازدیدکننده و موتور جستجو: صفحه معرفی
-            return page(request, "landing.html", {"indexable": True})
+            return page(request, "landing.html", {"indexable": True, **_landing_data(db)})
         portfolio = services.build_portfolio(db)
         today = tehran_today()
         services.record_snapshot(db, portfolio, today)
@@ -623,6 +623,32 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
             sources.append(price_refresh.view_for_user(last, user_keys, per_user))
     return page(request, "prices.html", {"active": "prices", "rows": rows, "sources": sources,
                                          "errors": errors or {}}, status)
+
+
+LANDING_TICKER = ("usd", "eur", "gold18_gram", "coin_emami", "coin_bahar", "gold_mesghal",
+                  "crypto:btc", "crypto:usdt", "crypto:eth", "aed", "try", "gbp")
+
+
+def _landing_data(db: Session) -> dict[str, Any]:
+    """قیمت‌های واقعی برای نوار متحرک و نمودار یک‌ساله دلار صفحه معرفی (فقط قیمت‌های عمومی)."""
+    quotes = services.latest_quotes(db)
+    ticker = []
+    for key in LANDING_TICKER:
+        quote = quotes.get(key)
+        if quote is not None:
+            ticker.append({"label": _price_label(key), "quote": quote,
+                           "change": price_history.change_24h(db, key, quote)})
+    year_ago = tehran_today() - timedelta(days=365)
+    usd = [(d, v) for d, v in price_history.series(db, "usd") if d >= year_ago]
+    usd_line = ""
+    usd_change = None
+    if len(usd) > 10:
+        step = max(len(usd) // 120, 1)
+        usd_line = sparkline([int(v) for _d, v in usd[::step]], width=600, height=200)[0]
+        usd_change = (usd[-1][1] - usd[0][1]) / usd[0][1]
+    return {"ticker": ticker, "usd_line": usd_line, "usd_change": usd_change,
+            "usd_last": usd[-1][1] if usd else None,
+            "demo_json": json.dumps(s.LANDING_DEMO, ensure_ascii=False)}
 
 
 def _chart_points(data: list[tuple[Any, Decimal]]) -> dict[str, list[Any]]:

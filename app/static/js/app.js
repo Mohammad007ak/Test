@@ -568,6 +568,111 @@
     show(initial);
   }
 
+  // ---------- صفحه معرفی: ظاهر شدن با اسکرول، متن تایپی، گفتگوی نمایشی، نور روی کارت‌ها ----------
+  function initLanding(root) {
+    if (root.dataset.ready) return;
+    root.dataset.ready = "1";
+    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    root.classList.add("js");
+    var items = root.querySelectorAll("[data-reveal]");
+    if ("IntersectionObserver" in window && !reduced) {
+      var seen = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          var el = entry.target;
+          var siblings = Array.prototype.indexOf.call(el.parentNode.children, el);
+          setTimeout(function () { el.classList.add("in"); }, Math.min(siblings, 6) * 90);
+          seen.unobserve(el);
+        });
+      }, { threshold: 0.15 });
+      items.forEach(function (el) { seen.observe(el); });
+    } else {
+      items.forEach(function (el) { el.classList.add("in"); });
+    }
+
+    root.addEventListener("pointermove", function (e) {
+      var card = e.target.closest && e.target.closest("[data-spot]");
+      if (!card) return;
+      var box = card.getBoundingClientRect();
+      card.style.setProperty("--mx", (e.clientX - box.left) + "px");
+      card.style.setProperty("--my", (e.clientY - box.top) + "px");
+    });
+
+    var typed = root.querySelector("[data-typed]");
+    if (typed && !reduced) {
+      var phrases = JSON.parse(typed.getAttribute("data-typed"));
+      // عبارت اول کامل دیده می‌شود، بعد پاک و عبارت بعدی تایپ می‌شود
+      var p = 0, c = phrases[0].length, deleting = true;
+      var tick = function () {
+        var text = phrases[p];
+        if (deleting) {
+          c -= 1;
+          typed.textContent = "«" + text.slice(0, c);
+          if (c <= 0) { deleting = false; p = (p + 1) % phrases.length; setTimeout(tick, 300); return; }
+          setTimeout(tick, 25);
+          return;
+        }
+        c += 1;
+        var done = c >= text.length;
+        typed.textContent = "«" + text.slice(0, c) + (done ? "»" : "");
+        if (done) { deleting = true; setTimeout(tick, 2400); return; }
+        setTimeout(tick, 55);
+      };
+      setTimeout(tick, 2400);
+    }
+
+    var chat = root.querySelector("[data-demo]");
+    if (chat) playDemo(chat, JSON.parse(chat.getAttribute("data-demo")), reduced);
+  }
+
+  function playDemo(chat, steps, reduced) {
+    function bubble(step) {
+      var m = document.createElement("div");
+      m.className = "lx-msg " + step.who;
+      m.textContent = step.text;
+      if (step.bars) {
+        var bars = document.createElement("div");
+        bars.className = "lx-bars";
+        step.bars.forEach(function (b) {
+          var row = document.createElement("div");
+          var name = document.createElement("span");
+          name.textContent = b[0];
+          var bar = document.createElement("i");
+          row.appendChild(name); row.appendChild(bar); bars.appendChild(row);
+          setTimeout(function () { bar.style.width = b[1] + "%"; }, 60);
+        });
+        m.appendChild(bars);
+      }
+      if (step.card) {
+        var card = document.createElement("div");
+        card.className = "lx-msg-card";
+        card.textContent = step.card;
+        m.appendChild(card);
+      }
+      return m;
+    }
+    function trim() { while (chat.children.length > 5) chat.removeChild(chat.firstChild); }
+    if (reduced) { steps.slice(-3).forEach(function (s) { chat.appendChild(bubble(s)); }); return; }
+    var i = 0;
+    (function next() {
+      if (i >= steps.length) {
+        setTimeout(function () { chat.innerHTML = ""; i = 0; next(); }, 3500);
+        return;
+      }
+      var step = steps[i++];
+      if (step.who === "vazir") {
+        var dots = document.createElement("div");
+        dots.className = "lx-msg vazir typing";
+        dots.innerHTML = "<i></i><i></i><i></i>";
+        chat.appendChild(dots); trim();
+        setTimeout(function () { dots.replaceWith(bubble(step)); setTimeout(next, 2200); }, 1300);
+      } else {
+        chat.appendChild(bubble(step)); trim();
+        setTimeout(next, 900);
+      }
+    })();
+  }
+
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));
     if (root.matches && root.matches(selector)) found.unshift(root);
@@ -588,6 +693,7 @@
     all(root, "[data-price-chart]").forEach(drawPriceChart);
     all(root, "#chat-app").forEach(initChat);
     all(root, "#interview").forEach(initInterview);
+    all(root, "#landing").forEach(initLanding);
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduced && !(root.id === "live")) all(root, "[data-countup]").forEach(countUp);
   }

@@ -1,52 +1,142 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon, bubble, avatar %}
 {% block title %}{{ s.SEO.title }}{% endblock %}
+{% block body_class %}site{% endblock %}
 {% block shell %}
-<main class="landing">
-  <header class="land-top">
-    <a href="/" class="land-brand"><img src="{{ static('logo.svg') }}" alt="" width="36" height="36"><strong>{{ s.APP_NAME }}</strong></a>
-    <a href="/login" class="btn ghost small">{{ s.LANDING.login }}</a>
+<div class="lx" id="landing">
+  <div class="lx-aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="lx-grid" aria-hidden="true"></div>
+
+  <header class="lx-nav">
+    <a href="/" class="lx-brand"><img src="{{ static('logo.svg') }}" alt="" width="34" height="34"><strong>{{ s.APP_NAME }}</strong></a>
+    <nav><a href="/login" class="lx-link">{{ s.LANDING.login }}</a><a href="/signup" class="btn small">{{ s.LANDING.cta }}</a></nav>
   </header>
 
-  <section class="land-hero">
-    <img class="land-logo" src="{{ static('logo.svg') }}" alt="{{ s.APP_NAME }}" width="96" height="96">
-    <h1>{{ s.LANDING.hero_title }}</h1>
-    <p>{{ s.LANDING.hero_body }}</p>
-    <div class="land-cta">
-      <a href="/signup" class="btn">{{ s.LANDING.cta }}</a>
-      <a href="/login" class="btn ghost">{{ s.LANDING.login }}</a>
-    </div>
-    <div class="land-avatars" aria-hidden="true">{% for key in ("owl", "eagle", "coin", "simorgh", "fox") %}{{ avatar(key) }}{% endfor %}</div>
-  </section>
+  <main>
+    <!-- ---------- قهرمان ---------- -->
+    <section class="lx-hero">
+      <div class="lx-hero-text">
+        <span class="lx-badge" data-reveal><span class="lx-pulse"></span>{{ s.LANDING.badge }}</span>
+        <h1 data-reveal>{{ s.LANDING.hero_title }}</h1>
+        <p class="lx-lead" data-reveal>{{ s.LANDING.hero_body }}</p>
+        <p class="lx-ask" data-reveal>{{ s.LANDING.ask_prefix }}
+          <span class="lx-typed" data-typed='{{ s.LANDING_ROTATING | tojson }}'>«{{ s.LANDING_ROTATING[0] }}»</span><span class="lx-caret" aria-hidden="true"></span></p>
+        <div class="lx-cta" data-reveal>
+          <a href="/signup" class="btn lx-glow">{{ s.LANDING.cta }} {{ icon("chev", "flip") }}</a>
+          <a href="/login" class="btn ghost">{{ s.LANDING.login }}</a>
+        </div>
+        <p class="lx-trust" data-reveal>{{ s.LANDING.trust }}</p>
+      </div>
 
-  <section class="land-section">
-    <h2>{{ s.LANDING.features_title }}</h2>
-    <div class="land-features">
-      {% for icon_name, title, body, slot in s.LANDING_FEATURES %}
-      <article class="land-feature">{{ bubble(icon_name, slot) }}<h3>{{ title }}</h3><p>{{ body }}</p></article>
+      <div class="lx-phone-wrap" data-reveal>
+        <div class="lx-orbit" aria-hidden="true">{% for key in ("owl", "unicorn", "coin", "fox", "simorgh", "eagle") %}<span style="--i: {{ loop.index0 }}">{{ avatar(key) }}</span>{% endfor %}</div>
+        <div class="lx-phone" aria-hidden="true">
+          <div class="lx-notch"></div>
+          <div class="lx-phone-head"><img src="{{ static('logo.svg') }}" alt=""><span><strong>{{ s.LANDING.phone_name }}</strong><small><i></i>{{ s.LANDING.phone_status }}</small></span></div>
+          <div class="lx-chat" data-demo='{{ demo_json }}'></div>
+          <div class="lx-phone-input"><span>{{ T.assistant_placeholder }}</span><b>{{ icon("up") }}</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- نوار قیمت زنده ---------- -->
+    {% if ticker %}
+    <section class="lx-ticker" aria-label="{{ s.LANDING.ticker_title }}">
+      <div class="lx-ticker-track">
+        {% for _ in range(2) %}{% for row in ticker %}
+        <span class="lx-tick"><b>{{ row.label }}</b>{% if row.quote.per_unit >= 1000000 %}{{ row.quote.per_unit | round | int | amt }}{% else %}{{ row.quote | unit_price }}{% endif %}
+          {% if row.change is not none and row.change != 0 %}<em class="{{ 'up' if row.change > 0 else 'down' }}">{{ '▲' if row.change > 0 else '▼' }} {{ row.change | abs | percent }}</em>{% endif %}</span>
+        {% endfor %}{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- ---------- هوش مصنوعی ---------- -->
+    <section class="lx-section">
+      <h2 data-reveal>{{ s.LANDING.ai_title }}</h2>
+      <p class="lx-sub" data-reveal>{{ s.LANDING.ai_body }}</p>
+      <div class="lx-bento">
+        {% for icon_name, title, body, slot in s.LANDING_AI_POINTS %}
+        <article class="lx-card" data-reveal data-spot>{{ bubble(icon_name, slot) }}<h3>{{ title }}</h3><p>{{ body }}</p></article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- ---------- نمودار واقعی دلار ---------- -->
+    {% if usd_line %}
+    <section class="lx-section lx-chart" data-reveal>
+      <div class="lx-chart-text">
+        <h2>{{ s.LANDING.chart_title }}</h2>
+        <p class="lx-sub">{{ s.LANDING.chart_body }}</p>
+        <div class="lx-chart-nums">
+          <span><small>{{ s.PRICE_KEYS.usd }}</small><b>{{ usd_last | round | int | amt }}</b></span>
+          {% if usd_change is not none %}<span><small>{{ s.CHART_RANGES[3][1] }}</small><b class="{{ 'up' if usd_change > 0 else 'down' }}">{{ '+' if usd_change > 0 }}{{ usd_change | percent(0) }}</b></span>{% endif %}
+        </div>
+      </div>
+      <svg class="lx-line" viewBox="0 0 600 200" preserveAspectRatio="none" aria-hidden="true">
+        <defs><linearGradient id="lx-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3ee8a6" stop-opacity=".35"/><stop offset="1" stop-color="#3ee8a6" stop-opacity="0"/></linearGradient>
+          <linearGradient id="lx-stroke" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3ee8a6"/><stop offset="1" stop-color="#b8f35c"/></linearGradient></defs>
+        <path class="lx-area" d="{{ usd_line }} L600,200 L0,200 Z"/>
+        <path class="lx-stroke" d="{{ usd_line }}" pathLength="1"/>
+      </svg>
+    </section>
+    {% endif %}
+
+    <!-- ---------- کارت شخصیت ---------- -->
+    <section class="lx-section lx-persona">
+      <div class="lx-fan" aria-hidden="true">
+        {% for key in ("bee", "owl", "dragon", "unicorn", "fox") %}{% set c = s.PERSONA_CARDS[key] %}
+        <div class="lx-mini" style="--h: {{ c.hue }}; --i: {{ loop.index0 - 2 }}"><span>{{ c.emoji }}</span><b>{{ c.name }}</b><small>{{ T.persona_twin.format(twin=c.twin) }}</small></div>
+        {% endfor %}
+      </div>
+      <div class="lx-persona-text" data-reveal>
+        <h2>{{ s.LANDING.persona_title }}</h2>
+        <p class="lx-sub">{{ s.LANDING.persona_body }}</p>
+        <a href="/signup" class="btn">{{ s.LANDING.persona_cta }}</a>
+      </div>
+    </section>
+
+    <!-- ---------- همه امکانات ---------- -->
+    <section class="lx-section">
+      <h2 data-reveal>{{ s.LANDING.features_title }}</h2>
+      <div class="lx-features">
+        {% for icon_name, title, body, slot in s.LANDING_FEATURES %}
+        <article class="lx-card" data-reveal data-spot>{{ bubble(icon_name, slot) }}<h3>{{ title }}</h3><p>{{ body }}</p></article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- ---------- سه قدم ---------- -->
+    <section class="lx-section">
+      <h2 data-reveal>{{ s.LANDING.steps_title }}</h2>
+      <ol class="lx-steps">
+        {% for title, body in s.LANDING_STEPS %}
+        <li data-reveal><span class="lx-step-no">{{ loop.index | fa }}</span><h3>{{ title }}</h3><p>{{ body }}</p></li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="lx-section lx-privacy" data-reveal>
+      {{ bubble("lock", 3) }}
+      <h2>{{ s.LANDING.privacy_title }}</h2>
+      <p>{{ s.LANDING.privacy_body }}</p>
+    </section>
+
+    <section class="lx-section">
+      <h2 data-reveal>{{ s.LANDING.faq_title }}</h2>
+      {% for q, a in s.LANDING_FAQ %}
+      <details class="card disclosure lx-faq" data-reveal><summary>{{ q }}</summary><p>{{ a }}</p></details>
       {% endfor %}
-    </div>
-  </section>
+    </section>
 
-  <section class="land-section land-privacy">
-    {{ bubble("lock", 3) }}
-    <h2>{{ s.LANDING.privacy_title }}</h2>
-    <p>{{ s.LANDING.privacy_body }}</p>
-  </section>
-
-  <section class="land-section">
-    <h2>{{ s.LANDING.faq_title }}</h2>
-    {% for q, a in s.LANDING_FAQ %}
-    <details class="card disclosure land-faq"><summary>{{ q }}</summary><p>{{ a }}</p></details>
-    {% endfor %}
-  </section>
-
-  <section class="land-final">
-    <h2>{{ s.TAGLINE }}</h2>
-    <a href="/signup" class="btn">{{ s.LANDING.cta }}</a>
-  </section>
-  <footer class="land-footer">{{ s.LANDING.footer }}</footer>
-</main>
+    <section class="lx-final" data-reveal>
+      <img src="{{ static('logo.svg') }}" alt="" width="72" height="72">
+      <h2>{{ s.TAGLINE }}</h2>
+      <a href="/signup" class="btn lx-glow">{{ s.LANDING.cta }}</a>
+    </section>
+  </main>
+  <footer class="lx-footer">{{ s.LANDING.footer }}</footer>
+</div>
 <script type="application/ld+json">
 {{ {"@context": "https://schema.org", "@graph": [
   {"@type": "WebApplication", "name": s.APP_NAME, "url": canonical, "inLanguage": "fa-IR",
