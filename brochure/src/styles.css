@@ -371,3 +371,72 @@ table.kit td { padding: 1.7mm 3mm; line-height: 1.55; }
 .divider .related i { font-style: normal; font-family: "Outfit"; font-size: 7.5pt; background: #fff; color: var(--navy); border-radius: 10mm; padding: .2mm 2mm; }
 
 table.matrix th, table.matrix td { padding-top: 1.15mm; padding-bottom: 1.15mm; }
+
+/* ================================================================ board edition */
+.valcard { padding: 4mm 4.5mm; gap: 2mm; }
+.valcard .ghead { padding-bottom: 2mm; }
+.valcard ul.v { font-size: 8.4pt; line-height: 1.75; }
+.valcard.group .ghead .ic { background: var(--bright); }
+.cochips { display: flex; flex-wrap: wrap; align-items: center; gap: 1.6mm; margin-top: 3mm; }
+.cochips .k { font-size: 7.6pt; font-weight: 700; color: var(--bright); margin-left: 1.5mm; }
+.cochips .co { display: inline-flex; align-items: center; gap: 1.2mm; font-size: 7.4pt; font-weight: 600; color: var(--navy); background: var(--pale); border: .3mm solid var(--mist); border-radius: 10mm; padding: .7mm 2.6mm .7mm 2.2mm; }
+.cochips .co .ic { width: 3.4mm; height: 3.4mm; }
+.dark .cochips .co { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.3); }
+
+.funnel { display: flex; align-items: stretch; gap: 2mm; margin-top: 7mm; }
+.funnel .fs { flex: 1; background: var(--navy); color: #fff; border-radius: 3.5mm; padding: 4mm 3mm; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.2mm; }
+.funnel .fs .ic { width: 7mm; height: 7mm; margin-bottom: 1mm; }
+.funnel .fs b { font-size: 9.5pt; }
+.funnel .fs span { font-size: 7.6pt; opacity: .8; }
+.funnel .fa { display: grid; place-items: center; color: var(--sky); }
+.funnel .fa .ic { width: 5mm; height: 5mm; }
+.statrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; margin-top: 6mm; }
+.statrow > div { display: flex; align-items: center; gap: 3mm; border-top: .5mm solid var(--navy); padding-top: 3mm; }
+.statrow .n { font-family: "Outfit"; font-weight: 600; font-size: 22pt; color: var(--navy); direction: ltr; line-height: 1; }
+.statrow .t { font-size: 8pt; color: var(--ink-2); line-height: 1.6; }
+
+.flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3mm; margin-top: 6mm; position: relative; }
+.flow::before { content: ""; position: absolute; top: 5.5mm; right: 5%; left: 5%; height: .4mm; background: var(--mist); }
+.flow .st { position: relative; background: #fff; border-radius: 3.5mm; padding: 3.5mm 4mm 4mm; box-shadow: 0 .8mm 3mm rgba(21,71,158,.07); }
+.flow .st .sn { width: 8mm; height: 8mm; border-radius: 2.2mm; background: var(--bright); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 10pt; }
+.flow .st h5 { font-size: 10pt; color: var(--navy); font-weight: 800; margin: 2.5mm 0 1mm; }
+.flow .st p { font-size: 8.2pt; line-height: 1.75; color: var(--ink-2); }
+
+.hub { position: relative; width: 150mm; height: 150mm; align-self: center; margin-top: 4mm; }
+.hub .center { position: absolute; transform: translate(-50%, -50%); width: 34mm; height: 34mm; border-radius: 50%; background: var(--navy); display: grid; place-items: center; box-shadow: 0 2mm 8mm rgba(21,71,158,.25); }
+.hub .center img { width: 24mm; }
+.hub .node { position: absolute; transform: translate(-50%, -50%); width: 30mm; background: #fff; border: .3mm solid var(--line); border-radius: 3.5mm; padding: 2.2mm 2mm; display: flex; flex-direction: column; align-items: center; text-align: center; gap: .6mm; box-shadow: 0 .8mm 3mm rgba(21,71,158,.08); }
+.hub .node .ic { width: 6mm; height: 6mm; color: var(--navy); }
+.hub .node b { font-size: 8.4pt; color: var(--navy); }
+.hub .node span { font-size: 6.8pt; color: var(--ink-3); line-height: 1.5; }
+.hub.fly { width: 160mm; }
+.hub.fly .node { width: 36mm; }
+.hub .node.light { border-color: #fff; }
+
+.symatrix th { font-size: 7.8pt; line-height: 1.5; padding: 2mm 1.5mm; }
+.symatrix th .ic { width: 5mm; height: 5mm; display: inline-block; margin: 0 0 .5mm; }
+.symatrix td { padding: 2.6mm 1.5mm; }
+.symatrix td.p { font-size: 8.8pt; }
+.sy { display: inline-block; width: 4.6mm; height: 4.6mm; border-radius: 50%; vertical-align: middle; }
+.sy.a { background: var(--navy); }
+.sy.o { border: .7mm solid var(--bright); background: #fff; }
+
+.deep .flow { margin-top: 9mm; gap: 4mm; }
+.deep .flow .st { padding: 5mm 4.5mm 5.5mm; }
+.deep .flow .st h5 { font-size: 11pt; margin: 3.5mm 0 1.5mm; }
+.deep .flow .st p { font-size: 9pt; line-height: 1.85; }
+.deep .valcard { padding: 5.5mm 5.5mm; gap: 3mm; }
+.deep .valcard .ghead .name { font-size: 11pt; }
+.deep .valcard ul.v { font-size: 9.2pt; line-height: 1.9; gap: 1.6mm; }
+.deep .pitch { margin-top: 8mm; padding: 4.5mm 5.5mm; font-size: 10pt; }
+.symat .symatrix { margin-top: 9mm; }
+.symat .symatrix th { font-size: 8.6pt; padding: 3mm 1.5mm; }
+.symat .symatrix th .ic { width: 6mm; height: 6mm; }
+.symat .symatrix td { padding: 4.6mm 1.5mm; }
+.symat .symatrix td.p { font-size: 10pt; }
+.symat .legend { margin-top: 5mm; font-size: 8.6pt; }
+.summ .vgrid { gap: 6mm; margin-top: 12mm; }
+.summ .vcard { padding: 9mm 8mm; }
+.summ .vcard .ic { width: 11mm; height: 11mm; }
+.summ .vcard h5 { font-size: 13pt; margin-bottom: 2.5mm; }
+.summ .vcard p { font-size: 10pt; line-height: 1.95; }

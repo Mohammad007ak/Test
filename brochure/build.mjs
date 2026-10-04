@@ -1,14 +1,16 @@
-// Builds index.html from src/content.mjs and renders dist/*.pdf with Playwright/Chromium.
-//   node build.mjs          -> html + pdf
-//   node build.mjs --html   -> html only
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+// Builds the brochure HTML and renders the PDF with Playwright/Chromium.
+//   node build.mjs           -> Bank Tejarat edition (src/content.mjs)
+//   node build.mjs --board   -> Digikala Group board edition (src/content-board.mjs)
+//   --html  html only   --png  also write per-page PNG previews
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import * as C from "./src/content.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const BOARD = process.argv.includes("--board");
+const C = BOARD ? await import("./src/content-board.mjs") : await import("./src/content.mjs");
 const { SEGMENTS, products, sections } = C;
 const SEG_ORDER = Object.keys(SEGMENTS);
 const bySeg = (arr) => [...arr].sort((x, y) => SEG_ORDER.indexOf(x.seg) - SEG_ORDER.indexOf(y.seg));
@@ -214,13 +216,13 @@ function matrixPage(n) {
             .join("")}<td class="pg">${productPage[k] ?? ""}</td></tr>`;
         })
         .join("");
-      return `<tr><td class="grp" colspan="6">${sec.title}</td></tr>${rows}`;
+      return `<tr><td class="grp" colspan="${Object.keys(SEGMENTS).length + 2}">${sec.title}</td></tr>${rows}`;
     })
     .join("");
   return `<section class="page">
     <div class="content">
-      <div class="h-title">نقشه محصولات به تفکیک حوزه بانکداری</div>
-      <div class="h-sub">هر محصول برای کدام گروه از مشتریان بانک تجارت کاربرد دارد؟</div>
+      <div class="h-title">${BOARD ? "نقشه محصولات به تفکیک مشتری" : "نقشه محصولات به تفکیک حوزه بانکداری"}</div>
+      <div class="h-sub">${BOARD ? "هر محصول برای کدام گروه از مشتریان دیجی‌پی کاربرد دارد؟" : "هر محصول برای کدام گروه از مشتریان بانک تجارت کاربرد دارد؟"}</div>
       <table class="matrix"><thead><tr><th style="width:36%">محصول / خدمت</th>${head}<th style="width:6%">صفحه</th></tr></thead><tbody>${body}</tbody></table>
       <div class="legend"><span>${dot("full")} کاربرد اصلی</span><span>${dot("half")} کاربرد مکمل</span><span>${dot("none")} —</span></div>
     </div>${footer(n)}</section>`;
@@ -283,10 +285,23 @@ function productPageHtml(n, key) {
     ? `<div class="pills">${p.pills.map((x) => `<div class="pill ${x.primary ? "primary" : ""}">${icon(x.icon)}<span>${x.t}</span></div>`).join("")}</div>`
     : "";
   const bankNote = p.bankNote ? `<div class="pill primary" style="margin-top:4mm">${icon("landmark")}<span>${p.bankNote}</span></div>` : "";
-  const pitch = p.pitch && p.compactGuide ? `<div class="pitch">${icon("messages-square")}<span class="k">پیام کلیدی</span><span>${p.pitch}</span></div>` : "";
+  const pitch = p.pitch && (p.compactGuide || p.val) ? `<div class="pitch">${icon("messages-square")}<span class="k">پیام کلیدی</span><span>${p.pitch}</span></div>` : "";
 
   let grid;
-  if (p.compactGuide) {
+  if (p.val) {
+    const side = `${offersHtml(p)}${pills}${bankNote}`;
+    const top = side
+      ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8mm;align-items:start"><div>${featList}${groups}</div><div style="margin-top:5mm">${side}</div></div>`
+      : groups || featList.replace('class="feat"', 'class="feat" style="grid-template-columns:1fr 1fr;column-gap:8mm"');
+    const vcard = (k, title, items) => `<div class="gcard valcard ${k}" style="color:var(--ink)">
+        <div class="ghead">${icon(k === "user" ? "user-check" : "sparkles")}<span class="name" style="font-size:9.5pt">${title}</span></div>
+        <ul class="v">${items.map((x) => `<li>${x}</li>`).join("")}</ul></div>`;
+    const cos = (p.cos || []).map((id) => C.group.find((g) => g.id === id)).filter(Boolean);
+    grid = `${top}
+      <div style="font-weight:800;color:${dark ? "#fff" : "var(--navy)"};font-size:10pt;margin:4.5mm 0 2.4mm">ارزش‌آفرینی</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3mm">${vcard("user", "ارزش برای مشتری", p.val.user)}${vcard("group", "ارزش برای دیجی‌پی و گروه", p.val.group)}</div>
+      ${cos.length ? `<div class="cochips"><span class="k">هم‌افزایی با گروه</span>${cos.map((g) => `<span class="co">${icon(g.icon)}${g.fa}</span>`).join("")}</div>` : ""}`;
+  } else if (p.compactGuide) {
     // top row: features | offers ; below: target-market cards across the full width
     const side = `${offersHtml(p)}${pills}${bankNote}`;
     const top = side
@@ -439,47 +454,237 @@ function backPage() {
   </section>`;
 }
 
+// ---------------------------------------------------------------- board-edition templates
+function introBoardPage(n) {
+  const I = C.intro;
+  return `<section class="page">
+    ${swoosh({ x: "190mm", y: "110mm", w: 150, color: "#15479e", opacity: 0.04 })}
+    <div class="content">
+      <div class="h-title">${I.title}</div>
+      <p class="lead" style="max-width:215mm;font-size:10.5pt">${I.lead}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:10mm">${I.points
+        .map((h, i) => `<div class="idea">${icon(h.icon)}<div><h5>${faDigits(i + 1)}. ${h.t}</h5><p>${h.d}</p></div></div>`)
+        .join("")}</div>
+      <div class="statrow" style="margin-top:12mm">${[
+        { n: "12+", t: "میلیون کاربر" },
+        { n: "50+", t: "همت اعتبار اعطاشده در سال ۱۴۰۴" },
+        { n: "20K", t: "پذیرنده آنلاین و حضوری" },
+        { n: "15", t: "محصول در سه گروه مشتری" },
+      ].map((x) => `<div><span class="n">${x.n}</span><span class="t">${x.t}</span></div>`).join("")}</div>
+    </div>${footer(n)}</section>`;
+}
+
+function b2oOverviewPage(n) {
+  const why = [
+    { icon: "user-check", t: "کاربران شناسایی‌شده", d: "کاربرانی که از مسیر سازمان وارد می‌شوند معمولاً احراز هویت‌شده‌اند و درآمد مشخصی دارند." },
+    { icon: "shield-check", t: "ریسک اعتباری پایین", d: "ضمانت سازمان، کسر اقساط از حقوق و جمع‌آوری سیستمی، اعتباردهی بدون چک و سفته فردی را ممکن می‌کند." },
+    { icon: "refresh-cw", t: "رابطه مالی مستمر", d: "دیجی‌کارت و بن رفاهی، رابطه کاربر را از یک ثبت‌نام مقطعی به خرید و تراکنش مستمر می‌رساند." },
+  ];
+  const funnel = [
+    { icon: "building-2", t: "سازمان", d: "قرارداد و بودجه" },
+    { icon: "users", t: "کارکنان و اعضا", d: "کاربران باکیفیت" },
+    { icon: "layers", t: "رفاه، اعتبار و وام", d: "بن، ۱ و ۴ قسطه، وام بانکی" },
+    { icon: "shopping-cart", t: "خرید در گروه", d: "دیجی‌کالا، جت و پذیرندگان" },
+    { icon: "repeat", t: "تراکنش مستمر", d: "رابطه مالی بلندمدت" },
+  ];
+  const stats = [
+    { n: "1&4", t: "اعتبار یک و چهار قسطه کارکنان" },
+    { n: "300", t: "میلیون تومان سقف اعتبار سازمانی" },
+    { n: "400", t: "میلیون تومان وام بانکی ۱۲ و ۲۴ ماهه" },
+    { n: "20K", t: "پذیرنده برای خرید کارکنان" },
+  ];
+  return `<section class="page pale">
+    <div class="content">
+      <div class="eyebrow" style="font-size:8.5pt;color:var(--bright);font-weight:700">تمرکز سند</div>
+      <div class="h-title">چرا راهکارهای سازمانی (B2O)؟</div>
+      <p class="lead" style="max-width:220mm">ارزش B2O فقط عقد قرارداد با یک سازمان نیست؛ هر سازمان می‌تواند دروازه ورود تعداد زیادی کاربر باکیفیت به دیجی‌پی و گروه دیجی‌کالا باشد. B2O به خدمات رفاهی محدود نمی‌شود و اعتبارهای یک و چهار قسطه، وام‌های بلندمدت بانکی و مدل‌های اعتباردهی حرفه‌ای را هم در بر می‌گیرد.</p>
+      <div class="funnel">${funnel.map((f, i) => `<div class="fs">${icon(f.icon)}<b>${f.t}</b><span>${f.d}</span></div>${i < funnel.length - 1 ? `<div class="fa">${icon("arrow-left")}</div>` : ""}`).join("")}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-top:6mm">${why.map((w) => `<div class="idea">${icon(w.icon)}<div><h5>${w.t}</h5><p>${w.d}</p></div></div>`).join("")}</div>
+      <div class="statrow">${stats.map((s) => `<div><span class="n">${s.n}</span><span class="t">${s.t}</span></div>`).join("")}</div>
+    </div>${footer(n)}</section>`;
+}
+
+function deepDivePage(n, key) {
+  const p = products[key];
+  const D = p.deep;
+  const col = (ic, t, items) => `<div class="gcard valcard"><div class="ghead">${icon(ic)}<span class="name">${t}</span></div><ul class="v">${items.map((x) => `<li>${x}</li>`).join("")}</ul></div>`;
+  return `<section class="page pale deep">
+    <div class="content" style="inset:14mm 16mm 19mm 16mm">
+      <div class="guide-head">
+        <div><div class="eyebrow">سازوکار و ارزش‌آفرینی</div><div class="h-title" style="font-size:16pt">${p.title}</div></div>
+        <div class="en" style="font-size:9pt;color:var(--sky)">${p.en} · How it works</div>
+      </div>
+      <div class="flow">${D.flow.map((f, i) => `<div class="st"><div class="sn">${faDigits(i + 1)}</div><h5>${f.t}</h5><p>${f.d}</p></div>`).join("")}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-top:6mm">
+        ${col("building-2", "ارزش برای سازمان", D.values.org)}
+        ${col("user-check", "ارزش برای کارکنان و اعضا", D.values.user)}
+        ${col("sparkles", "ارزش برای دیجی‌پی و گروه", D.values.group)}
+      </div>
+      <div class="pitch">${icon("network")}<span class="k">هم‌افزایی با گروه</span><span>${D.synergy}</span></div>
+    </div>${footer(n)}</section>`;
+}
+
+function ecosystemPage(n) {
+  const G = C.group;
+  const R = 56, cx = 75, cy = 72;
+  const pos = G.map((g, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / G.length;
+    return { ...g, x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
+  });
+  const lines = pos.map((q) => `<line x1="${cx}" y1="${cy}" x2="${q.x}" y2="${q.y}" stroke="#879fcf" stroke-width=".35" stroke-dasharray="1.2 1.2"/>`).join("");
+  const nodes = pos.map((q) => `<div class="node" style="left:${q.x}mm;top:${q.y}mm">${icon(q.icon)}<b>${q.fa}</b><span>${q.role}</span></div>`).join("");
+  const roles = [
+    { icon: "credit-card", t: "زیرساخت پرداخت و اعتبار", d: "کیف پول، BNPL و C-Credit در چک‌اوت پلتفرم‌های گروه" },
+    { icon: "store", t: "تأمین مالی فروشندگان", d: "سرمایه در گردش و تسویه زودهنگام برای فروشندگان مارکت‌پلیس" },
+    { icon: "building-2", t: "کانال سازمانی", d: "B2O؛ ورود کارکنان سازمان‌ها به خرید مستمر در گروه" },
+    { icon: "database", t: "داده مالی مشترک", d: "رفتار خرید و بازپرداخت برای اعتبارسنجی دقیق‌تر" },
+  ];
+  return `<section class="page" style="display:grid;grid-template-columns:1fr 1.15fr">
+    <div style="padding:18mm 18mm 20mm 6mm">
+      <div class="h-title">دیجی‌پی در اکوسیستم گروه دیجی‌کالا</div>
+      <p class="lead">دیجی‌پی، بازوی فناوری مالی گروه دیجی‌کالاست؛ پرداخت، اعتبار و خدمات مالی را به همه پلتفرم‌های گروه و میلیون‌ها کاربر آن‌ها می‌رساند.</p>
+      <div style="display:grid;gap:3mm;margin-top:6mm">${roles.map((r) => `<div class="pill" style="padding:3mm 4mm">${icon(r.icon)}<div><b style="color:var(--navy)">${r.t}</b><div style="font-size:8pt;color:var(--ink-2)">${r.d}</div></div></div>`).join("")}</div>
+    </div>
+    <div class="hub">
+      <svg viewBox="0 0 150 150" style="position:absolute;inset:0;width:150mm;height:150mm">${lines}<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#dde5f3" stroke-width=".3"/></svg>
+      <div class="center" style="left:${cx}mm;top:${cy}mm"><img src="${img("logo-white.png")}" alt="digipay"></div>
+      ${nodes}
+    </div>
+    ${footer(n)}</section>`;
+}
+
+function synergyMatrixPage(n) {
+  const G = C.group;
+  const cell = (v) => (v === "a" ? `<span class="sy a"></span>` : v === "o" ? `<span class="sy o"></span>` : `<span class="dot none"></span>`);
+  const head = G.map((g) => `<th>${icon(g.icon)}<br>${g.fa}</th>`).join("");
+  const rows = C.synergyMatrix.map((r) => `<tr><td class="p">${r.p}</td>${G.map((g) => `<td>${cell(r.c[g.id])}</td>`).join("")}</tr>`).join("");
+  return `<section class="page symat">
+    <div class="content">
+      <div class="h-title">نقشه هم‌افزایی با شرکت‌های گروه</div>
+      <div class="h-sub">هم‌افزایی‌های فعال و فرصت‌های توسعه محصولات دیجی‌پی در پلتفرم‌های گروه دیجی‌کالا</div>
+      <table class="matrix symatrix"><thead><tr><th style="width:22%;text-align:right">محصول دیجی‌پی</th>${head}</tr></thead><tbody>${rows}</tbody></table>
+      <div class="legend"><span><span class="sy a"></span> هم‌افزایی فعال</span><span><span class="sy o"></span> فرصت توسعه</span></div>
+    </div>${footer(n)}</section>`;
+}
+
+function synergyIdeasPage(n) {
+  const byId = Object.fromEntries(C.group.map((g) => [g.id, g]));
+  return `<section class="page pale">
+    <div class="content">
+      <div class="h-title">فرصت‌های کلیدی هم‌افزایی</div>
+      <div class="h-sub">مسیرهایی که با اتکا به زیرساخت فعلی دیجی‌پی، ارزش بیشتری برای گروه دیجی‌کالا خلق می‌کنند.</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-top:8mm">${C.synergyIdeas
+        .map((c) => `<div class="idea">${icon(c.icon)}<div><h5>${c.t}</h5><p>${c.d}</p><div class="cochips" style="margin-top:2.5mm">${c.cos.map((id) => `<span class="co">${icon(byId[id].icon)}${byId[id].fa}</span>`).join("")}</div></div></div>`)
+        .join("")}</div>
+    </div>${footer(n)}</section>`;
+}
+
+function flywheelPage(n) {
+  const F = C.flywheel;
+  const R = 62, cx = 80, cy = 74;
+  const pos = F.map((f, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / F.length;
+    return { ...f, x: cx + R * Math.cos(a), y: cy + R * Math.sin(a), a };
+  });
+  // arrowheads at mid-arc between nodes
+  const arrows = pos.map((q, i) => {
+    const a = q.a + Math.PI / F.length;
+    const x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
+    const deg = (a * 180) / Math.PI + 90;
+    return `<path d="M-2 -1.6 L1.6 0 L-2 1.6" transform="translate(${x} ${y}) rotate(${deg})" fill="none" stroke="#fff" stroke-width=".8" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }).join("");
+  return `<section class="page navy" style="display:grid;grid-template-columns:1fr 1.25fr">
+    ${swoosh({ x: "-30mm", y: "130mm", w: 150, opacity: 0.05 })}
+    <div style="position:relative;padding:20mm 18mm 20mm 4mm">
+      <div class="h-title">چرخه ارزش دیجی‌پی در گروه</div>
+      <p class="lead" style="font-size:10pt">هر خرید با اعتبار دیجی‌پی، داده و منابع بیشتری برای اعتبار بیشتر می‌سازد؛ و اعتبار بیشتر، خرید بیشتر در پلتفرم‌های گروه و شبکه پذیرندگان.</p>
+      <div class="pill primary" style="margin-top:8mm;background:#fff;color:var(--navy)">${icon("refresh-cw")}<span>موجودی نقد دیجی‌کارت و وجوه حق بیمه، منابع کم‌هزینه برای توسعه BNPL و C-Credit فراهم می‌کنند.</span></div>
+    </div>
+    <div class="hub fly">
+      <svg viewBox="0 0 160 150" style="position:absolute;inset:0;width:160mm;height:150mm"><circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width=".5"/>${arrows}</svg>
+      <div class="center" style="left:${cx}mm;top:${cy}mm;width:38mm;height:38mm;background:#fff"><span style="color:var(--navy);font-weight:800;font-size:9pt;line-height:1.6;text-align:center">چرخه ارزش<br>دیجی‌پی</span></div>
+      ${pos.map((q, i) => `<div class="node light" style="left:${q.x}mm;top:${q.y}mm">${icon(q.icon)}<b>${faDigits(i + 1)}. ${q.t}</b><span>${q.d}</span></div>`).join("")}
+    </div>
+    ${footer(n)}</section>`;
+}
+
+function summaryPage(n) {
+  return `<section class="page navy summ">
+    ${swoosh({ x: "-30mm", y: "120mm", w: 160, opacity: 0.05 })}
+    <div class="content">
+      <div class="h-title">جمع‌بندی</div>
+      <div class="h-sub">دیجی‌پی؛ نخستین فناوری مالی جامع در ایران و بازوی مالی گروه دیجی‌کالا</div>
+      <div class="vgrid" style="grid-template-columns:repeat(2,1fr)">${C.summary.map((v) => `<div class="vcard">${icon(v.icon)}<h5>${v.t}</h5><p>${v.d}</p></div>`).join("")}</div>
+    </div>${footer(n)}</section>`;
+}
+
 // ---------------------------------------------------------------- assemble
+function addSections({ deep }) {
+  sections.forEach((sec, si) => {
+    add(
+      (n) =>
+        divider(n, {
+          title: sec.title, en: sec.en, desc: sec.desc, kicker: `بخش ${faDigits(si + 1)}`, big: `0${si + 1}`,
+          related: sections
+            .filter((o) => o.id !== sec.id)
+            .flatMap((o) => o.products)
+            .filter((k) => products[k].seg[sec.id] === "full")
+            .map((k) => ({ title: products[k].title, pg: productPage[k] })),
+        }),
+      { label: sec.title, level: "sec" }
+    );
+    if (deep && sec.id === "org") {
+      add((n) => b2oOverviewPage(n), { label: "چرا راهکارهای سازمانی (B2O)؟", level: "sub" });
+      add((n) => clientsPage(n), { label: "سازمان‌های همکار", level: "sub" });
+    }
+    sec.products.forEach((k) => {
+      const p = products[k];
+      p.no = ++productNo;
+      productPage[k] = pages.length + 1;
+      if (k === "welfare") add((n) => welfarePage(n, k), { label: p.title, level: "sub" });
+      else add((n) => productPageHtml(n, k), { label: p.title, level: "sub" });
+      if (p.guide) add((n) => guidePage(n, k));
+      if (deep && p.deep) add((n) => deepDivePage(n, k));
+    });
+  });
+}
+
 add(() => cover());
 add((n) => toc(n));
-add((n) => introPage(n), { label: "درباره این سند", level: "" });
-add((n) => divider(n, { title: "دیجی‌پی در یک نگاه", en: ["Digipay", "at a glance"] }), { label: "دیجی‌پی در یک نگاه", level: "sec" });
-add((n) => glancePage(n), { label: "آمار، خدمات و دنیای کالا", level: "sub" });
-add((n) => networkPage(n), { label: "شبکه پذیرندگان دیجی‌پی", level: "sub" });
-add((n) => merchantsPage(n), { label: "برخی از پذیرندگان طرف قرارداد", level: "sub" });
-add((n) => matrixPage(n), { label: "نقشه محصولات به تفکیک حوزه بانکداری", level: "sec" });
-
-sections.forEach((sec, si) => {
-  add(
-    (n) =>
-      divider(n, {
-        title: sec.title, en: sec.en, desc: sec.desc, kicker: `بخش ${faDigits(si + 1)}`, big: `0${si + 1}`,
-        related: sections
-          .filter((o) => o.id !== sec.id)
-          .flatMap((o) => o.products)
-          .filter((k) => products[k].seg[sec.id] === "full")
-          .map((k) => ({ title: products[k].title, pg: productPage[k] })),
-      }),
-    { label: sec.title, level: "sec" }
-  );
-  sec.products.forEach((k) => {
-    const p = products[k];
-    p.no = ++productNo;
-    productPage[k] = pages.length + 1;
-    if (k === "welfare") add((n) => welfarePage(n, k), { label: p.title, level: "sub" });
-    else add((n) => productPageHtml(n, k), { label: p.title, level: "sub" });
-    if (p.guide) add((n) => guidePage(n, k));
-  });
-});
-
-add((n) => divider(n, { title: "راهنمای عملیاتی شعب", en: ["Branch", "Toolkit"], desc: "ابزارهای کاربردی برای شناسایی مشتریان، ارجاع و پیگیری همکاری.", kicker: `بخش ${faDigits(sections.length + 1)}`, big: `0${sections.length + 1}` }), { label: "راهنمای عملیاتی شعب", level: "sec" });
-add((n) => toolkitPage(n), { label: "جعبه‌ابزار شعبه: از نشانه تا پیشنهاد", level: "sub" });
-add((n) => processPage(n), { label: "فرایند همکاری شعبه و دیجی‌پی", level: "sub" });
-add((n) => valuePage(n), { label: "ارزش همکاری برای بانک تجارت", level: "sub" });
-add((n) => capacityPage(n), { label: "ظرفیت‌های قابل توسعه", level: "sub" });
-add((n) => clientsPage(n), { label: "سازمان‌های همکار", level: "sub" });
-add((n) => contactPage(n), { label: "راه‌های ارتباطی", level: "sec" });
-add(() => backPage());
+if (BOARD) {
+  add((n) => introBoardPage(n), { label: "درباره این سند", level: "" });
+  add((n) => divider(n, { title: "دیجی‌پی در یک نگاه", en: ["Digipay", "at a glance"] }), { label: "دیجی‌پی در یک نگاه", level: "sec" });
+  add((n) => glancePage(n), { label: "آمار، خدمات و خط زمانی", level: "sub" });
+  add((n) => networkPage(n), { label: "شبکه پذیرندگان دیجی‌پی", level: "sub" });
+  add((n) => merchantsPage(n), { label: "برخی از پذیرندگان طرف قرارداد", level: "sub" });
+  add((n) => matrixPage(n), { label: "نقشه محصولات به تفکیک مشتری", level: "sec" });
+  addSections({ deep: true });
+  const k = sections.length + 1;
+  add((n) => divider(n, { title: "هم‌افزایی در گروه دیجی‌کالا", en: ["Digikala Group", "Synergy"], desc: "جایگاه دیجی‌پی در اکوسیستم گروه، نقشه هم‌افزایی با شرکت‌های گروه، فرصت‌های کلیدی و چرخه ارزش.", kicker: `بخش ${faDigits(k)}`, big: `0${k}` }), { label: "هم‌افزایی در گروه دیجی‌کالا", level: "sec" });
+  add((n) => ecosystemPage(n), { label: "دیجی‌پی در اکوسیستم گروه", level: "sub" });
+  add((n) => synergyMatrixPage(n), { label: "نقشه هم‌افزایی با شرکت‌های گروه", level: "sub" });
+  add((n) => synergyIdeasPage(n), { label: "فرصت‌های کلیدی هم‌افزایی", level: "sub" });
+  add((n) => flywheelPage(n), { label: "چرخه ارزش دیجی‌پی در گروه", level: "sub" });
+  add((n) => summaryPage(n), { label: "جمع‌بندی", level: "sec" });
+  add((n) => contactPage(n), { label: "راه‌های ارتباطی", level: "sec" });
+  add(() => backPage());
+} else {
+  add((n) => introPage(n), { label: "درباره این سند", level: "" });
+  add((n) => divider(n, { title: "دیجی‌پی در یک نگاه", en: ["Digipay", "at a glance"] }), { label: "دیجی‌پی در یک نگاه", level: "sec" });
+  add((n) => glancePage(n), { label: "آمار، خدمات و دنیای کالا", level: "sub" });
+  add((n) => networkPage(n), { label: "شبکه پذیرندگان دیجی‌پی", level: "sub" });
+  add((n) => merchantsPage(n), { label: "برخی از پذیرندگان طرف قرارداد", level: "sub" });
+  add((n) => matrixPage(n), { label: "نقشه محصولات به تفکیک حوزه بانکداری", level: "sec" });
+  addSections({ deep: false });
+  add((n) => divider(n, { title: "راهنمای عملیاتی شعب", en: ["Branch", "Toolkit"], desc: "ابزارهای کاربردی برای شناسایی مشتریان، ارجاع و پیگیری همکاری.", kicker: `بخش ${faDigits(sections.length + 1)}`, big: `0${sections.length + 1}` }), { label: "راهنمای عملیاتی شعب", level: "sec" });
+  add((n) => toolkitPage(n), { label: "جعبه‌ابزار شعبه: از نشانه تا پیشنهاد", level: "sub" });
+  add((n) => processPage(n), { label: "فرایند همکاری شعبه و دیجی‌پی", level: "sub" });
+  add((n) => valuePage(n), { label: "ارزش همکاری برای بانک تجارت", level: "sub" });
+  add((n) => capacityPage(n), { label: "ظرفیت‌های قابل توسعه", level: "sub" });
+  add((n) => clientsPage(n), { label: "سازمان‌های همکار", level: "sub" });
+  add((n) => contactPage(n), { label: "راه‌های ارتباطی", level: "sec" });
+  add(() => backPage());
+}
 
 const body = pages.map((p, i) => p.render(i + 1)).join("\n");
 const html = `<!doctype html>
@@ -490,8 +695,9 @@ const html = `<!doctype html>
 </head><body>
 ${body}
 </body></html>`;
-writeFileSync(path.join(ROOT, "index.html"), html);
-console.log(`index.html: ${pages.length} pages`);
+const HTML_FILE = BOARD ? "index-board.html" : "index.html";
+writeFileSync(path.join(ROOT, HTML_FILE), html);
+console.log(`${HTML_FILE}: ${pages.length} pages`);
 
 if (process.argv.includes("--html")) process.exit(0);
 
@@ -502,15 +708,17 @@ const { chromium } = require("playwright");
 mkdirSync(path.join(ROOT, "dist"), { recursive: true });
 const browser = await chromium.launch();
 const page = await browser.newPage();
-await page.goto(pathToFileURL(path.join(ROOT, "index.html")).href, { waitUntil: "networkidle" });
+await page.goto(pathToFileURL(path.join(ROOT, HTML_FILE)).href, { waitUntil: "networkidle" });
 await page.evaluate(() => document.fonts.ready);
-const out = path.join(ROOT, "dist", "digipay-tejarat-brochure.pdf");
+const out = path.join(ROOT, "dist", C.meta.out || "digipay-tejarat-brochure.pdf");
 await page.pdf({ path: out, width: "297mm", height: "210mm", printBackground: true, preferCSSPageSize: true });
 if (process.argv.includes("--png")) {
-  mkdirSync(path.join(ROOT, "dist/preview"), { recursive: true });
+  const PREV = BOARD ? "dist/preview-board" : "dist/preview";
+  rmSync(path.join(ROOT, PREV), { recursive: true, force: true });
+  mkdirSync(path.join(ROOT, PREV), { recursive: true });
   await page.setViewportSize({ width: 1123, height: 794 });
   const els = await page.$$("section.page");
-  for (let i = 0; i < els.length; i++) await els[i].screenshot({ path: path.join(ROOT, `dist/preview/p${String(i + 1).padStart(2, "0")}.png`) });
+  for (let i = 0; i < els.length; i++) await els[i].screenshot({ path: path.join(ROOT, `${PREV}/p${String(i + 1).padStart(2, "0")}.png`) });
 }
 await browser.close();
 console.log("pdf:", out);
