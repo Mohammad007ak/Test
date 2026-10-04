@@ -263,6 +263,9 @@
     var box = form.querySelector("textarea");
     var send = form.querySelector(".chat-send");
     var busy = false;
+    var image = null;  // عکس کوچک‌شده آماده ارسال (Blob)
+    var fileInput = form.querySelector("[data-image-input]");
+    var preview = app.querySelector("[data-preview]");
 
     function toBottom(smooth) {
       scroll.scrollTo({ top: scroll.scrollHeight, behavior: smooth ? "smooth" : "auto" });
@@ -270,8 +273,39 @@
     function grow() {
       box.style.height = "auto";
       box.style.height = Math.min(box.scrollHeight, 140) + "px";
-      send.disabled = busy || !box.value.trim();
+      send.disabled = busy || (!box.value.trim() && !image);
     }
+    // عکس در مرورگر کوچک و دوباره JPEG می‌شود: حجم کم‌تر و حذف EXIF (مثل مکان عکس)
+    function shrink(file, done) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+        var c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (blob) { done(blob); }, "image/jpeg", 0.85);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); done(null); };
+      img.src = url;
+    }
+    function setImage(blob) {
+      image = blob;
+      if (preview) {
+        preview.hidden = !blob;
+        var thumb = preview.querySelector("img");
+        if (thumb.src) URL.revokeObjectURL(thumb.src);
+        thumb.src = blob ? URL.createObjectURL(blob) : "";
+      }
+      if (!blob && fileInput) fileInput.value = "";
+      grow();
+    }
+    if (fileInput) fileInput.addEventListener("change", function () {
+      var file = fileInput.files && fileInput.files[0];
+      if (file) shrink(file, setImage);
+    });
+    if (preview) preview.querySelector("[data-remove-image]").addEventListener("click", function () { setImage(null); });
     function row(who, child) {
       var r = document.createElement("div");
       r.className = "chat-row " + who;
@@ -286,12 +320,21 @@
       return row(who, m);
     }
     function ask(text) {
-      if (!text || busy) return;
+      if ((!text && !image) || busy) return;
       busy = true;
+      var sending = image;
       var hello = log.querySelector(".chat-hello");
       if (hello) hello.remove();
       log.querySelectorAll(".chat-chips, .quick-link").forEach(function (el) { el.remove(); });
-      message("me", text);
+      var mine = message("me", text);
+      if (sending) {
+        var pic = document.createElement("img");
+        pic.className = "chat-photo";
+        pic.alt = "";
+        pic.src = URL.createObjectURL(sending);
+        mine.querySelector(".chat-msg").prepend(pic);
+        setImage(null);
+      }
       var dots = document.createElement("div");
       dots.className = "chat-msg vazir typing";
       dots.innerHTML = "<i></i><i></i><i></i>";
@@ -301,6 +344,7 @@
       toBottom(true);
       var data = new FormData();
       data.append("question", text);
+      if (sending) data.append("image", sending, "photo.jpg");
       fetch(form.action, { method: "POST", body: data, credentials: "same-origin",
                            headers: { "HX-Request": "true" } })
         .then(function (r) {
@@ -330,6 +374,26 @@
     app.addEventListener("click", function (e) {
       var starter = e.target.closest("[data-ask]");
       if (starter) ask(starter.getAttribute("data-ask"));
+      var all = e.target.closest("[data-confirm-all]");
+      if (all) {
+        all.disabled = true;
+        var ids = all.getAttribute("data-confirm-all").split(",");
+        var body = new FormData();
+        body.append("ids", ids.join(","));
+        fetch("/assistant/actions-all", { method: "POST", body: body, credentials: "same-origin",
+                                          headers: { "HX-Request": "true" } })
+          .then(function (r) { return r.ok ? r.text() : ""; })
+          .catch(function () { return ""; })
+          .then(function (html) {
+            if (!html) { all.disabled = false; return; }
+            ids.forEach(function (id) {
+              var card = log.querySelector('[data-action="' + id + '"]');
+              if (card) card.closest(".chat-row").remove();
+            });
+            all.outerHTML = html;
+          });
+        return;
+      }
       var button = e.target.closest("[data-action-do]");
       if (!button) return;
       var card = button.closest("[data-action]");

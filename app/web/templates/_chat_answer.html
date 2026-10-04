@@ -1,2 +1,3 @@
 <div class="chat-row vazir"><div class="chat-msg vazir {{ 'error' if error }}">{{ answer | chat_md }}</div></div>
 {% for action_id, action in actions %}<div class="chat-row vazir">{% include "_action_card.html" %}</div>{% endfor %}
+{% if actions | length > 1 %}<div class="chat-row vazir"><button type="button" class="btn confirm-all" data-confirm-all="{{ actions | map(attribute=0) | join(',') }}">{{ T.action_confirm_all.format(count=actions | length | fa) }}</button></div>{% endif %}

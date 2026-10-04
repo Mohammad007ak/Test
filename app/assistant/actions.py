@@ -22,7 +22,7 @@ from app.web.forms import Entity, FormError
 from app.web.spending_routes import FLOWS, apply_transaction
 
 PENDING_KEY = "assistant_pending"
-MAX_PENDING = 10
+MAX_PENDING = 40  # یک اسکرین‌شات پرتفوی ممکن است ده‌ها سهم داشته باشد
 
 # نوع کار → (موجودیت فرم، عنوان کارت)
 _TITLES = {"add_asset": "دارایی", "add_liability": "بدهی", "add_income": "درآمد",

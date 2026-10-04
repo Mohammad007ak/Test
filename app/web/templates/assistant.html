@@ -31,8 +31,14 @@
     </div>
   </div>
 
-  <form id="chat-form" class="chat-composer" method="post" action="/assistant" hx-boost="false">
-    <textarea name="question" rows="1" maxlength="1000" placeholder="{{ T.assistant_placeholder }}" aria-label="{{ T.assistant_placeholder }}" required>{{ prefill }}</textarea>
+  <div class="chat-attach-preview" data-preview hidden>
+    <img alt="">
+    <p>{{ T.assistant_image_warning }}</p>
+    <button type="button" class="icon-btn" data-remove-image aria-label="{{ T.assistant_attach_remove }}">{{ icon("close") }}</button>
+  </div>
+  <form id="chat-form" class="chat-composer" method="post" action="/assistant" enctype="multipart/form-data" hx-boost="false">
+    <label class="chat-attach" aria-label="{{ T.assistant_attach }}" title="{{ T.assistant_attach }}">{{ icon("image") }}<input type="file" name="image" accept="image/*" data-image-input hidden></label>
+    <textarea name="question" rows="1" maxlength="1000" placeholder="{{ T.assistant_placeholder }}" aria-label="{{ T.assistant_placeholder }}">{{ prefill }}</textarea>
     <button type="submit" class="chat-send" aria-label="{{ T.assistant_send }}" disabled>{{ icon("up") }}</button>
   </form>
   <p class="chat-disclaimer">{{ disclaimer }}</p>

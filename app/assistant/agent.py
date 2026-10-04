@@ -20,9 +20,15 @@ class Answer:
 
 
 def ask(model: ChatModel, run_tool: Callable[[str, str], str], question: str,
-        history: list[dict[str, Any]], mode: str = "strict", persona: str = "") -> Answer:
+        history: list[dict[str, Any]], mode: str = "strict", persona: str = "",
+        image: str | None = None) -> Answer:
+    """image: data URL عکسی که کاربر همراه سؤال فرستاده (قالب image_url سازگار با OpenAI)."""
+    content: Any = question
+    if image:
+        content = [{"type": "text", "text": question},
+                   {"type": "image_url", "image_url": {"url": image}}]
     messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt(mode, persona)},
-                                      *history, {"role": "user", "content": question}]
+                                      *history, {"role": "user", "content": content}]
     used: list[str] = []
     for _ in range(MAX_ROUNDS):
         reply = model.complete(messages, TOOLS)

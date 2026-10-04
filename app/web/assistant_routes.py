@@ -7,9 +7,10 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
+from starlette.datastructures import UploadFile as StarletteUpload
 
 from app import services
-from app.assistant import actions
+from app.assistant import actions, images
 from app.assistant.agent import AssistantError, ask
 from app.assistant.client import ChatModel
 from app.assistant.prompt import persona_brief
@@ -87,9 +88,18 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
 
     @app.post("/assistant", response_class=HTMLResponse, dependencies=[LoggedIn])
     async def question(request: Request, db: Db) -> Response:
-        text = " ".join((await read_form(request)).get("question", "").split())
+        form = await request.form()
+        text = " ".join(str(form.get("question") or "").split())
+        upload = form.get("image")
         if model is None or services.get_user_setting(db, CONSENT_KEY) != "yes":
             return turn(request, text, s.T["assistant_off"], error=True, status=403)
+        image = None
+        if isinstance(upload, StarletteUpload) and upload.filename is not None:
+            try:  # فقط در حافظه همین درخواست؛ هیچ‌جا ذخیره نمی‌شود
+                image = images.data_url(await upload.read(images.MAX_BYTES + 1))
+            except images.ImageError as exc:
+                return turn(request, text, str(exc), error=True, status=400)
+            text = text or s.T["assistant_image_default"]
         if not text or len(text) > MAX_QUESTION:
             return turn(request, text[:80], s.T["assistant_bad_question"], error=True, status=400)
         today, used = _used_today(db)
@@ -103,16 +113,33 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
         before = set(actions.pending(db))
         try:
             answer = ask(model, partial(run_tool, db), text, history, mode,
-                         persona_brief(services.load_persona(db)))
+                         persona_brief(services.load_persona(db)), image)
         except AssistantError as exc:
             return turn(request, text, str(exc), error=True, status=200)
         services.set_user_setting(db, USAGE_KEY, json.dumps({"date": today, "count": used + 1}))
-        history = [*history, {"role": "user", "content": text},
+        shown = f"{s.T['assistant_image_mark']} {text}" if image else text
+        history = [*history, {"role": "user", "content": shown},
                    {"role": "assistant", "content": answer.text}][-HISTORY_TURNS * 2:]
         services.set_user_setting(db, HISTORY_KEY, json.dumps(history, ensure_ascii=False))
         db.commit()
         new = [(k, v) for k, v in actions.pending(db).items() if k not in before]
         return turn(request, text, answer.text, new_actions=new)
+
+    @app.post("/assistant/actions-all", response_class=HTMLResponse, dependencies=[LoggedIn])
+    async def confirm_all(request: Request, db: Db) -> Response:
+        """«ثبت همه»: همه کارت‌های این جواب با یک ضربه؛ هر کدام جدا اعتبارسنجی می‌شود."""
+        ids = [i for i in (await read_form(request)).get("ids", "").split(",") if i]
+        saved, failed = 0, 0
+        for action_id in ids:
+            try:
+                saved += actions.confirm(db, action_id) is not None
+            except FormError:
+                db.rollback()
+                failed += 1
+        message = s.T["action_saved_all"].format(count=to_persian_digits(str(saved)))
+        if failed:
+            message += " " + s.T["action_failed_some"].format(count=to_persian_digits(str(failed)))
+        return page(request, "_action_result.html", {"message": message, "cancelled": not saved})
 
     @app.post("/assistant/actions/{action_id}/{verb}", response_class=HTMLResponse,
               dependencies=[LoggedIn])
