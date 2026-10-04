@@ -43,7 +43,7 @@
      {% if poll_seconds %}hx-get="/" hx-select="#live" hx-target="this" hx-swap="outerHTML"
      hx-trigger="every {{ poll_seconds }}s [document.visibilityState === 'visible' && !document.getElementById('sheet').open]"{% endif %}>
 
-<section class="hero" data-unit="toman" data-unit-switch>
+<section class="hero hx" data-unit="toman" data-unit-switch>
   <div class="hero-top">
     <span class="hero-label">{{ T.networth }}</span>
     <div class="unit-toggle" role="tablist" aria-label="{{ T.unit_toggle }}">
@@ -57,10 +57,13 @@
     {% if usd %}<span data-unit-value="usd">{{ networth.in_unit(usd) | num }} <small>دلار</small></span>{% endif %}
     {% if gold %}<span data-unit-value="gold">{{ networth.in_unit(gold) | num(1) }} <small>گرم طلا</small></span>{% endif %}
   </div>
-  <div class="hero-sub">
-    <span data-unit-value="toman">{{ nw | toman }}</span>
-    {% if usd %}<span data-unit-value="usd">هر دلار {{ usd | toman }}</span>{% endif %}
-    {% if gold %}<span data-unit-value="gold">هر گرم طلای ۱۸ {{ gold | toman }}</span>{% endif %}
+  <div class="hero-meta">
+    {% if change and change.delta != 0 %}
+    <span class="delta {{ 'up' if change.delta > 0 else 'down' }}">{{ icon("up" if change.delta > 0 else "down") }}<span>{{ change.delta | abs | toman_short }}{% if change.pct is not none %} · {{ change.pct | abs | percent }}{% endif %}</span></span>
+    <span class="delta-when">{{ T.since_last.format(date=change.date | jalali(false)) }}</span>
+    {% elif prices_at %}
+    <span class="live-badge">{% if poll_seconds %}<span class="pulse"></span>{% endif %}قیمت‌ها {{ prices_at | jalali }}</span>
+    {% endif %}
   </div>
   {% if spark_line %}
   <svg class="spark" viewBox="0 0 300 56" preserveAspectRatio="none" aria-hidden="true">
@@ -71,43 +74,23 @@
     <path class="line" d="{{ spark_line }}" pathLength="1"/>
   </svg>
   {% endif %}
-  {% if prices_at %}
-  <div class="live-badge">{% if poll_seconds %}<span class="pulse"></span>{% endif %}قیمت‌ها {{ prices_at | jalali }}</div>
-  {% endif %}
-  {% if change and change.delta != 0 %}
-  <div class="delta-row">
-    <span class="delta {{ 'up' if change.delta > 0 else 'down' }}">
-      {{ icon("up" if change.delta > 0 else "down") }}
-      <span>{{ change.delta | abs | toman_short }}{% if change.pct is not none %} · {{ change.pct | abs | percent }}{% endif %}</span>
-    </span>
-    <span class="delta-when">{{ T.since_last.format(date=change.date | jalali(false)) }}</span>
+  {% if composition %}
+  <div class="hero-mix" role="img" aria-label="{{ T.composition }}">
+    {% for row in composition %}<span class="s{{ row.slot }}" style="--w: {{ row.pct * 100 }}%"></span>{% endfor %}
   </div>
   {% endif %}
+  <div class="hero-split">
+    <a href="/assets"><small>{{ T.total_assets }}</small><strong>{{ p.assets_toman | amt }}</strong></a>
+    <a href="/liabilities"><small>{{ T.total_liabilities }}</small><strong>{{ p.liabilities_toman | amt }}</strong></a>
+  </div>
 </section>
 
-{% include "_watchlist.html" %}
-
-{% if not has_persona %}
-<a href="/persona" class="persona-cta">
-  <span class="persona-cta-stack" aria-hidden="true">{{ avatar("owl") }}{{ avatar("eagle") }}{{ avatar("coin") }}</span>
-  <span class="persona-cta-text"><strong>{{ T.persona_cta_title }}</strong><small>{{ T.persona_cta_body }}</small></span>
-  {{ icon("chev", "end") }}
-</a>
-{% endif %}
-<a href="/assistant" class="ask-vazir"><img src="{{ static('logo.svg') }}" alt=""><span><strong>{{ T.assistant }}</strong><small>{{ T.assistant_teaser }}</small></span>{{ icon("chev", "end") }}</a>
-
-<div class="pair">
-  <a href="/assets" class="card mini">
-    {{ bubble("wallet", 3) }}
-    <span class="mini-label">{{ T.total_assets }}</span>
-    <strong>{{ p.assets_toman | amt }}</strong>
-  </a>
-  <a href="/liabilities" class="card mini">
-    {{ bubble("bank", 8) }}
-    <span class="mini-label">{{ T.total_liabilities }}</span>
-    <strong>{{ p.liabilities_toman | amt }}</strong>
-  </a>
-</div>
+<nav class="qa" aria-label="{{ T.quick_actions }}">
+  {% call sheet_link("/assets/new", "qa-btn") %}<span class="qa-ic">{{ icon("plus") }}</span>{{ T.qa_asset }}{% endcall %}
+  {% call sheet_link("/spending/new", "qa-btn") %}<span class="qa-ic">{{ icon("bag") }}</span>{{ T.qa_spend }}{% endcall %}
+  <a href="/assistant" class="qa-btn qa-ai"><span class="qa-ic"><img src="{{ static('logo.svg') }}" alt=""></span>{{ T.qa_vazir }}</a>
+  <a href="/loan" class="qa-btn"><span class="qa-ic">{{ icon("calc") }}</span>{{ T.qa_loan }}</a>
+</nav>
 
 {% if p.unvalued_assets or p.stale_assets %}
 <section class="notices">
@@ -129,13 +112,37 @@
 </section>
 {% endif %}
 
-<section class="card">
-  <div class="card-head"><h2>{{ T.cashflow }}</h2><a href="/incomes" class="small">جزئیات</a></div>
-  <div class="flow-numbers four">
-    <div><span class="mini-label">{{ T.monthly_income }}</span><strong>{{ p.monthly_income_toman | amt }}</strong></div>
-    <div><span class="mini-label">{{ T.monthly_installments }}</span><strong>{{ p.monthly_installments_toman | amt }}</strong></div>
-    <a href="/bills"><span class="mini-label">{{ T.fixed_expenses }}</span><strong>{{ p.monthly_fixed_expenses_toman | amt }}</strong></a>
-    <div class="free"><span class="mini-label">{{ T.free_cash }}</span><strong class="{{ 'neg' if p.monthly_free_cash_toman < 0 }}">{{ p.monthly_free_cash_toman | amt }}</strong></div>
+{% include "_watchlist.html" %}
+
+<section class="panel">
+  <div class="panel-head"><h2>{{ T.home_this_month }}</h2><a href="/spending">{{ T.details }}</a></div>
+  <div class="month-split">
+    <a href="/spending"><small>{{ T.month_spending }}</small><strong>{{ spending.total_toman | amt }}</strong></a>
+    <a href="/deposits"><small>{{ T.month_deposits }}</small><strong class="pos">{{ deposits.total_toman | amt }}</strong></a>
+  </div>
+  {% if spending.by_category %}
+  {% set top = spending.by_category[0].total_toman %}
+  <ul class="cat-bars slim">
+    {% for row in spending.by_category[:3] %}
+    <li class="s{{ s.CATEGORY_SLOT.get(row.category, 0) }}">
+      <span class="cat-name">{{ cat_labels.get(row.category, row.category) }}</span>
+      <span class="cat-value">{{ row.total_toman | amt }}</span>
+      <span class="cat-track"><span class="cat-fill" style="--w: {{ row.total_toman / top * 100 }}%"></span></span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted small">{{ s.EMPTY_STATES.spending[1] }}</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-head"><h2>{{ T.cashflow }}</h2><a href="/incomes">{{ T.details }}</a></div>
+  <div class="flow-grid">
+    <div><small>{{ T.monthly_income }}</small><strong>{{ p.monthly_income_toman | amt }}</strong></div>
+    <div><small>{{ T.monthly_installments }}</small><strong>{{ p.monthly_installments_toman | amt }}</strong></div>
+    <a href="/bills"><small>{{ T.fixed_expenses }}</small><strong>{{ p.monthly_fixed_expenses_toman | amt }}</strong></a>
+    <div class="free"><small>{{ T.free_cash }}</small><strong class="{{ 'neg' if p.monthly_free_cash_toman < 0 else 'pos' }}">{{ p.monthly_free_cash_toman | amt }}</strong></div>
   </div>
   {% if p.dti is not none %}
   {% set dti_pct = [p.dti * 100, 100] | min %}
@@ -153,44 +160,20 @@
   {% endif %}
 </section>
 
-<section class="card">
-  <div class="card-head"><h2>{{ T.month_spending }}</h2><a href="/spending" class="small">{{ T.details }}</a></div>
-  <a href="/spending" class="spend-total"><strong>{{ spending.total_toman | amt }}</strong></a>
-  <a href="/deposits" class="spend-in"><span class="muted small">{{ T.month_deposits }}</span>
-    <strong class="pos">+{{ deposits.total_toman | amt }}</strong></a>
-  {% if spending.by_category %}
-  {% set top = spending.by_category[0].total_toman %}
-  <ul class="cat-bars">
-    {% for row in spending.by_category[:3] %}
-    <li class="s{{ s.CATEGORY_SLOT.get(row.category, 0) }}">
-      <span class="cat-name">{{ cat_labels.get(row.category, row.category) }}</span>
-      <span class="cat-value">{{ row.total_toman | amt }}</span>
-      <span class="cat-track"><span class="cat-fill" style="--w: {{ row.total_toman / top * 100 }}%"></span></span>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="muted small">{{ s.EMPTY_STATES.spending[1] }}</p>
-  {% endif %}
-</section>
-
 {% if composition %}
-<section class="card">
-  <div class="card-head"><h2>{{ T.composition }}</h2></div>
-  <div class="stack-bar" role="img" aria-label="{{ T.composition }}">
-    {% for row in composition %}<span class="seg-fill s{{ row.slot }}" style="--w: {{ row.pct * 100 }}%" title="{{ row.label }}: {{ row.pct | percent }}"></span>{% endfor %}
-  </div>
-  <ul class="legend">
+<section class="panel">
+  <div class="panel-head"><h2>{{ T.composition }}</h2><a href="/assets">{{ T.details }}</a></div>
+  <ul class="mix-list">
     {% for row in composition %}
-    <li><a href="{{ '/accounts' if row.key == 'bank' else '/assets' }}"><span class="dot s{{ row.slot }}"></span><span class="legend-label">{{ row.label }}</span>
-      <span class="legend-pct">{{ row.pct | percent }}</span><span class="legend-value">{{ row.value | amt }}</span></a></li>
+    <li><a href="{{ '/accounts' if row.key == 'bank' else '/assets' }}"><span class="dot s{{ row.slot }}"></span><span class="mix-label">{{ row.label }}</span>
+      <span class="mix-pct">{{ row.pct | percent(0) }}</span><span class="mix-value">{{ row.value | amt }}</span></a></li>
     {% endfor %}
   </ul>
 </section>
 {% endif %}
 
-<section class="card">
-  <div class="card-head"><h2>{{ T.trend }}</h2></div>
+<section class="panel">
+  <div class="panel-head"><h2>{{ T.trend }}</h2></div>
   {% if has_trend %}
     <div class="chart-box"><canvas data-trend='{{ trend_json }}' aria-label="{{ T.trend }}"></canvas></div>
   {% else %}
@@ -198,15 +181,13 @@
   {% endif %}
 </section>
 
-<section>
-  <h2 class="section-title">{{ T.quick_actions }}</h2>
-  <div class="quick">
-    {% call sheet_link("/assets/new", "quick-btn") %}<span class="bubble s1">{{ icon("plus") }}</span>{{ T.add_asset }}{% endcall %}
-    {% call sheet_link("/liabilities/new", "quick-btn") %}<span class="bubble s2">{{ icon("plus") }}</span>{{ T.add_liability }}{% endcall %}
-    {% call sheet_link("/spending/new", "quick-btn") %}<span class="bubble s3">{{ icon("bag") }}</span>{{ T.add_expense }}{% endcall %}
-    <a href="/loan" class="quick-btn"><span class="bubble s7">{{ icon("calc") }}</span>{{ s.NAV.loan }}</a>
-  </div>
-</section>
+{% if not has_persona %}
+<a href="/persona" class="persona-cta">
+  <span class="persona-cta-stack" aria-hidden="true">{{ avatar("owl") }}{{ avatar("eagle") }}{{ avatar("coin") }}</span>
+  <span class="persona-cta-text"><strong>{{ T.persona_cta_title }}</strong><small>{{ T.persona_cta_body }}</small></span>
+  {{ icon("chev", "end") }}
+</a>
+{% endif %}
 </div>
 {% endif %}
 {% endblock %}

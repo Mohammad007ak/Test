@@ -4,20 +4,28 @@
 {{ segments("assets", "assets") }}
 {% if p.assets %}
   {% set valued = p.assets | selectattr("value_toman") | map(attribute="value_toman") | sum %}
-  <div class="summary">
-    <span class="mini-label">جمع دارایی‌های ثبت‌شده</span>
+  <section class="sum-card">
+    <small>جمع دارایی‌های ثبت‌شده</small>
     <strong>{{ valued | amt }}</strong>
     <span class="muted small">{{ p.assets | length | fa }} مورد</span>
-  </div>
-  {% for kind, lines in p.assets | groupby("asset.kind") %}
-  <h2 class="section-title">{{ s.ASSET_KINDS[kind] }}</h2>
+    {% if valued %}
+    <div class="hero-mix">
+      {% for kind, lines in p.assets | groupby("asset.kind") %}{% set part = lines | selectattr("value_toman") | map(attribute="value_toman") | sum %}
+      {% if part %}<span class="s{{ s.KIND_SLOT[kind] }}" style="--w: {{ part / valued * 100 }}%" title="{{ s.ASSET_KINDS[kind] }}"></span>{% endif %}{% endfor %}
+    </div>
+    <div class="mix-chips">
+      {% for kind, lines in p.assets | groupby("asset.kind") %}{% set part = lines | selectattr("value_toman") | map(attribute="value_toman") | sum %}
+      {% if part %}<span><i class="dot s{{ s.KIND_SLOT[kind] }}"></i>{{ s.ASSET_KINDS[kind] }} {{ (part / valued) | percent(0) }}</span>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+  </section>
   <div class="list">
-    {% for line in lines %}{% set a = line.asset %}
+    {% for line in p.assets | by_value %}{% set a = line.asset %}{% set kind = a.kind %}
     {% call sheet_link("/assets/" ~ a.id ~ "/edit", "row") %}
       {{ bubble(s.ASSET_ICONS[kind], s.KIND_SLOT[kind]) }}
       <span class="row-main">
         <span class="row-title">{{ a.name }}</span>
-        <span class="row-sub">
+        <span class="row-sub">{{ s.ASSET_KINDS[kind] }} ·
           {% if a.kind == 'gold' %}{{ a.quantity | dec }} گرم · عیار {{ a.karat | fa }}
           {% elif a.kind == 'fx' %}{{ a.quantity | dec }} {{ s.PRICE_KEYS.get(a.price_key, '') }}
           {% elif a.kind == 'coin' %}{{ a.quantity | dec }} عدد {{ s.PRICE_KEYS.get(a.price_key, '') }}
@@ -28,13 +36,12 @@
       </span>
       <span class="row-end">
         {% if line.value_toman is none %}<span class="pill warn">{{ T.needs_price }}</span>
-        {% else %}<strong>{{ line.value_toman | amt }}</strong>{% endif %}
+        {% else %}<strong>{{ line.value_toman | amt }}</strong>{% if valued %}<span class="row-share">{{ (line.value_toman / valued) | percent(0) }} {{ T.share_of_total }}</span>{% endif %}{% endif %}
         {% if line.stale %}<span class="pill warn">{{ T.stale_short }}</span>{% endif %}
       </span>
     {% endcall %}
     {% endfor %}
   </div>
-  {% endfor %}
 {% else %}
   {{ empty_state("assets", "wallet") }}
 {% endif %}

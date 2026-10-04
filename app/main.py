@@ -621,8 +621,9 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
             sources.append(source.name)
         else:
             sources.append(price_refresh.view_for_user(last, user_keys, per_user))
+    editing = bool(errors) or request.query_params.get("edit") == "1"
     return page(request, "prices.html", {"active": "prices", "rows": rows, "sources": sources,
-                                         "errors": errors or {}}, status)
+                                         "errors": errors or {}, "editing": editing}, status)
 
 
 LANDING_TICKER = ("usd", "eur", "gold18_gram", "coin_emami", "coin_bahar", "gold_mesghal",

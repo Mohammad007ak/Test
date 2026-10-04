@@ -3,23 +3,26 @@
 {% block content %}
 {{ segments("cashflow", "liabilities") }}
 {% if p.liabilities %}
-  <div class="summary two">
-    <div><span class="mini-label">{{ T.total_liabilities }}</span><strong>{{ p.liabilities_toman | amt }}</strong></div>
-    <div><span class="mini-label">{{ T.monthly_installments }}</span><strong>{{ p.monthly_installments_toman | amt }}</strong></div>
-  </div>
+  <section class="sum-card two">
+    <div><small>{{ T.total_liabilities }}</small><strong>{{ p.liabilities_toman | amt }}</strong></div>
+    <div><small>{{ T.monthly_installments }}</small><strong>{{ p.monthly_installments_toman | amt }}</strong></div>
+  </section>
   <div class="list">
     {% for line in p.liabilities %}{% set l = line.liability %}
-    {% call sheet_link("/liabilities/" ~ l.id ~ "/edit", "row tall") %}
-      {{ bubble(s.LIABILITY_ICONS[l.kind], 0) }}
+    {% call sheet_link("/liabilities/" ~ l.id ~ "/edit", "row debt") %}
+      {{ bubble(s.LIABILITY_ICONS[l.kind], 8) }}
       <span class="row-main">
-        <span class="row-title">{{ l.lender }}</span>
-        <span class="row-sub">{{ s.LIABILITY_KINDS[l.kind] }}{% if line.monthly_toman %} · قسط {{ line.monthly_toman | toman_short }}{% endif %}{% if l.due_day %} · روز {{ l.due_day | fa }}{% endif %}</span>
+        <span class="debt-line"><span class="row-title">{{ l.lender }}</span><strong>{{ line.remaining_toman | amt }}</strong></span>
+        <span class="debt-line row-sub"><span>{{ s.LIABILITY_KINDS[l.kind] }}{% if l.due_day %} · {{ T.next_due.format(day=l.due_day | fa) }}{% endif %}</span>
+          <span>{{ T.remaining }}</span></span>
         {% if l.installments_total %}
-        <span class="progress" aria-label="اقساط پرداخت‌شده"><span style="--w: {{ (l.installments_paid / l.installments_total * 100) | round(1) }}%"></span></span>
-        <span class="row-sub">{{ l.installments_paid | fa }} از {{ l.installments_total | fa }} قسط پرداخت شده</span>
+        <span class="debt-progress">
+          <span class="progress" aria-label="اقساط پرداخت‌شده"><span style="--w: {{ (l.installments_paid / l.installments_total * 100) | round(1) }}%"></span></span>
+          <span class="debt-count">{{ T.paid_of.format(paid=l.installments_paid | fa, total=l.installments_total | fa) }}</span>
+        </span>
         {% endif %}
+        {% if line.monthly_toman %}<span class="debt-line row-sub"><span>قسط ماهانه</span><span class="amt-inline">{{ line.monthly_toman | amt }}</span></span>{% endif %}
       </span>
-      <span class="row-end"><strong>{{ line.remaining_toman | amt }}</strong><span class="muted small">{{ T.remaining }}</span></span>
     {% endcall %}
     {% endfor %}
   </div>

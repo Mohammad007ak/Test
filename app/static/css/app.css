@@ -1732,3 +1732,163 @@ a.watch-card:active { transform: scale(.96); border-color: var(--accent); }
   body.site .device::before, body.site .device::after { display: none; }
   body.site .screen { height: auto; overflow: visible; }
 }
+
+/* =====================================================================
+   طراحی دوم «وزیر»: سلسله‌مراتب روشن، سطح‌های تخت و آرام، عدد درشت بی‌شکست
+   (این لایه روی قبلی می‌نشیند؛ ترتیب فایل مهم است)
+   ===================================================================== */
+:root {
+  --bg: #0a0c10;
+  --surface: #12161c;
+  --surface-2: #191e26;
+  --surface-3: #232a34;
+  --hairline: rgba(255, 255, 255, .06);
+  --radius: 22px;
+  --shadow: none;
+}
+:root[data-theme="light"] {
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --surface-2: #f2f4f6;
+  --surface-3: #e7eaee;
+  --hairline: rgba(10, 20, 30, .07);
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 6px 20px rgba(16, 24, 40, .05);
+}
+body { font-size: 15px; letter-spacing: -.005em; }
+.page { gap: 16px; padding-top: 8px; }
+
+/* عنوان صفحه و بخش‌ها */
+.appbar h1 { font-size: 1.75rem; font-weight: 900; letter-spacing: -.025em; }
+.section-title { font-size: .95rem; font-weight: 800; color: var(--text); letter-spacing: -.01em; margin: 10px 4px -4px; }
+
+/* سطح‌ها: تخت، بدون گرادیان و سایه سنگین */
+.card, .list { background: var(--surface); border: 1px solid var(--hairline); box-shadow: var(--shadow); }
+.card { padding: 18px; }
+.bubble { width: 40px; height: 40px; border-radius: 13px; }
+.bubble .i { width: 20px; height: 20px; }
+
+/* عدد و واحد: عدد پررنگ، واحد کوچک و کم‌رنگ، هرگز دو خط */
+.amt { white-space: nowrap; font-weight: 800; }
+.amt small { font-size: .62em; font-weight: 600; opacity: .55; margin-inline-start: .28em; }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+
+/* ---------- قهرمان صفحه اصلی ---------- */
+.hero.hx { padding: 20px 20px 16px; gap: 6px; border-radius: 28px; }
+.hero.hx .hero-value { font-size: 2.7rem; margin-top: 6px; line-height: 1.2; }
+.hero.hx .hero-value .amt small { font-size: .4em; opacity: .7; }
+.hero-meta { display: flex; align-items: center; gap: 8px; min-height: 26px; flex-wrap: wrap; }
+.hero.hx .spark { height: 48px; margin: 4px 0 0; }
+.hero-mix { display: flex; gap: 3px; height: 6px; margin: 14px 0 2px; }
+.hero-mix span { width: var(--w); min-width: 6px; border-radius: 3px; background: var(--c, var(--accent)); }
+.hero-split { display: grid; grid-template-columns: 1fr 1fr; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, .08); }
+.hero-split a { display: flex; flex-direction: column; gap: 2px; color: #fff; padding-inline-end: 12px; }
+.hero-split a + a { padding-inline: 14px 0; border-inline-start: 1px solid rgba(255, 255, 255, .08); }
+.hero-split small { font-size: .74rem; color: rgba(255, 255, 255, .6); font-weight: 600; }
+.hero-split strong { font-size: 1.15rem; }
+
+/* اقدام‌های سریع: چهار دکمه گرد زیر قهرمان، مثل اپ‌های بانکی */
+.qa { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 2px; }
+.qa-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-2); font-size: .78rem; font-weight: 700;
+  transition: transform .2s var(--spring); }
+.qa-btn:active { transform: scale(.92); }
+.qa-ic { width: 56px; height: 56px; border-radius: 20px; display: grid; place-items: center; background: var(--surface);
+  border: 1px solid var(--hairline); color: var(--accent); box-shadow: var(--shadow); }
+.qa-ic .i { width: 24px; height: 24px; }
+.qa-ai .qa-ic { background: linear-gradient(145deg, #0f3a2b, #08130f); border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  box-shadow: 0 8px 24px var(--accent-glow); }
+.qa-ai .qa-ic img { width: 34px; height: 34px; border-radius: 10px; }
+.qa-ai { color: var(--text); }
+
+/* پنل‌های صفحه اصلی */
+.panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 16px 16px 18px; box-shadow: var(--shadow); }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.panel-head h2 { font-size: 1rem; font-weight: 800; }
+.panel-head a { font-size: .8rem; font-weight: 700; }
+.month-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.month-split a { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px; background: var(--surface-2); color: var(--text); }
+.month-split small, .flow-grid small, .sum-card small { color: var(--muted); font-size: .76rem; font-weight: 600; }
+.month-split strong { font-size: 1.35rem; }
+.cat-bars.slim { gap: 10px; }
+.cat-bars.slim .cat-track { height: 6px; }
+.flow-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; margin-bottom: 14px; }
+.flow-grid > * { display: flex; flex-direction: column; gap: 2px; color: var(--text); }
+.flow-grid strong { font-size: 1.05rem; }
+.flow-grid .free strong { font-size: 1.05rem; }
+.mix-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.mix-list a { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; padding: 9px 0; color: var(--text); font-size: .9rem; }
+.mix-list li + li a { border-top: 1px solid var(--hairline); }
+.mix-pct { color: var(--muted); font-size: .8rem; min-width: 34px; text-align: left; }
+.mix-value { min-width: 96px; text-align: left; }
+
+/* قیمت‌های من: ردیف فشرده و افقی */
+.watch-head h2 { font-size: .95rem; font-weight: 800; }
+.watch-card, a.watch-card { min-width: 124px; padding: 10px 12px; border-radius: 16px; gap: 2px; background: var(--surface); border-color: var(--hairline); box-shadow: var(--shadow); }
+.watch-card strong { font-size: .98rem; }
+.watch-card strong .amt small { font-size: .6em; }
+.watch-label { font-size: .72rem; }
+.watch-change { font-size: .72rem; }
+
+/* کارت جمع صفحه‌های فهرست */
+.summary, .sum-card { display: flex; flex-direction: column; gap: 4px; padding: 18px; border-radius: 24px; background:
+  radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%), var(--surface);
+  border: 1px solid var(--hairline); box-shadow: var(--shadow); }
+.summary strong, .sum-card strong { font-size: 1.9rem; font-weight: 900; letter-spacing: -.02em; line-height: 1.25; }
+.summary.two, .sum-card.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sum-card.two > div { display: flex; flex-direction: column; gap: 2px; }
+.sum-card.two > div + div { border-inline-start: 1px solid var(--hairline); padding-inline-start: 14px; }
+.sum-card.two strong { font-size: 1.35rem; }
+.sum-card .hero-mix span { background: var(--c); }
+.mix-chips { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; font-size: .76rem; color: var(--muted); font-weight: 600; }
+.mix-chips span { display: inline-flex; align-items: center; gap: 5px; }
+.mix-chips .dot { width: 8px; height: 8px; }
+
+/* فهرست گروه‌بندی‌شده: یک کارت، برچسب گروه داخلش */
+.list.grouped { padding: 4px 0; }
+.list-label { padding: 12px 16px 2px; font-size: .74rem; font-weight: 800; color: var(--muted); }
+.list-label + .row { border-top: 0 !important; }
+.row { min-height: 66px; padding: 10px 16px; gap: 12px; }
+.row + .row { border-top-color: var(--hairline); }
+.row-title { font-size: .95rem; font-weight: 700; }
+.row-sub { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-end { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.row-end strong { font-size: .98rem; }
+.row-share { font-size: .7rem; color: var(--muted); font-weight: 600; }
+
+/* بدهی‌ها: مبلغ کنار نام، نوار پیشرفت تمام‌عرض */
+.row.debt { align-items: flex-start; padding-block: 14px; }
+.row.debt .row-main { gap: 4px; }
+.debt-line { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.debt-line strong { font-size: 1rem; white-space: nowrap; }
+.debt-progress { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; margin: 6px 0 2px; }
+.debt-progress .progress { height: 7px; margin: 0; width: 100%; }
+.debt-count { font-size: .72rem; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.amt-inline { color: var(--text-2); }
+
+/* دکمه افزودن: گرد و جمع‌وجور بالای نوار پایین */
+.fab { width: 56px; height: 56px; border-radius: 50%; bottom: calc(var(--tabbar-h) + var(--safe-b) + 26px); }
+
+/* نوار پایین: کمی بلندتر و آرام‌تر */
+.tabbar { border-radius: 26px; }
+.tabbar a { font-size: .68rem; font-weight: 700; }
+
+/* انتخاب ظاهر: سگمنت جمع‌وجور به‌جای سه کاشی بزرگ */
+.theme-pick { padding: 6px; gap: 4px; }
+.theme-pick button { flex-direction: row; justify-content: center; gap: 8px; padding: 10px 8px; min-height: 0; border-radius: 14px; font-size: .85rem; }
+.theme-pick .theme-swatch { width: 16px; height: 16px; border-radius: 50%; flex: none; }
+
+/* صفحه اصلی در حالت روشن: قهرمان تیره می‌ماند */
+:root[data-theme="light"] .qa-ai .qa-ic { background: linear-gradient(145deg, #0f3a2b, #0a1a14); }
+
+/* بازار: فهرست قیمت مثل اپ بورس؛ ثبت دستی فقط در حالت ویرایش */
+.appbar-inner { justify-content: space-between; gap: 12px; }
+.appbar-action { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); font-weight: 800; font-size: .85rem; }
+.appbar-action .i { width: 16px; height: 16px; }
+.market-row { min-height: 62px; }
+.market-row .row-end strong { font-size: 1rem; }
+.chg { display: inline-block; min-width: 58px; text-align: center; padding: 2px 8px; border-radius: 8px;
+  font-size: .74rem; font-weight: 800; direction: ltr; }
+.chg.up { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
+.chg.down { color: var(--bad); background: var(--bad-soft); }
+.chg.flat { color: var(--muted); background: var(--surface-2); font-weight: 600; direction: rtl; }
+.other-prices .list.flat { background: none; border: 0; box-shadow: none; }

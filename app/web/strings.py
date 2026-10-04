@@ -983,3 +983,25 @@ LANDING_DEMO: list[dict[str, object]] = [
     {"who": "me", "text": "دلار الان بخرم؟"},
     {"who": "vazir", "text": "روند صعودی است ولی RSI بالای ۷۰ است؛ بهتر است پله‌ای بخری."},
 ]
+
+# ---------- طراحی دوم: برچسب‌های تازه صفحه اصلی و فهرست‌ها ----------
+T.update({
+    "home_this_month": "این ماه",
+    "home_spent": "خرج",
+    "home_received": "واریز",
+    "home_left": "باقی‌مانده ماهانه",
+    "home_market": "بازار",
+    "home_overview": "وضعیت ماهانه",
+    "qa_asset": "دارایی",
+    "qa_spend": "خرج",
+    "qa_vazir": "وزیر",
+    "qa_loan": "وام",
+    "share_of_total": "از کل",
+    "prices_edit": "ثبت دستی",
+    "prices_done": "تمام",
+    "prices_edit_hint": "قیمت تازه را کنار هر مورد بنویس و ذخیره کن؛ تا به‌روزرسانی بعدی منبع، "
+                        "قیمت تو استفاده می‌شود.",
+    "prices_sources": "منبع قیمت‌ها",
+    "paid_of": "{paid} از {total}",
+    "next_due": "سررسید روز {day}",
+})

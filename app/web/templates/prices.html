@@ -1,7 +1,71 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon, sheet_link %}
+{% block appbar %}
+  <h1>{{ title }}</h1>
+  {% if editing %}<a href="/prices" class="appbar-action">{{ T.prices_done }}</a>
+  {% else %}<a href="/prices?edit=1" class="appbar-action">{{ icon("edit") }} {{ T.prices_edit }}</a>{% endif %}
+{% endblock %}
 {% block content %}
+{% macro price_value(row) -%}
+{% if row.quote is none %}<span class="muted small">{{ T.no_price }}</span>
+{% else %}<span class="amt">{{ row.quote | unit_price }}</span>{% endif %}
+{%- endmacro %}
+{% macro change_pill(row) -%}
+{% if row.quote %}{% if row.change is not none and row.change != 0 %}<span class="chg {{ 'up' if row.change > 0 else 'down' }}">{{ '+' if row.change > 0 else '−' }}{{ row.change | abs | percent }}</span>
+{% else %}<span class="chg flat">{{ T.no_change }}</span>{% endif %}{% endif %}
+{%- endmacro %}
+
+{% if editing %}
+<p class="lead">{{ T.prices_edit_hint }}</p>
+<form method="post" action="/prices" class="form" novalidate>
+  {% macro edit_row(row) %}
+    <div class="row price-row {{ 'has-error' if errors.get(row.key) }}">
+      <span class="row-main">
+        <span class="row-title">{{ row.label }}</span>
+        <span class="row-sub">{% if row.quote %}{{ row.quote | unit_price }}{% else %}{{ T.no_price }}{% endif %}</span>
+        {% if errors.get(row.key) %}<span class="error">{{ errors[row.key] }}</span>{% endif %}
+      </span>
+      <span class="input compact has-unit">
+        <input name="price:{{ row.key }}" inputmode="numeric" data-money autocomplete="off" placeholder="{{ T.price_placeholder }}" aria-label="{{ row.label }}">
+        <span class="unit">تومان</span>
+      </span>
+    </div>
+  {% endmacro %}
+  <div class="list">{% for row in rows if row.group == "main" %}{{ edit_row(row) }}{% endfor %}</div>
+  {% for group, title in (("fx", "سایر ارزها"), ("crypto", "رمزارزها")) %}
+  {% set others = rows | selectattr("group", "equalto", group) | list %}
+  {% if others %}
+  <details class="card disclosure other-prices">
+    <summary>{{ title }} ({{ others | length | fa }})</summary>
+    <div class="list flat">{% for row in others %}{{ edit_row(row) }}{% endfor %}</div>
+  </details>
+  {% endif %}
+  {% endfor %}
+  <div class="sticky-actions"><button type="submit" class="btn wide">{{ T.save }}</button></div>
+</form>
+{% else %}
+{% macro market_row(row) %}
+  {% call sheet_link("/prices/chart?key=" ~ (row.key | urlencode), "row market-row") %}
+    <span class="row-main">
+      <span class="row-title">{{ row.label }}</span>
+      <span class="row-sub">{% if row.quote %}{{ s.SOURCE_LABELS.get(row.quote.source, row.quote.source) }} · {{ row.quote.fetched_at | jalali }}{% endif %}</span>
+    </span>
+    <span class="row-end"><strong>{{ price_value(row) }}</strong>{{ change_pill(row) }}</span>
+  {% endcall %}
+{% endmacro %}
+<div class="list">{% for row in rows if row.group == "main" %}{{ market_row(row) }}{% endfor %}</div>
+{% for group, title in (("fx", "سایر ارزها"), ("crypto", "رمزارزها")) %}
+{% set others = rows | selectattr("group", "equalto", group) | list %}
+{% if others %}
+<details class="card disclosure other-prices">
+  <summary>{{ title }} ({{ others | length | fa }})</summary>
+  <div class="list flat">{% for row in others %}{{ market_row(row) }}{% endfor %}</div>
+</details>
+{% endif %}
+{% endfor %}
+
 {% if sources %}
+<h2 class="section-title">{{ T.prices_sources }}</h2>
 <section class="card source-card">
   {% for src in sources %}
   <div class="source-line">
@@ -22,38 +86,9 @@
     <button type="submit" class="btn ghost wide">{{ icon("download") }} {{ T.refresh_now }}</button>
   </form>
 </section>
-<p class="lead">{{ T.prices_hint }}</p>
+<p class="footnote">{{ T.prices_hint }}</p>
 {% else %}
 <p class="lead">{{ T.no_sources }}</p>
 {% endif %}
-<form method="post" action="/prices" class="form" novalidate>
-  {% macro price_row(row) %}
-    <div class="row price-row {{ 'has-error' if errors.get(row.key) }}">
-      <span class="row-main">
-        {% call sheet_link("/prices/chart?key=" ~ (row.key | urlencode), "row-title chart-link") %}{{ row.label }} {{ icon("chart") }}{% endcall %}
-        <span class="row-sub">{% if row.quote %}{{ row.quote | unit_price }} · {{ row.quote.fetched_at | jalali }} · {{ s.SOURCE_LABELS.get(row.quote.source, row.quote.source) }}{% else %}{{ T.no_price }}{% endif %}</span>
-        {% if row.quote %}{% if row.change is not none and row.change != 0 %}<span class="day-change {{ 'up' if row.change > 0 else 'down' }}">{{ icon("up" if row.change > 0 else "down") }}{{ row.change | abs | percent }} <small>{{ T.chart_change_24h }}</small></span>
-        {% else %}<span class="day-change flat">{{ T.no_change }}</span>{% endif %}{% endif %}
-        {% if errors.get(row.key) %}<span class="error">{{ errors[row.key] }}</span>{% endif %}
-      </span>
-      <span class="input compact has-unit">
-        <input name="price:{{ row.key }}" inputmode="numeric" data-money autocomplete="off" placeholder="{{ T.price_placeholder }}" aria-label="{{ row.label }}">
-        <span class="unit">تومان</span>
-      </span>
-    </div>
-  {% endmacro %}
-  <div class="list">
-    {% for row in rows if row.group == "main" %}{{ price_row(row) }}{% endfor %}
-  </div>
-  {% for group, title in (("fx", "سایر ارزها"), ("crypto", "رمزارزها")) %}
-  {% set others = rows | selectattr("group", "equalto", group) | list %}
-  {% if others %}
-  <details class="card disclosure other-prices">
-    <summary>{{ title }} ({{ others | length | fa }})</summary>
-    <div class="list flat">{% for row in others %}{{ price_row(row) }}{% endfor %}</div>
-  </details>
-  {% endif %}
-  {% endfor %}
-  <div class="sticky-actions"><button type="submit" class="btn wide">{{ T.save }}</button></div>
-</form>
+{% endif %}
 {% endblock %}

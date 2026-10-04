@@ -121,7 +121,7 @@ def test_prices_page_shows_daily_change_and_chart_links(client: TestClient) -> N
     client.get("/prices/chart?key=usd")  # آرشیو پر شود
     page = client.get("/prices").text
     assert "/prices/chart?key=usd" in page
-    assert "day-change up" in page and "۲٫۰٪" in page  # ۲۶۵٬۰۰۰ نسبت به ۲۵۹٬۸۰۰ دیروز
+    assert "chg up" in page and "۲٫۰٪" in page  # ۲۶۵٬۰۰۰ نسبت به ۲۵۹٬۸۰۰ دیروز
     assert "/prices/chart?key=usd" in client.get("/").text  # کارت‌های قیمت صفحه اصلی
 
 
