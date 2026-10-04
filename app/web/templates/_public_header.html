@@ -1,0 +1,5 @@
+{% from "_ui.html" import icon %}
+<header class="pub-nav">
+  <a href="/" class="pub-brand"><img src="{{ static('logo.svg') }}" alt="" width="32" height="32"><strong>{{ s.APP_NAME }}</strong></a>
+  <nav><a href="/price">{{ s.PRICE_PAGE.all_prices }}</a><a href="/signup" class="btn small">{{ s.LANDING.cta }}</a></nav>
+</header>

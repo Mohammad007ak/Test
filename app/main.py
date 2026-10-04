@@ -51,6 +51,9 @@ from app.web.entities import ENTITIES, build_entity
 from app.web.forms import Field, FormError
 from app.web.passkey_routes import register_passkey_routes
 from app.web.persona_routes import register_persona_routes
+from app.web.price_pages import PAGES as PRICE_PAGES
+from app.web.price_pages import PATHS as PRICE_PATHS
+from app.web.price_pages import register_price_pages
 from app.web.render import VersionedStatic, jalali, sparkline, tehran_today
 from app.web.sms_routes import queue_count, register_sms_routes
 from app.web.spending_routes import parse_month, register_spending_routes
@@ -170,6 +173,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_sms_routes(app)
     register_spending_routes(app)
     register_extra_routes(app)
+    register_price_pages(app)
     _register_routes(app)
     return app
 
@@ -275,7 +279,7 @@ def _register_routes(app: FastAPI) -> None:
     def sitemap(request: Request) -> Response:
         base = site_url(request)
         urls = "".join(f"<url><loc>{base}{path}</loc></url>"
-                       for path in ("/", "/signup", "/login", "/install", "/privacy"))
+                       for path in ("/", "/signup", "/login", "/install", "/privacy", *PRICE_PATHS))
         body = ('<?xml version="1.0" encoding="UTF-8"?>'
                 f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>')
         return Response(body, media_type="application/xml")
@@ -667,6 +671,7 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
                                          "errors": errors or {}, "editing": editing}, status)
 
 
+PRICE_SLUGS = {p.key: p.slug for p in PRICE_PAGES}
 LANDING_TICKER = ("usd", "eur", "gold18_gram", "coin_emami", "coin_bahar", "gold_mesghal",
                   "crypto:btc", "crypto:usdt", "crypto:eth", "aed", "try", "gbp")
 
@@ -678,7 +683,7 @@ def _landing_data(db: Session) -> dict[str, Any]:
     for key in LANDING_TICKER:
         quote = quotes.get(key)
         if quote is not None:
-            ticker.append({"label": _price_label(key), "quote": quote,
+            ticker.append({"label": _price_label(key), "quote": quote, "slug": PRICE_SLUGS.get(key),
                            "change": price_history.change_24h(db, key, quote)})
     year_ago = tehran_today() - timedelta(days=365)
     usd = [(d, v) for d, v in price_history.series(db, "usd") if d >= year_ago]

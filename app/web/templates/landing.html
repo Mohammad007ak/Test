@@ -44,8 +44,8 @@
     <section class="lx-ticker" aria-label="{{ s.LANDING.ticker_title }}">
       <div class="lx-ticker-track">
         {% for _ in range(2) %}{% for row in ticker %}
-        <span class="lx-tick"><b>{{ row.label }}</b>{% if row.quote.per_unit >= 1000000 %}{{ row.quote.per_unit | round | int | amt }}{% else %}{{ row.quote | unit_price }}{% endif %}
-          {% if row.change is not none and row.change != 0 %}<em class="{{ 'up' if row.change > 0 else 'down' }}">{{ '▲' if row.change > 0 else '▼' }} {{ row.change | abs | percent }}</em>{% endif %}</span>
+        <a href="{{ '/price/' ~ row.slug if row.slug else '/price' }}" class="lx-tick"><b>{{ row.label }}</b>{% if row.quote.per_unit >= 1000000 %}{{ row.quote.per_unit | round | int | amt }}{% else %}{{ row.quote | unit_price }}{% endif %}
+          {% if row.change is not none and row.change != 0 %}<em class="{{ 'up' if row.change > 0 else 'down' }}">{{ '▲' if row.change > 0 else '▼' }} {{ row.change | abs | percent }}</em>{% endif %}</a>
         {% endfor %}{% endfor %}
       </div>
     </section>
@@ -158,7 +158,7 @@
       <a href="/signup" class="btn lx-glow">{{ s.LANDING.cta }}</a>
     </section>
   </main>
-  <footer class="lx-footer">{{ s.LANDING.footer }} · <a href="/privacy">{{ T.privacy_link }}</a> · <a href="/install">{{ T.install }}</a></footer>
+  <footer class="lx-footer">{{ s.LANDING.footer }} · <a href="/price">{{ s.PRICE_PAGE.all_prices }}</a> · <a href="/privacy">{{ T.privacy_link }}</a> · <a href="/install">{{ T.install }}</a></footer>
 </div>
 <script type="application/ld+json">
 {{ {"@context": "https://schema.org", "@graph": [

@@ -162,7 +162,7 @@ def _number(value: Decimal | int | None, places: int = 0) -> str:
     return "" if value is None else format_number(value, places)
 
 
-def _price_short(value: Decimal | int | None) -> str:
+def price_short(value: Decimal | int | None) -> str:
     """قیمت خلاصه: بزرگ «۲۷۲ هزار تومان»، خیلی کوچک (رمزارز ارزان) با اعشار."""
     if value is None:
         return "—"
@@ -179,7 +179,7 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters.update(
     toman=format_toman,
     toman_short=format_toman_short,
-    price_short=_price_short,
+    price_short=price_short,
     amt=_amount,
     unit_price=_unit_price,
     num=_number,

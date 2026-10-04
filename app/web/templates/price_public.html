@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block title %}{{ page_title }} | {{ s.APP_NAME }}{% endblock %}
+{% block body_class %}site{% endblock %}
+{% block shell %}
+{% include "_public_header.html" %}
+<main class="pub">
+  <nav class="pub-crumbs" aria-label="breadcrumb"><a href="/">{{ s.APP_NAME }}</a> / <a href="/price">{{ s.PRICE_PAGE.all_prices }}</a> / <span>{{ p.name }}</span></nav>
+  <h1>{{ page_title }}</h1>
+
+  {% if quote %}
+  <section class="pub-hero">
+    <div class="pub-price">{{ quote | unit_price }}</div>
+    {% if change %}<span class="pub-chip {{ 'up' if change > 0 else 'down' }}">{{ '▲' if change > 0 else '▼' }} {{ change | abs | percent }}</span>{% endif %}
+    <p class="muted small">{{ s.PRICE_PAGE.updated }}: {{ quote.fetched_at | jalali }}</p>
+  </section>
+
+  {% if line %}
+  <section class="pub-card">
+    <h2>{{ s.PRICE_PAGE.chart_title }}</h2>
+    <svg class="pub-chart" viewBox="0 0 600 200" preserveAspectRatio="none" role="img" aria-label="{{ s.PRICE_PAGE.chart_title }} {{ p.name }}">
+      <path class="pub-area" d="{{ area }}"/><path class="pub-line" d="{{ line }}"/>
+    </svg>
+    <div class="pub-range"><span>{{ s.PRICE_PAGE.low_1y }}: <b>{{ summary.low_1y | price_short }}</b></span><span>{{ s.PRICE_PAGE.high_1y }}: <b>{{ summary.high_1y | price_short }}</b></span></div>
+  </section>
+  {% endif %}
+
+  <section class="pub-card">
+    <h2>{{ s.PRICE_PAGE.changes_title }}</h2>
+    <div class="pub-changes">
+      {% for code, label in s.PRICE_PAGE_PERIODS %}{% set v = summary.changes[code] %}
+      <div><small>{{ label }}</small><b class="{{ 'up' if v and v > 0 else 'down' if v and v < 0 }}">{% if v is none %}—{% else %}{{ '+' if v > 0 }}{{ v | percent }}{% endif %}</b></div>
+      {% endfor %}
+    </div>
+    {% if bubble %}{% set _day, market, real = bubble %}
+    <p class="pub-bubble">{{ s.PRICE_PAGE.bubble }}: <b>{{ ((market - real) / real) | percent }}</b> <small class="muted">({{ s.PRICE_PAGE.bubble_hint }})</small></p>
+    {% endif %}
+  </section>
+
+  <section class="pub-story">{% for line in story %}<p>{{ line }}</p>{% endfor %}</section>
+  {% else %}
+  <p class="pub-card">{{ s.PRICE_PAGE.no_price }}</p>
+  {% endif %}
+
+  <section class="pub-cta">
+    <h2>{{ s.PRICE_PAGE.cta_title }}</h2>
+    <p>{{ s.PRICE_PAGE.cta_body }}</p>
+    <a href="/signup" class="btn">{{ s.PRICE_PAGE.cta }}</a>
+  </section>
+
+  {% if related %}<h2 class="pub-h2">{{ s.PRICE_PAGE.related }}</h2>
+  <div class="pub-links">{% for r in related %}<a href="/price/{{ r.slug }}">{{ s.PRICE_PAGE.title.format(name=r.name) }}</a>{% endfor %}</div>{% endif %}
+  <h2 class="pub-h2">{{ s.PRICE_PAGE.others }}</h2>
+  <div class="pub-links">{% for r in others %}<a href="/price/{{ r.slug }}">{{ s.PRICE_PAGE.title.format(name=r.name) }}</a>{% endfor %}<a href="/price">{{ s.PRICE_PAGE.all_prices }}</a></div>
+
+  <p class="muted small pub-note">{{ s.PRICE_PAGE.disclaimer }}</p>
+</main>
+<footer class="lx-footer">{{ s.LANDING.footer }} · <a href="/privacy">{{ T.privacy_link }}</a></footer>
+<script type="application/ld+json">
+{{ {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+  {"@type": "ListItem", "position": 1, "name": s.APP_NAME, "item": site_url ~ "/"},
+  {"@type": "ListItem", "position": 2, "name": s.PRICE_PAGE.all_prices, "item": site_url ~ "/price"},
+  {"@type": "ListItem", "position": 3, "name": page_title, "item": canonical}]} | tojson }}
+</script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ s.PRICE_PAGE.hub_title }} | {{ s.APP_NAME }}{% endblock %}
+{% block body_class %}site{% endblock %}
+{% block shell %}
+{% include "_public_header.html" %}
+<main class="pub">
+  <h1>{{ s.PRICE_PAGE.hub_title }}</h1>
+  <p class="muted">{{ today | jalali }} · {{ s.PRICE_PAGE.hub_lead }}</p>
+  {% for title, rows in groups %}
+  <section class="pub-card">
+    <h2>{{ title }}</h2>
+    <ul class="pub-table">
+      {% for row in rows %}
+      <li><a href="/price/{{ row.page.slug }}">
+        <span class="pub-name">{{ row.page.name }}</span>
+        <span class="pub-val">{% if row.quote %}{{ row.quote | unit_price }}{% else %}—{% endif %}</span>
+        {% if row.change %}<span class="pub-chip {{ 'up' if row.change > 0 else 'down' }}">{{ '▲' if row.change > 0 else '▼' }} {{ row.change | abs | percent }}</span>{% else %}<span class="pub-chip"></span>{% endif %}
+      </a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+  <section class="pub-cta">
+    <h2>{{ s.PRICE_PAGE.cta_title }}</h2>
+    <p>{{ s.PRICE_PAGE.cta_body }}</p>
+    <a href="/signup" class="btn">{{ s.PRICE_PAGE.cta }}</a>
+  </section>
+  <p class="muted small pub-note">{{ s.PRICE_PAGE.disclaimer }}</p>
+</main>
+<footer class="lx-footer">{{ s.LANDING.footer }} · <a href="/privacy">{{ T.privacy_link }}</a></footer>
+{% endblock %}

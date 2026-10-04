@@ -28,13 +28,13 @@
   <link rel="stylesheet" href="{{ static('css/app.css') }}">
   <title>{% block title %}{{ title }}{% endblock %}</title>
   {% if indexable %}
-  <meta name="description" content="{{ s.SEO.description }}">
+  <meta name="description" content="{{ meta_description or s.SEO.description }}">
   <link rel="canonical" href="{{ canonical }}">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="fa_IR">
   <meta property="og:site_name" content="{{ s.APP_NAME }}">
-  <meta property="og:title" content="{{ s.SEO.title }}">
-  <meta property="og:description" content="{{ s.SEO.description }}">
+  <meta property="og:title" content="{{ og_title or s.SEO.title }}">
+  <meta property="og:description" content="{{ meta_description or s.SEO.description }}">
   <meta property="og:url" content="{{ canonical }}">
   <meta property="og:image" content="{{ site_url }}/static/icon-512.png">
   <meta name="twitter:card" content="summary">
