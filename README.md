@@ -64,9 +64,13 @@ uv run ruff check .
 
 - **دسکتاپ:** همان سایت؛ از عرض ۹۰۰ پیکسل به بالا نوار کناری و چیدمان پهن دارد. در Chrome/Edge از آیکون نصب نوار آدرس می‌شود جدا نصبش کرد.
 - **PWA:** راهنمای نصب در `/install` (لینکش در «بیشتر» و لندینگ). Service Worker در `/sw.js` صفحه‌ها را آفلاین هم نشان می‌دهد؛ api و چت هرگز کش نمی‌شوند.
-- **APK اندروید (TWA):** پروژه در `android/`؛ ساختش روی GitHub Actions:
-  1. یک بار workflow «Android signing key (one time)» را از تب Actions اجرا کن، artifact را دانلود کن و چهار فایلش را در Settings → Secrets → Actions بگذار:
-     `ANDROID_KEYSTORE_BASE64`، `ANDROID_KEYSTORE_PASSWORD`، `ANDROID_KEY_ALIAS`، `ANDROID_KEY_PASSWORD`. فایل `vazir-backup.jks` را جای امن نگه دار و artifact را پاک کن.
-  2. workflow «Android APK» را با Run workflow اجرا کن؛ APK امضاشده در Artifacts و Releases می‌آید.
-  3. مقدار `FINASSIST_ANDROID_CERT_SHA256` را از خلاصه اجرا بردار و در هم‌روش بگذار تا اپ بدون نوار آدرس باز شود (`/.well-known/assetlinks.json`).
-  4. اختیاری: `FINASSIST_ANDROID_APK_URL` = لینک دانلود APK تا دکمه دانلود در `/install` بیاید.
+- **APK اندروید (TWA):** پروژه در `android/`؛ روی GitHub Actions ساخته می‌شود (مخزن عمومی است، پس کلید امضا فقط روی کامپیوتر خودت ساخته می‌شود):
+  1. در Terminal مک کلید بساز (رمز را خودت انتخاب کن):
+     `openssl req -x509 -newkey rsa:4096 -keyout /tmp/k.pem -out /tmp/c.pem -days 10000 -nodes -subj "/CN=Vazir"`
+     و `openssl pkcs12 -export -inkey /tmp/k.pem -in /tmp/c.pem -name vazir -out ~/Documents/vazir.p12` و بعد `rm /tmp/k.pem /tmp/c.pem`.
+     از `vazir.p12` نسخه پشتیبان نگه دار؛ بدون آن به‌روزرسانی اپ ممکن نیست.
+  2. در Settings → Secrets and variables → Actions این‌ها را بساز: `ANDROID_KEYSTORE_BASE64` (خروجی `base64 -i ~/Documents/vazir.p12`)،
+     `ANDROID_KEYSTORE_PASSWORD` و `ANDROID_KEY_PASSWORD` (همان رمز)، `ANDROID_KEY_ALIAS` = `vazir`.
+  3. با تغییر `android/VERSION` ساخت شروع می‌شود؛ APK امضاشده در Releases منتشر می‌شود:
+     `https://github.com/Mohammad007ak/Test/releases/latest/download/vazir.apk`
+  4. در هم‌روش: `FINASSIST_ANDROID_CERT_SHA256` (از خلاصه اجرا) و `FINASSIST_ANDROID_APK_URL` (لینک بالا).

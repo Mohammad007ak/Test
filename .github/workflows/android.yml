@@ -1,16 +1,15 @@
 # ساخت فایل نصبی اندروید (APK) وزیر روی سرورهای GitHub.
 # - با Secrets امضا (ANDROID_KEYSTORE_BASE64، ANDROID_KEYSTORE_PASSWORD، ANDROID_KEY_ALIAS،
-#   ANDROID_KEY_PASSWORD): نسخه release امضاشده که می‌شود به‌روزش کرد و در بازار/مایکت گذاشت.
+#   ANDROID_KEY_PASSWORD): نسخه release امضاشده که می‌شود به‌روزش کرد و در بازار/مایکت گذاشت،
+#   و در Releases منتشر می‌شود (لینک ثابت: releases/latest/download/vazir.apk).
 # - بدون Secrets: نسخه آزمایشی (debug) فقط برای امتحان روی گوشی.
+# کلید امضا هرگز این‌جا ساخته نمی‌شود (مخزن عمومی است)؛ روی کامپیوتر صاحب اپ ساخته می‌شود.
+# نسخه از android/VERSION خوانده می‌شود؛ تغییر آن ساخت تازه را شروع می‌کند.
 # اثر انگشت SHA-256 امضا در خلاصه اجرا چاپ می‌شود تا در FINASSIST_ANDROID_CERT_SHA256 بگذاری.
 name: Android APK
 
 on:
   workflow_dispatch:
-    inputs:
-      version_name:
-        description: "نسخه (مثلاً 1.0)"
-        default: "1.0"
   push:
     paths:
       - "android/**"
@@ -44,13 +43,15 @@ jobs:
             echo "KEYSTORE_FILE=$RUNNER_TEMP/vazir.jks" >> "$GITHUB_ENV"
           fi
 
+      - name: Version
+        run: echo "VERSION_NAME=$(tr -d '[:space:]' < android/VERSION)" >> "$GITHUB_ENV"
+
       - name: Build APK
         working-directory: android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          VERSION_NAME: ${{ github.event.inputs.version_name || '1.0' }}
         run: |
           if [ -n "$KEYSTORE_FILE" ]; then
             gradle --no-daemon assembleRelease -PversionCode=${{ github.run_number }} -PversionName="$VERSION_NAME"
@@ -79,9 +80,11 @@ jobs:
           retention-days: 30
 
       - name: Publish release
-        if: env.KIND == 'release' && github.event_name == 'workflow_dispatch'
+        if: env.KIND == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: android-v${{ github.event.inputs.version_name }}-${{ github.run_number }}
-          name: وزیر اندروید ${{ github.event.inputs.version_name }}
+          tag_name: android-v${{ env.VERSION_NAME }}-${{ github.run_number }}
+          name: وزیر اندروید ${{ env.VERSION_NAME }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
           files: vazir.apk
