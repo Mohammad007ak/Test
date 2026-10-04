@@ -16,6 +16,7 @@ from app.assistant.prompt import persona_brief
 from app.assistant.tools import run_tool
 from app.domain.money import to_persian_digits
 from app.domain.spending import TEHRAN
+from app.sms.text import mask_numbers
 from app.web import strings as s
 from app.web.common import Db, LoggedIn, done, page, read_form
 from app.web.forms import FormError
@@ -71,10 +72,11 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
         return chat_page(request, db)
 
     @app.post("/assistant/consent", dependencies=[LoggedIn])
-    def consent(request: Request, db: Db) -> Response:
+    async def consent(request: Request, db: Db) -> Response:
+        back = (await read_form(request)).get("next", "")
         services.set_user_setting(db, CONSENT_KEY, "yes")
         db.commit()
-        return done(request, "/assistant", s.T["assistant_on"])
+        return done(request, back if back in ("/persona",) else "/assistant", s.T["assistant_on"])
 
     @app.post("/assistant/clear", dependencies=[LoggedIn])
     def clear(request: Request, db: Db) -> Response:
@@ -94,6 +96,7 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
             limit = to_persian_digits(str(daily_limit))
             return turn(request, text, s.T["assistant_limit"].format(limit=limit),
                         error=True, status=429)
+        text = mask_numbers(text)  # فقط متن پوشانده‌شده به مدل می‌رود
         history = _history(db)
         before = set(actions.pending(db))
         try:

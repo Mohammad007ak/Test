@@ -88,8 +88,10 @@ def persona_brief(stored: "StoredPersona | None") -> str:
     if p.gap:
         lines.append(f"- نکته: {s.PERSONA_GAPS[p.gap]}")
     lines.append(f"- کارت شخصیت: {card['name']} (هم‌تیپ {card['twin']})")
+    if stored.summary:
+        lines.append(f"- برداشت تو از مصاحبه: {stored.summary}")
     if stored.note:
-        lines.append(f"- یادداشت خود کاربر: {stored.note}")
+        lines.append(f"- نکته‌های مهم از حرف‌های کاربر: {stored.note}")
     return _PERSONA.format(lines="\n".join(lines))
 
 

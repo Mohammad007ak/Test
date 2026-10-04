@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, avatar %}
+{% block shell %}
+<div id="chat-app" class="chat-app persona-chat" data-error="{{ T.request_failed }}">
+  <header class="chat-head">
+    <a href="{{ '/persona' if has_persona else '/' }}" class="icon-btn chat-back" aria-label="{{ T.close }}">{{ icon("chev") }}</a>
+    <img class="chat-head-logo" src="{{ static('logo.svg') }}" alt="">
+    <div class="chat-head-title"><strong>{{ T.persona_chat_title }}</strong><span><span class="online-dot"></span>{{ T.persona_chat_sub }}</span></div>
+  </header>
+
+  <div id="chat-scroll" class="chat-scroll">
+    <div id="chat-log" class="chat-log" aria-live="polite">
+      <div class="persona-intro" aria-hidden="true">
+        {% for key in ("owl", "unicorn", "simorgh", "fox", "dragon") %}{{ avatar(key) }}{% endfor %}
+      </div>
+      {% if not consented %}
+      <section class="card assistant-consent">
+        <h2>{{ T.assistant_consent_title }}</h2>
+        <p class="muted">{{ T.persona_consent_body }}</p>
+        <form method="post" action="/assistant/consent"><input type="hidden" name="next" value="/persona"><button class="btn wide" type="submit">{{ T.assistant_consent_button }}</button></form>
+        <a href="/persona/quick" class="auth-link">{{ T.persona_quick }}</a>
+      </section>
+      {% else %}
+      {% for m in messages %}
+        {% if m.role == "user" %}<div class="chat-row me"><div class="chat-msg me">{{ m.content }}</div></div>
+        {% else %}<div class="chat-row vazir"><div class="chat-msg vazir">{{ m.content | chat_md }}</div></div>{% endif %}
+        {% if loop.last and m.role == "assistant" and m.suggestions %}
+        <div class="chat-chips">{% for x in m.suggestions %}<button type="button" class="chip-reply" data-ask="{{ x }}">{{ x }}</button>{% endfor %}</div>
+        {% endif %}
+      {% endfor %}
+      {% if messages | length == 1 %}<a href="/persona/quick" class="quick-link">{{ T.persona_quick }}</a>{% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  {% if consented %}
+  <form id="chat-form" class="chat-composer" method="post" action="/persona/chat" hx-boost="false">
+    <textarea name="question" rows="1" maxlength="500" placeholder="{{ T.persona_chat_placeholder }}" aria-label="{{ T.persona_chat_placeholder }}" required></textarea>
+    <button type="submit" class="chat-send" aria-label="{{ T.assistant_send }}" disabled>{{ icon("up") }}</button>
+  </form>
+  <p class="chat-disclaimer">{{ T.persona_privacy }}</p>
+  {% endif %}
+</div>
+{% endblock %}

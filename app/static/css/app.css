@@ -1352,10 +1352,14 @@ details[open].group, details[open].disclosure { border-color: color-mix(in srgb,
 
 /* ---------- پرسونا: آواتار، مصاحبه و کارت شخصیت ---------- */
 .avatar { --size: 44px; width: var(--size); height: var(--size); flex: none; display: grid; place-items: center;
-  border-radius: 32%; color: #fff; background: linear-gradient(140deg, var(--a1, var(--accent)), var(--a2, var(--accent-2)));
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--a1, var(--accent)) 35%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, .35); }
-.avatar svg { width: 64%; height: 64%; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .18)); }
+  border-radius: 30%; position: relative; overflow: hidden;
+  background:
+    radial-gradient(70% 60% at 30% 20%, hsl(var(--h, 160) 95% 80% / .9), transparent 70%),
+    linear-gradient(145deg, hsl(var(--h, 160) 80% 58%), hsl(calc(var(--h, 160) + 45) 75% 38%));
+  box-shadow: 0 6px 16px hsl(var(--h, 160) 70% 40% / .35), inset 0 1px 0 rgba(255, 255, 255, .45),
+    inset 0 -6px 12px rgba(0, 0, 0, .15); }
+.avatar-emoji { font-size: calc(var(--size) * .58); line-height: 1;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .25)); font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
 .avatar.xl { --size: 112px; border-radius: 34px; }
 .avatar.avatar-empty { background: var(--surface-2); color: var(--accent); box-shadow: none; border: 1px dashed var(--border); }
 .avatar.avatar-empty .i { width: 20px; height: 20px; }
@@ -1402,51 +1406,102 @@ details[open].group, details[open].disclosure { border-color: color-mix(in srgb,
 .note-box { display: flex; flex-direction: column; gap: 10px; animation: rise .35s var(--ease) both; }
 .note-box textarea { min-height: 70px; resize: vertical; }
 
-/* کارت شخصیت */
-.pcard { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center;
-  gap: 6px; padding: 22px 18px 18px; border-radius: 28px; color: #f3f6f9;
+/* کارت شخصیت: کارت کلکسیونی با قاب فویل، کمیابی، شماره و چهار ویژگی */
+.tcard-stage { perspective: 1100px; padding: 6px 4px 4px; overflow-x: clip; overflow-y: visible; }
+.tcard { --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 30%;
+  position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 4px; padding: 14px 16px 16px; border-radius: 30px; color: #f5f7fa;
+  max-width: 380px; margin: 0 auto;
   background:
-    radial-gradient(90% 60% at 50% 0%, color-mix(in srgb, var(--a1) 55%, transparent), transparent 70%),
-    radial-gradient(80% 60% at 100% 100%, color-mix(in srgb, var(--a2) 35%, transparent), transparent 70%),
-    linear-gradient(170deg, #161b23, #0b0e12);
-  border: 1px solid color-mix(in srgb, var(--a1) 45%, transparent);
-  box-shadow: 0 20px 50px color-mix(in srgb, var(--a1) 25%, rgba(0, 0, 0, .4)); }
-.pcard::after { content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .12) 50%, transparent 65%);
-  transform: translateX(-120%); animation: shine 3.5s 1s var(--ease) infinite; }
-@keyframes shine { 0% { transform: translateX(-120%); } 40%, 100% { transform: translateX(120%); } }
-.pcard.reveal { animation: flipin .9s var(--spring) both; }
-@keyframes flipin { from { opacity: 0; transform: perspective(900px) rotateY(-80deg) scale(.85); } to { opacity: 1; transform: none; } }
-.pcard-kicker { font-size: .74rem; font-weight: 700; letter-spacing: .02em; color: rgba(243, 246, 249, .65); }
-.pcard .avatar.xl { margin: 8px 0 4px; }
-.pcard-name { font-size: 1.7rem; font-weight: 900; letter-spacing: -.02em; }
-.pcard-twin { font-size: .82rem; color: rgba(243, 246, 249, .7); }
-.pcard-tag { font-size: .95rem; line-height: 1.8; max-width: 320px; margin: 4px 0; }
-.pcard-traits { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-.pcard-traits span { padding: 4px 12px; border-radius: 999px; font-size: .78rem; font-weight: 700;
-  background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .14); }
-.pcard-risk { width: 100%; margin-top: 12px; padding: 12px 14px; border-radius: 18px;
-  background: rgba(0, 0, 0, .25); border: 1px solid rgba(255, 255, 255, .08); text-align: right; }
-.pcard-risk-head { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; }
-.pcard-risk-head strong { font-size: 1rem; }
-.pcard-risk-head small { color: rgba(243, 246, 249, .55); font-weight: 600; }
-.pcard-meter { display: block; height: 8px; margin: 8px 0 6px; border-radius: 4px; background: rgba(255, 255, 255, .1);
-  overflow: hidden; }
-.pcard-meter span { display: block; height: 100%; width: var(--w); border-radius: 4px;
-  background: linear-gradient(90deg, #3ee8a6, #ffc857 60%, #ff8a5b); }
-.pcard-risk-sub { display: flex; justify-content: space-between; font-size: .74rem; color: rgba(243, 246, 249, .6); }
-.pcard-facts { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0 0; }
-.pcard-facts div { padding: 8px 6px; border-radius: 14px; background: rgba(255, 255, 255, .06); }
-.pcard-facts dt { font-size: .7rem; color: rgba(243, 246, 249, .55); }
-.pcard-facts dd { margin: 2px 0 0; font-size: .8rem; font-weight: 700; line-height: 1.5; }
-.pcard + .notice, .pcard ~ .ask-vazir { margin-top: 14px; }
-.avatar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
-.avatar-pick { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px;
-  border-radius: 18px; border: 1px solid var(--hairline); background: var(--surface); color: var(--text);
-  font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; box-shadow: var(--shadow);
-  transition: transform .2s var(--spring), border-color .2s; }
-.avatar-pick:active { transform: scale(.95); }
-.avatar-pick .avatar { --size: 52px; }
-.avatar-pick.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.avatar-pick.mine > span:last-child::after { content: " ★"; color: var(--warn); }
+    radial-gradient(120% 70% at 50% 0%, hsl(var(--h) 85% 55% / .55), transparent 62%),
+    radial-gradient(90% 60% at 100% 100%, hsl(calc(var(--h) + 50) 80% 50% / .35), transparent 70%),
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .07) 1px, transparent 0) 0 0 / 14px 14px,
+    linear-gradient(175deg, hsl(var(--h) 35% 14%), #07090c 85%);
+  border: 1.5px solid transparent;
+  box-shadow: 0 24px 60px hsl(var(--h) 70% 30% / .45), 0 2px 0 rgba(255, 255, 255, .06) inset;
+  transform: rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .5s var(--ease); }
+.tcard::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; z-index: -1;
+  background: conic-gradient(from 0deg, hsl(var(--h) 90% 65%), hsl(calc(var(--h) + 60) 90% 65%),
+    hsl(calc(var(--h) + 180) 90% 70%), hsl(calc(var(--h) + 300) 90% 65%), hsl(var(--h) 90% 65%));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude; opacity: .8; }
+.tcard.tilting { transition: transform .08s linear; }
+.tcard-foil { position: absolute; inset: 0; pointer-events: none; z-index: 2; mix-blend-mode: color-dodge; opacity: .35;
+  background:
+    radial-gradient(40% 35% at var(--mx) var(--my), rgba(255, 255, 255, .55), transparent 70%),
+    repeating-linear-gradient(115deg, hsl(var(--h) 100% 70% / .0) 0 12px, hsl(calc(var(--h) + 120) 100% 70% / .25) 18px,
+      hsl(calc(var(--h) + 240) 100% 70% / .0) 26px); }
+.tcard.common .tcard-foil { opacity: .12; }
+.tcard.rare .tcard-foil { opacity: .22; }
+.tcard.legendary { box-shadow: 0 24px 70px hsl(var(--h) 80% 40% / .6), 0 0 0 1px rgba(255, 215, 120, .35); }
+.tcard.reveal { animation: cardin 1.1s var(--spring) both; }
+@keyframes cardin { 0% { opacity: 0; transform: rotateY(-120deg) scale(.7); } 60% { opacity: 1; } 100% { transform: none; } }
+.tcard-top { width: 100%; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; }
+.tcard-rarity { font-size: .72rem; font-weight: 800; padding: 4px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .16); }
+.tcard.epic .tcard-rarity { background: hsl(275 70% 55% / .35); border-color: hsl(275 80% 70% / .5); }
+.tcard.legendary .tcard-rarity { background: linear-gradient(90deg, #f7d774, #f0a35b); color: #2a1a00; border: 0; }
+.tcard.rare .tcard-rarity { background: hsl(205 80% 55% / .3); border-color: hsl(205 80% 70% / .45); }
+.tcard-no { font-size: .8rem; font-weight: 800; color: rgba(245, 247, 250, .75); }
+.tcard-no small { font-weight: 600; opacity: .6; }
+.tcard-art { position: relative; width: 150px; height: 150px; display: grid; place-items: center; margin: 4px 0 2px; }
+.tcard-ring { position: absolute; inset: 8px; border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--h) 90% 65% / .55), hsl(var(--h) 90% 50% / .08) 60%, transparent 70%);
+  box-shadow: 0 0 0 1px hsl(var(--h) 90% 75% / .25), 0 0 0 14px hsl(var(--h) 90% 75% / .06);
+  animation: pulse-ring 3.2s ease-in-out infinite; }
+@keyframes pulse-ring { 50% { transform: scale(1.06); opacity: .8; } }
+.tcard-emoji { position: relative; font-size: 88px; line-height: 1; animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 14px 18px rgba(0, 0, 0, .45));
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+@keyframes float { 50% { transform: translateY(-7px) rotate(-3deg); } }
+.tcard-kicker { font-size: .7rem; font-weight: 700; color: rgba(245, 247, 250, .55); }
+.tcard-name { font-size: 1.9rem; font-weight: 900; letter-spacing: -.02em; line-height: 1.25;
+  background: linear-gradient(180deg, #fff, hsl(var(--h) 70% 85%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tcard-twin { font-size: .8rem; color: rgba(245, 247, 250, .7); }
+.tcard-tag { font-size: .92rem; line-height: 1.85; max-width: 320px; margin: 6px 0 4px; color: rgba(245, 247, 250, .92); }
+.tcard-stats { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; position: relative; z-index: 1; }
+.tstat { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 6px; padding: 9px 11px;
+  border-radius: 14px; background: rgba(0, 0, 0, .28); border: 1px solid rgba(255, 255, 255, .07); text-align: right; }
+.tstat span { font-size: .72rem; color: rgba(245, 247, 250, .65); }
+.tstat b { font-size: .95rem; font-weight: 900; }
+.tstat i { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.tstat em { display: block; height: 100%; width: var(--w); border-radius: 3px;
+  background: linear-gradient(90deg, hsl(var(--h) 90% 62%), hsl(calc(var(--h) + 50) 90% 68%)); }
+.tcard-traits { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 12px; }
+.tcard-traits span { padding: 4px 12px; border-radius: 999px; font-size: .76rem; font-weight: 700;
+  background: rgba(255, 255, 255, .09); border: 1px solid rgba(255, 255, 255, .14); }
+@media (prefers-reduced-motion: reduce) { .tcard-emoji, .tcard-ring { animation: none; } }
+
+.persona-summary { margin-top: 16px; }
+.persona-summary-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.persona-summary-head img { width: 28px; height: 28px; border-radius: 9px; }
+.persona-summary p { line-height: 1.9; color: var(--text-2); }
+.persona-risk { margin-top: 12px; }
+.persona-risk-sub { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.alert.warn { background: var(--warn-soft); color: var(--warn); margin-top: 10px; }
+.persona-risk + .ask-vazir { margin-top: 12px; }
+.avatar-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.avatar-pick { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 2px 6px; min-width: 0;
+  border-radius: 16px; border: 1px solid transparent; background: none; color: var(--text-2);
+  font: inherit; cursor: pointer; position: relative; transition: transform .2s var(--spring), background .2s; }
+.avatar-pick:active { transform: scale(.92); }
+.avatar-pick .avatar { --size: 50px; }
+.avatar-name { font-size: .64rem; font-weight: 700; line-height: 1.4; max-width: 100%; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.avatar-pick.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+.avatar-pick.mine::after { content: "★"; position: absolute; top: 2px; inset-inline-end: 4px; font-size: .8rem;
+  color: var(--warn); text-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+
+/* مصاحبه با وزیر */
+.persona-intro { display: flex; justify-content: center; padding: 6px 0 4px; }
+.persona-intro .avatar { --size: 40px; border: 2px solid var(--bg); animation: rise .5s var(--ease) both; }
+.persona-intro .avatar + .avatar { margin-inline-start: -10px; }
+.persona-intro .avatar:nth-child(2) { animation-delay: .06s; } .persona-intro .avatar:nth-child(3) { animation-delay: .12s; }
+.persona-intro .avatar:nth-child(4) { animation-delay: .18s; } .persona-intro .avatar:nth-child(5) { animation-delay: .24s; }
+.chat-chips { display: flex; flex-wrap: wrap; gap: 8px; padding-inline-start: 10%; animation: rise .35s var(--ease) both; }
+.chip-reply { font: inherit; font-size: .88rem; font-weight: 600; padding: 9px 14px; border-radius: 16px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--hairline)); background: var(--surface); color: var(--text);
+  box-shadow: var(--shadow); transition: transform .2s var(--spring), border-color .2s; }
+.chip-reply:active { transform: scale(.95); border-color: var(--accent); }
+.quick-link { align-self: center; font-size: .8rem; color: var(--muted); margin-top: 6px; }
 .redo { margin-top: 18px; }

@@ -259,6 +259,7 @@
     var scroll = app.querySelector("#chat-scroll");
     var log = app.querySelector("#chat-log");
     var form = app.querySelector("#chat-form");
+    if (!form) return;  // هنوز رضایت نداده
     var box = form.querySelector("textarea");
     var send = form.querySelector(".chat-send");
     var busy = false;
@@ -289,6 +290,7 @@
       busy = true;
       var hello = log.querySelector(".chat-hello");
       if (hello) hello.remove();
+      log.querySelectorAll(".chat-chips, .quick-link").forEach(function (el) { el.remove(); });
       message("me", text);
       var dots = document.createElement("div");
       dots.className = "chat-msg vazir typing";
@@ -409,6 +411,28 @@
       if (edit) edit.closest(".q").classList.remove("answered");
     });
   }
+
+  // کارت شخصیت با حرکت انگشت یا موشواره کمی می‌چرخد و فویلش برق می‌زند
+  document.addEventListener("pointermove", function (e) {
+    var card = e.target.closest && e.target.closest("[data-tilt]");
+    if (!card || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var box = card.getBoundingClientRect();
+    var x = (e.clientX - box.left) / box.width, y = (e.clientY - box.top) / box.height;
+    card.classList.add("tilting");
+    card.style.setProperty("--ry", ((x - .5) * 14).toFixed(2) + "deg");
+    card.style.setProperty("--rx", ((.5 - y) * 12).toFixed(2) + "deg");
+    card.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
+    card.style.setProperty("--my", (y * 100).toFixed(1) + "%");
+  });
+  ["pointerleave", "pointerup", "pointercancel"].forEach(function (type) {
+    document.addEventListener(type, function (e) {
+      var card = e.target.closest && e.target.closest("[data-tilt]");
+      if (!card) return;
+      card.classList.remove("tilting");
+      card.style.setProperty("--rx", "0deg");
+      card.style.setProperty("--ry", "0deg");
+    }, true);
+  });
 
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));

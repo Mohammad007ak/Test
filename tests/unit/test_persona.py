@@ -1,13 +1,16 @@
+import random
+
 import pytest
 
 from app.domain.persona import (
-    CARDS,
     QUESTIONS,
     PersonaError,
     build_persona,
-    card_for,
     parse_answers,
+    question,
+    stats,
 )
+from app.domain.persona_cards import CARDS, card_for, rarity
 
 CALM = {"age": "45_54", "job": "employee", "income": "fixed", "household": "kids",
         "housing": "owner", "goal": "inflation", "horizon": "1_3", "drop": "sell",
@@ -52,27 +55,47 @@ class TestScores:
                 assert isinstance(value, int) and 0 <= value <= 100
 
 
-class TestCards:
-    def test_every_card_reachable_and_known(self) -> None:
-        seen = {card_for(build_persona(a)) for a in (
-            CALM, BOLD,
-            {**CALM, "interests": []},
-            {**CALM, "goal": "debt"},
-            {**BOLD, "experience": "none", "age": "25_34", "drop": "wait", "choice": "coin"},
-            {**BOLD, "interests": ["stocks"]},
-            {**BOLD, "drop": "wait", "choice": "coin", "experience": "market"},
-            {**BOLD, "drop": "wait", "choice": "coin", "experience": "market",
-             "horizon": "3_7", "style": "frugal"},
-            {**BOLD, "drop": "wait", "choice": "coin", "experience": "market",
-             "horizon": "3_7"},
-        )}
-        assert seen == set(CARDS)
+class TestStats:
+    def test_four_stats_between_0_and_100(self) -> None:
+        st = stats(build_persona(BOLD))
+        assert set(st) == {"risk", "discipline", "patience", "knowledge"}
+        assert all(isinstance(v, int) and 0 <= v <= 100 for v in st.values())
+        assert st["risk"] == build_persona(BOLD).risk
 
-    def test_rules(self) -> None:
-        assert card_for(build_persona(CALM)) == "coin"  # محتاط + طلا + تورم
-        assert card_for(build_persona({**CALM, "interests": []})) == "turtle"
-        assert card_for(build_persona({**CALM, "goal": "debt"})) == "amir"
-        assert card_for(build_persona(BOLD)) == "surfer"
+    def test_frugal_saver_is_disciplined(self) -> None:
+        saver = stats(build_persona({**CALM, "style": "frugal", "emergency": "gt6"}))
+        spender = stats(build_persona({**CALM, "style": "spender", "emergency": "none"}))
+        assert saver["discipline"] > 80 > 30 > spender["discipline"]
+
+
+class TestCards:
+    def test_fifty_unique_cards(self) -> None:
+        assert len(CARDS) == 50 and len(set(CARDS)) == 50
+
+    def test_match_is_deterministic_and_known(self) -> None:
+        for answers in (CALM, BOLD):
+            card = card_for(build_persona(answers))
+            assert card in CARDS and card == card_for(build_persona(answers))
+
+    def test_answers_spread_over_many_cards(self) -> None:
+        rng = random.Random(7)
+        seen = set()
+        for _ in range(3000):
+            answers: dict[str, object] = {
+                q.key: (rng.sample(q.options, rng.randint(0, 2)) if q.multi
+                        else rng.choice(q.options)) for q in QUESTIONS}
+            seen.add(card_for(build_persona(answers)))
+        assert len(seen) >= 40
+
+    def test_affinity_steers_the_match(self) -> None:
+        goals = question("goal").options
+        mid = {**BOLD, "drop": "wait", "choice": "coin", "experience": "market",
+               "emergency": "3_6", "horizon": "3_7", "interests": []}
+        assert len({card_for(build_persona({**mid, "goal": g})) for g in goals}) >= 3
+
+    def test_rarity_levels(self) -> None:
+        levels = {rarity(card) for card in CARDS}
+        assert levels == {"common", "rare", "epic", "legendary"}
 
 
 class TestParse:

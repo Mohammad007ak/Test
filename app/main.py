@@ -154,7 +154,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_auth_routes(app, settings, otp, app.state.sms_verification)
     register_assistant_routes(app, chat_model, settings.llm_daily_limit,
                               settings.llm_mode if settings.llm_mode in MODES else "strict")
-    register_persona_routes(app)
+    register_persona_routes(app, chat_model)
     register_sms_routes(app)
     register_spending_routes(app)
     register_extra_routes(app)

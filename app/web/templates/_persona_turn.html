@@ -1,0 +1,2 @@
+<div class="chat-row vazir"><div class="chat-msg vazir {{ 'error' if error }}">{{ text | chat_md }}</div></div>
+{% if suggestions %}<div class="chat-chips">{% for x in suggestions %}<button type="button" class="chip-reply" data-ask="{{ x }}">{{ x }}</button>{% endfor %}</div>{% endif %}

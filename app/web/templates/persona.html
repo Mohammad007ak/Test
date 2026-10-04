@@ -3,35 +3,49 @@
 {% block content %}
 {% set c = s.PERSONA_CARDS[card] %}
 {% set p = stored.persona %}
-<section class="pcard {{ 'reveal' if reveal }}" style="--a1: {{ c.colors[0] }}; --a2: {{ c.colors[1] }}">
-  <span class="pcard-kicker">{{ T.persona_your_card }}</span>
-  {{ avatar(card, "xl") }}
-  <h2 class="pcard-name">{{ c.name }}</h2>
-  <p class="pcard-twin">{{ T.persona_twin.format(twin=c.twin) }}</p>
-  <p class="pcard-tag">«{{ c.tagline }}»</p>
-  <div class="pcard-traits">{% for t in c.traits %}<span>{{ t }}</span>{% endfor %}</div>
-  <div class="pcard-risk">
-    <div class="pcard-risk-head"><span>{{ T.persona_risk }}</span><strong>{{ s.PERSONA_PROFILES[p.profile] }} · {{ p.risk | fa }}<small>/۱۰۰</small></strong></div>
-    <span class="pcard-meter"><span style="--w: {{ p.risk }}%"></span></span>
-    <div class="pcard-risk-sub"><span>{{ T.persona_willing }} {{ p.tolerance | fa }}</span><span>{{ T.persona_able }} {{ p.capacity | fa }}</span></div>
+<div class="tcard-stage">
+<article class="tcard {{ rarity }} {{ 'reveal' if reveal }}" style="--h: {{ c.hue }}" data-tilt>
+  <span class="tcard-foil" aria-hidden="true"></span>
+  <header class="tcard-top">
+    <span class="tcard-rarity">✦ {{ s.PERSONA_RARITY[rarity] }}</span>
+    <span class="tcard-no">#{{ c.number | fa }} <small>/ ۵۰</small></span>
+  </header>
+  <div class="tcard-art"><span class="tcard-ring" aria-hidden="true"></span><span class="tcard-emoji">{{ c.emoji }}</span></div>
+  <span class="tcard-kicker">{{ T.persona_your_card }}</span>
+  <h2 class="tcard-name">{{ c.name }}</h2>
+  <p class="tcard-twin">{{ T.persona_twin.format(twin=c.twin) }}</p>
+  <p class="tcard-tag">{{ c.tagline }}</p>
+  <div class="tcard-stats">
+    {% for key, label in s.PERSONA_STATS.items() %}
+    <div class="tstat"><span>{{ label }}</span><b>{{ stats[key] | fa }}</b><i><em style="--w: {{ stats[key] }}%"></em></i></div>
+    {% endfor %}
   </div>
-  <dl class="pcard-facts">
-    <div><dt>{{ T.persona_goal }}</dt><dd>{{ s.PERSONA_QUESTIONS.goal[1][p.get("goal")] }}</dd></div>
-    <div><dt>{{ T.persona_horizon }}</dt><dd>{{ s.PERSONA_QUESTIONS.horizon[1][p.get("horizon")] }}</dd></div>
-    <div><dt>{{ T.persona_style }}</dt><dd>{{ s.PERSONA_QUESTIONS.style[1][p.get("style")] }}</dd></div>
-  </dl>
-</section>
+  <footer class="tcard-traits">{% for t in c.traits %}<span>{{ t }}</span>{% endfor %}</footer>
+</article>
+</div>
 
-{% if p.gap %}<div class="notice warn">{{ icon("alert") }}<span>{{ s.PERSONA_GAPS[p.gap] }}</span></div>{% endif %}
+{% if stored.summary %}
+<section class="card persona-summary">
+  <div class="persona-summary-head"><img src="{{ static('logo.svg') }}" alt=""><strong>{{ T.persona_summary }}</strong></div>
+  <p>{{ stored.summary }}</p>
+</section>
+{% endif %}
+
+<section class="card persona-risk">
+  <div class="card-head"><h2>{{ T.persona_risk }}</h2><strong>{{ s.PERSONA_PROFILES[p.profile] }} · {{ p.risk | fa }}<small class="muted">/۱۰۰</small></strong></div>
+  <div class="persona-risk-sub muted small"><span>{{ T.persona_willing }} {{ p.tolerance | fa }}</span><span>{{ T.persona_able }} {{ p.capacity | fa }}</span>
+    <span>{{ T.persona_goal }}: {{ s.PERSONA_QUESTIONS.goal[1][p.get("goal")] }}</span></div>
+  {% if p.gap %}<div class="alert warn">{{ icon("alert") }} {{ s.PERSONA_GAPS[p.gap] }}</div>{% endif %}
+</section>
 
 <a href="/assistant" class="ask-vazir"><img src="{{ static('logo.svg') }}" alt=""><span><strong>{{ T.persona_ask }}</strong><small>{{ s.PERSONA_GOAL_SUGGESTIONS[p.get("goal")] }}</small></span>{{ icon("chev", "end") }}</a>
 
-<h2 class="section-title">{{ T.persona_avatar }}</h2>
-<p class="muted small">{{ T.persona_avatar_hint }}</p>
+<h2 class="section-title">{{ T.persona_collection }}</h2>
+<p class="muted small">{{ T.persona_collection_hint }}</p>
 <form method="post" action="/persona/avatar" class="avatar-grid">
   {% for key, item in s.PERSONA_CARDS.items() %}
-  <button type="submit" name="card" value="{{ key }}" class="avatar-pick {{ 'on' if key == current_avatar }} {{ 'mine' if key == card }}" {{ 'aria-pressed="true"' | safe if key == current_avatar }}>
-    {{ avatar(key) }}<span>{{ item.name }}</span>
+  <button type="submit" name="card" value="{{ key }}" class="avatar-pick {{ 'on' if key == current_avatar }} {{ 'mine' if key == card }}" title="{{ item.name }}" {{ 'aria-pressed="true"' | safe if key == current_avatar }}>
+    {{ avatar(key) }}<span class="avatar-name">{{ item.name }}</span>
   </button>
   {% endfor %}
 </form>
