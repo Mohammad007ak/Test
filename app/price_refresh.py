@@ -7,15 +7,22 @@
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.adapters.prices import FetchedQuote, PriceSource, PriceSourceError
 from app.models import PriceQuote, utcnow
+from app.price_history import _tehran_day
 from app.services import get_setting, latest_quotes, set_setting
 
 STATUS_KEY = "price_source_status:{name}"
+# قیمت‌های چند روز اخیر با همه جزئیات (تغییر ۲۴ ساعته)؛ قدیمی‌ترها فقط پایانی هر روز
+KEEP_DETAIL = timedelta(days=3)
+COMPACT_EVERY = timedelta(hours=6)
+_COMPACT_STAMP = "quotes_compacted_at"
+_DELETE_BATCH = 500
 
 
 @dataclass(frozen=True)
@@ -105,7 +112,44 @@ def _has_work(source: PriceSource) -> bool:
 
 
 def refresh_all(session: Session, sources: list[PriceSource]) -> list[SourceStatus]:
-    return [refresh_source(session, source) for source in sources if _has_work(source)]
+    statuses = [refresh_source(session, source) for source in sources if _has_work(source)]
+    maybe_compact(session)
+    return statuses
+
+
+def compact_quotes(session: Session, now: datetime | None = None) -> int:
+    """ردیف‌های قیمت منابع قدیمی‌تر از KEEP_DETAIL: فقط آخرین ردیف هر کلید در هر روز تهران
+    می‌ماند (پایانی روز برای نمودار)؛ قیمت دستی کاربران دست نمی‌خورد. تعداد حذف‌شده را برمی‌گرداند.
+
+    بدون این، جدول با هر دریافت (هر ۳۰ ثانیه) بزرگ‌تر و همه صفحه‌ها کندتر می‌شوند.
+    """
+    now = now or utcnow()
+    rows = session.execute(
+        select(PriceQuote.id, PriceQuote.key, PriceQuote.first_seen_at, PriceQuote.fetched_at)
+        .where(PriceQuote.user_id.is_(None), PriceQuote.fetched_at < now - KEEP_DETAIL)
+        .order_by(PriceQuote.key, PriceQuote.first_seen_at, PriceQuote.id)).all()
+    closing: dict[tuple[str, date], int] = {}
+    for row in rows:
+        closing[(row.key, _tehran_day(row.first_seen_at or row.fetched_at))] = row.id
+    keep = set(closing.values())
+    doomed = [row.id for row in rows if row.id not in keep]
+    for start in range(0, len(doomed), _DELETE_BATCH):
+        session.execute(delete(PriceQuote).where(
+            PriceQuote.id.in_(doomed[start:start + _DELETE_BATCH])))
+    session.commit()
+    return len(doomed)
+
+
+def maybe_compact(session: Session, now: datetime | None = None) -> int:
+    """حداکثر هر COMPACT_EVERY یک بار."""
+    now = now or utcnow()
+    stamp = get_setting(session, _COMPACT_STAMP)
+    if stamp and now - datetime.fromisoformat(stamp) < COMPACT_EVERY:
+        return 0
+    removed = compact_quotes(session, now)
+    set_setting(session, _COMPACT_STAMP, now.isoformat())
+    session.commit()
+    return removed
 
 
 def due_sources(session: Session, sources: list[PriceSource],

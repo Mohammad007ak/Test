@@ -9,6 +9,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     LargeBinary,
     String,
@@ -200,6 +201,11 @@ class ExpenseStream(UserOwned, Base):
 
 class PriceQuote(Base):
     __tablename__ = "price_quotes"
+    # «آخرین قیمت هر کلید» (latest_quotes) و «قیمت در لحظه X» (price_at) در هر صفحه اجرا می‌شوند
+    __table_args__ = (
+        Index("ix_price_quotes_key_fetched_user", "key", "fetched_at", "user_id"),
+        Index("ix_price_quotes_key_first_seen", "key", "first_seen_at", "id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     key: Mapped[str] = mapped_column(String(100), index=True)

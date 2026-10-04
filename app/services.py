@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db import USER_KEY
@@ -82,15 +82,23 @@ def get_decimal_setting(session: Session, key: str) -> Decimal:
 # ---------- قیمت‌ها ----------
 
 def latest_quotes(session: Session) -> dict[str, PriceQuote]:
-    """آخرین قیمت معتبر هر کلید (تاریخچه حفظ می‌شود)."""
-    quotes: dict[str, PriceQuote] = {}
-    query = select(PriceQuote).order_by(PriceQuote.fetched_at, PriceQuote.id)
-    if USER_KEY not in session.info:  # نشست سیستمی: فقط قیمت منابع، نه قیمت دستی کاربران
-        query = query.where(PriceQuote.user_id.is_(None))
-    rows = session.scalars(query)
-    for quote in rows:
-        quotes[quote.key] = quote
-    return quotes
+    """آخرین قیمت معتبر هر کلید (تاریخچه حفظ می‌شود).
+
+    انتخاب «آخرین ردیف هر کلید» در خود دیتابیس انجام می‌شود (نه خواندن همه ردیف‌ها)؛ جدول
+    قیمت با هر به‌روزرسانی بزرگ‌تر می‌شود و این تابع در هر صفحه صدا زده می‌شود.
+    """
+    user_id = session.info.get(USER_KEY)
+    if user_id is None:  # نشست سیستمی: فقط قیمت منابع، نه قیمت دستی کاربران
+        visible = PriceQuote.user_id.is_(None)
+    else:
+        visible = or_(PriceQuote.user_id.is_(None), PriceQuote.user_id == user_id)
+    newest = (select(PriceQuote.key, func.max(PriceQuote.fetched_at).label("at"))
+              .where(visible).group_by(PriceQuote.key).subquery())
+    rows = session.scalars(
+        select(PriceQuote).join(newest, and_(PriceQuote.key == newest.c.key,
+                                             PriceQuote.fetched_at == newest.c.at))
+        .where(visible).order_by(PriceQuote.id))
+    return {quote.key: quote for quote in rows}  # در تساوی زمان، ردیف تازه‌تر (id بزرگ‌تر)
 
 
 def owned_market_keys(session: Session) -> list[str]:
@@ -310,7 +318,7 @@ def price_at(session: Session, key: str, moment: datetime) -> PriceQuote | None:
     """قیمتی که در آن لحظه معتبر بود: آخرین ردیفی که پیش از آن دیده شده بود."""
     return session.scalars(
         select(PriceQuote).where(PriceQuote.key == key, PriceQuote.first_seen_at <= moment)
-        .order_by(PriceQuote.first_seen_at.desc(), PriceQuote.id.desc())).first()
+        .order_by(PriceQuote.first_seen_at.desc(), PriceQuote.id.desc()).limit(1)).first()
 
 
 def watchlist(session: Session, now: datetime | None = None) -> list[WatchItem]:
