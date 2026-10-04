@@ -59,3 +59,14 @@ uv run ruff check .
 | خروجی JSON کامل | ✅ |
 
 مبنای همه مبالغ **تومان** (int) است.
+
+## نسخه‌های اپ: دسکتاپ، PWA (آیفون و اندروید)، APK اندروید
+
+- **دسکتاپ:** همان سایت؛ از عرض ۹۰۰ پیکسل به بالا نوار کناری و چیدمان پهن دارد. در Chrome/Edge از آیکون نصب نوار آدرس می‌شود جدا نصبش کرد.
+- **PWA:** راهنمای نصب در `/install` (لینکش در «بیشتر» و لندینگ). Service Worker در `/sw.js` صفحه‌ها را آفلاین هم نشان می‌دهد؛ api و چت هرگز کش نمی‌شوند.
+- **APK اندروید (TWA):** پروژه در `android/`؛ ساختش روی GitHub Actions:
+  1. یک بار workflow «Android signing key (one time)» را از تب Actions اجرا کن، artifact را دانلود کن و چهار فایلش را در Settings → Secrets → Actions بگذار:
+     `ANDROID_KEYSTORE_BASE64`، `ANDROID_KEYSTORE_PASSWORD`، `ANDROID_KEY_ALIAS`، `ANDROID_KEY_PASSWORD`. فایل `vazir-backup.jks` را جای امن نگه دار و artifact را پاک کن.
+  2. workflow «Android APK» را با Run workflow اجرا کن؛ APK امضاشده در Artifacts و Releases می‌آید.
+  3. مقدار `FINASSIST_ANDROID_CERT_SHA256` را از خلاصه اجرا بردار و در هم‌روش بگذار تا اپ بدون نوار آدرس باز شود (`/.well-known/assetlinks.json`).
+  4. اختیاری: `FINASSIST_ANDROID_APK_URL` = لینک دانلود APK تا دکمه دانلود در `/install` بیاید.
