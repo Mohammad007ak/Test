@@ -189,7 +189,7 @@
             label: function (c) { return shortToman(String(Math.round(c.raw))) || "۰"; } } }
         },
         scales: {
-          x: { reverse: true, grid: { display: false }, ticks: { maxTicksLimit: 4, maxRotation: 0 } },
+          x: { reverse: false, grid: { display: false }, ticks: { maxTicksLimit: 4, maxRotation: 0 } },
           y: { position: "right", grid: { color: grid }, border: { display: false },
             ticks: { maxTicksLimit: 4, callback: function (v) { return compact.format(v); } } }
         }
@@ -446,7 +446,9 @@
     var good = css.getPropertyValue("--good").trim(), bad = css.getPropertyValue("--bad").trim();
     var muted = css.getPropertyValue("--muted").trim(), grid = css.getPropertyValue("--border").trim();
     var compact = new Intl.NumberFormat("fa-IR", { notation: "compact", maximumFractionDigits: 2 });
-    var dateFmt = new Intl.DateTimeFormat("fa-IR", { year: "2-digit", month: "short", day: "numeric" });
+    // بازه کوتاه: روز و ماه؛ بازه بلند: ماه و سال (برچسب‌ها روی هم نیفتند)
+    var dayFmt = new Intl.DateTimeFormat("fa-IR", { month: "short", day: "numeric" });
+    var monthFmt = new Intl.DateTimeFormat("fa-IR", { month: "short", year: "2-digit" });
     var pct = new Intl.NumberFormat("fa-IR", { style: "percent", maximumFractionDigits: 1, signDisplay: "exceptZero" });
     var label = box.querySelector("[data-range-change]");
     Chart.defaults.font.family = "Vazirmatn";
@@ -461,7 +463,7 @@
         plugins: { legend: { display: false }, tooltip: { rtl: true, displayColors: false, callbacks: {
           label: function (c) { return compact.format(c.raw) + " تومان"; } } } },
         scales: {
-          x: { reverse: true, grid: { display: false }, ticks: { maxTicksLimit: 4, maxRotation: 0 } },
+          x: { reverse: false, grid: { display: false }, ticks: { maxTicksLimit: 4, maxRotation: 0 } },
           y: { position: "right", grid: { color: grid }, border: { display: false },
             ticks: { maxTicksLimit: 4, callback: function (v) { return compact.format(v); } } }
         }
@@ -472,7 +474,8 @@
       var from = new Date(last.getTime() - range * 86400000);
       var start = days.findIndex(function (d) { return d >= from; });
       if (start < 0) start = 0;
-      var values = raw.v.slice(start), labels = days.slice(start).map(function (d) { return dateFmt.format(d); });
+      var fmt = range > 91 ? monthFmt : dayFmt;
+      var values = raw.v.slice(start), labels = days.slice(start).map(function (d) { return fmt.format(d); });
       var up = values[values.length - 1] >= values[0];
       var color = up ? good : bad;
       var ctx = canvas.getContext("2d");

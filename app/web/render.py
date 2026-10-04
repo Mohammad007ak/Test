@@ -58,7 +58,7 @@ def jalali_long(day: date) -> str:
 
 
 def sparkline(values: list[int], width: int = 300, height: int = 56) -> tuple[str, str]:
-    """مسیر SVG خط و سطح زیر آن؛ راست‌به‌چپ: قدیمی‌ترین راست، جدیدترین چپ."""
+    """مسیر SVG خط و سطح زیر آن؛ زمان مثل همه نمودارهای مالی از چپ به راست (جدیدترین راست)."""
     if len(values) < 2:
         return "", ""
     low, high = min(values), max(values)
@@ -71,7 +71,7 @@ def sparkline(values: list[int], width: int = 300, height: int = 56) -> tuple[st
         return round(pad + (high - v) / span * (height - 2 * pad), 1)
 
     step = width / (len(values) - 1)
-    points = [(round(width - i * step, 1), y(v)) for i, v in enumerate(values)]
+    points = [(round(i * step, 1), y(v)) for i, v in enumerate(values)]
     line = " ".join(f"{'M' if i == 0 else 'L'}{x},{yy}" for i, (x, yy) in enumerate(points))
     area = f"{line} L{points[-1][0]},{height} L{points[0][0]},{height} Z"
     return line, area
