@@ -673,6 +673,36 @@
     })();
   }
 
+  // ---------- نسخه نصبی (PWA): Service Worker، پاک کردن کش بعد از خروج، صفحه نصب ----------
+  var installEvent = null;
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    installEvent = e;
+    document.querySelectorAll("[data-install-button]").forEach(function (b) { b.hidden = false; });
+  });
+  function setupPwa() {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js").catch(function () { /* اپ بدون SW هم کار می‌کند */ });
+    // صفحه ورود یا معرفی یعنی کاربر وارد نیست؛ صفحه‌های کش‌شده حساب قبلی پاک شوند
+    if (document.querySelector(".auth, #landing") && window.caches) caches.delete("vazir-pages");
+  }
+  function initInstall(root) {
+    var ua = navigator.userAgent;
+    var platform = /iPhone|iPad|iPod/.test(ua) ? "ios" : /Android/.test(ua) ? "android" : "desktop";
+    var standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+    root.querySelectorAll("[data-platform]").forEach(function (card) {
+      if (card.getAttribute("data-platform") === platform) card.parentNode.insertBefore(card, root.querySelector("[data-platform]"));
+      card.classList.toggle("mine", card.getAttribute("data-platform") === platform);
+    });
+    if (standalone) root.querySelector("[data-installed]").hidden = false;
+    if (installEvent) root.querySelectorAll("[data-install-button]").forEach(function (b) { b.hidden = false; });
+    root.addEventListener("click", function (e) {
+      if (!e.target.closest("[data-install-button]") || !installEvent) return;
+      installEvent.prompt();
+      installEvent.userChoice.then(function () { installEvent = null; });
+    });
+  }
+
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));
     if (root.matches && root.matches(selector)) found.unshift(root);
@@ -694,11 +724,13 @@
     all(root, "#chat-app").forEach(initChat);
     all(root, "#interview").forEach(initInterview);
     all(root, "#landing").forEach(initLanding);
+    all(root, "#install").forEach(initInstall);
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduced && !(root.id === "live")) all(root, "[data-countup]").forEach(countUp);
   }
 
   function start() {
+    setupPwa();
     if (window.htmx) htmx.onLoad(init); else init(document);
   }
 

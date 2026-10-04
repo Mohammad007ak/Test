@@ -131,6 +131,9 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
                                  else [AlanchandHistory()] if price_sources is None else [])
     app.state.llm = DisabledLLM()  # ارائه‌دهنده LLM هنوز انتخاب نشده (SPEC: تصمیم باز)
     app.state.public_url = settings.public_url
+    app.state.android_apk_url = settings.android_apk_url
+    app.state.android_package = settings.android_package
+    app.state.android_cert_sha256 = settings.android_cert_sha256
     app.state.poll_seconds = settings.price_refresh_seconds if sources else 0
     app.state.otp_sender = otp_sender or default_otp_sender(settings)
     otp = OtpService(app.state.otp_sender, secret=secret, daily_limit=settings.otp_daily_limit)
@@ -225,6 +228,31 @@ def _register_routes(app: FastAPI) -> None:
             "has_persona": services.get_user_setting(db, services.PERSONA_KEY) is not None,
         })
 
+    @app.get("/sw.js", include_in_schema=False)
+    def service_worker() -> FileResponse:
+        return FileResponse(STATIC_DIR / "js" / "sw.js", media_type="text/javascript", headers={
+            "Service-Worker-Allowed": "/", "Cache-Control": "no-cache"})
+
+    @app.get("/offline", response_class=HTMLResponse, include_in_schema=False)
+    def offline(request: Request) -> Response:
+        return page(request, "offline.html", {"auth_page": True})
+
+    @app.get("/install", response_class=HTMLResponse)
+    def install(request: Request) -> Response:
+        return page(request, "install.html", {"active": "install", "indexable": True,
+                                              "apk_url": request.app.state.android_apk_url})
+
+    @app.get("/.well-known/assetlinks.json", include_in_schema=False)
+    def assetlinks(request: Request) -> Response:
+        """پیوند دامنه با اپ اندروید (TWA) تا بدون نوار آدرس باز شود."""
+        prints = [f.strip().upper() for f in request.app.state.android_cert_sha256.split(",")
+                  if f.strip()]
+        body = [{"relation": ["delegate_permission/common.handle_all_urls"],
+                 "target": {"namespace": "android_app",
+                            "package_name": request.app.state.android_package,
+                            "sha256_cert_fingerprints": prints}}] if prints else []
+        return Response(json.dumps(body), media_type="application/json")
+
     @app.get("/robots.txt", include_in_schema=False)
     def robots(request: Request) -> Response:
         body = ("User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /export.json\n"
@@ -234,7 +262,8 @@ def _register_routes(app: FastAPI) -> None:
     @app.get("/sitemap.xml", include_in_schema=False)
     def sitemap(request: Request) -> Response:
         base = site_url(request)
-        urls = "".join(f"<url><loc>{base}{path}</loc></url>" for path in ("/", "/signup", "/login"))
+        urls = "".join(f"<url><loc>{base}{path}</loc></url>"
+                       for path in ("/", "/signup", "/login", "/install"))
         body = ('<?xml version="1.0" encoding="UTF-8"?>'
                 f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>')
         return Response(body, media_type="application/xml")

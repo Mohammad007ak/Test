@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/finassist.db"
     secret_key: str = ""
     secure_cookies: bool = False
+    android_apk_url: str = ""  # لینک دانلود APK (مثلاً از GitHub Releases)؛ خالی = دکمه نمایش داده نمی‌شود
+    android_package: str = "ir.getvazir.app"
+    android_cert_sha256: str = ""  # اثر انگشت گواهی امضای APK برای assetlinks (چند مقدار با ویرگول)
     public_url: str = ""  # آدرس اصلی سایت برای sitemap و canonical، مثل https://getvazir.ir
     timezone: str = "Asia/Tehran"
     price_refresh_seconds: int = 30  # وقتی اپ باز است؛ ۰ = دریافت خودکار خاموش

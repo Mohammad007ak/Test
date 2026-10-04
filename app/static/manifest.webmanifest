@@ -1,15 +1,72 @@
 {
-  "name": "وزیر — وزیر مالی تو",
+  "id": "/",
+  "name": "وزیر — دستیار مالی هوشمند",
   "short_name": "وزیر",
+  "description": "همه دارایی‌ها، دخل و خرج، وام‌ها و قیمت طلا و دلار در یک اپ، با دستیار هوش مصنوعی.",
   "lang": "fa",
   "dir": "rtl",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0d1116",
-  "theme_color": "#0d1116",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "background_color": "#0a0c10",
+  "theme_color": "#0a0c10",
+  "categories": [
+    "finance",
+    "productivity"
+  ],
   "icons": [
-    {"src": "/static/icon.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
-    {"src": "/static/logo.svg", "sizes": "any", "type": "image/svg+xml"}
+    {
+      "src": "/static/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ثبت خرج",
+      "url": "/spending/new",
+      "icons": [
+        {
+          "src": "/static/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "از وزیر بپرس",
+      "url": "/assistant",
+      "icons": [
+        {
+          "src": "/static/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "قیمت‌ها",
+      "url": "/prices",
+      "icons": [
+        {
+          "src": "/static/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

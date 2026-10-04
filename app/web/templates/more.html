@@ -7,6 +7,7 @@
     <span class="row-sub">{{ s.PERSONA_CARDS[persona_card].name if persona_card else T.persona_cta_title }}</span></span>
   {{ icon("chev", "end") }}
 </a></div>
+<div class="list"><a href="/install" class="row" hx-boost="false">{{ bubble("download", 1) }}<span class="row-main"><span class="row-title">{{ T.install }}</span><span class="row-sub">{{ T.install_sub }}</span></span>{{ icon("chev", "end") }}</a></div>
 <h2 class="section-title">{{ T.appearance }}</h2>
 <div class="list theme-pick" role="group" aria-label="{{ T.appearance }}">
   {% for key, label in s.THEMES.items() %}

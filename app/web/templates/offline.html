@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block shell %}
+<main class="auth">
+  <img class="brand-logo" src="{{ static('logo.svg') }}" alt="" width="88" height="88">
+  <h1>{{ T.offline_title }}</h1>
+  <p class="muted">{{ T.offline_body }}</p>
+  <a href="/" class="btn wide" onclick="location.reload(); return false;">{{ T.offline_retry }}</a>
+</main>
+{% endblock %}

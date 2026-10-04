@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block shell %}
+<main class="install" id="install">
+  <a href="/" class="install-back">{{ icon("chev", "flip") }} {{ s.APP_NAME }}</a>
+  <img class="brand-logo" src="{{ static('logo.svg') }}" alt="" width="96" height="96">
+  <h1>{{ T.install_title }}</h1>
+  <p class="muted">{{ T.install_body }}</p>
+  <p class="install-done" data-installed hidden>{{ T.install_done }}</p>
+
+  <section class="install-card" data-platform="android">
+    <h2>{{ icon("download") }} {{ T.install_android }}</h2>
+    <button type="button" class="btn wide" data-install-button hidden>{{ T.install_button }}</button>
+    <ol>{% for step in T.install_android_steps %}<li>{{ step }}</li>{% endfor %}</ol>
+    {% if apk_url %}
+    <a href="{{ apk_url }}" class="btn ghost wide" download>{{ T.install_apk }}</a>
+    <p class="muted small">{{ T.install_apk_hint }}</p>
+    {% endif %}
+  </section>
+
+  <section class="install-card" data-platform="ios">
+    <h2>{{ icon("download") }} {{ T.install_ios }}</h2>
+    <ol>{% for step in T.install_ios_steps %}<li>{{ step }}</li>{% endfor %}</ol>
+  </section>
+
+  <section class="install-card" data-platform="desktop">
+    <h2>{{ icon("download") }} {{ T.install_desktop }}</h2>
+    <ol>{% for step in T.install_desktop_steps %}<li>{{ step }}</li>{% endfor %}</ol>
+  </section>
+</main>
+{% endblock %}
