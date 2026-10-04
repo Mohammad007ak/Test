@@ -131,6 +131,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
                                  else [AlanchandHistory()] if price_sources is None else [])
     app.state.llm = DisabledLLM()  # ارائه‌دهنده LLM هنوز انتخاب نشده (SPEC: تصمیم باز)
     app.state.public_url = settings.public_url
+    app.state.contact_email = settings.contact_email
     app.state.android_apk_url = settings.android_apk_url
     app.state.android_package = settings.android_package
     app.state.android_cert_sha256 = settings.android_cert_sha256
@@ -244,6 +245,11 @@ def _register_routes(app: FastAPI) -> None:
         return page(request, "install.html", {"active": "install", "indexable": True,
                                               "apk_url": request.app.state.android_apk_url})
 
+    @app.get("/privacy", response_class=HTMLResponse)
+    def privacy(request: Request) -> Response:
+        return page(request, "privacy.html", {"active": "privacy", "indexable": True,
+                                              "contact": request.app.state.contact_email})
+
     @app.get("/.well-known/assetlinks.json", include_in_schema=False)
     def assetlinks(request: Request) -> Response:
         """پیوند دامنه با اپ اندروید (TWA) تا بدون نوار آدرس باز شود."""
@@ -265,7 +271,7 @@ def _register_routes(app: FastAPI) -> None:
     def sitemap(request: Request) -> Response:
         base = site_url(request)
         urls = "".join(f"<url><loc>{base}{path}</loc></url>"
-                       for path in ("/", "/signup", "/login", "/install"))
+                       for path in ("/", "/signup", "/login", "/install", "/privacy"))
         body = ('<?xml version="1.0" encoding="UTF-8"?>'
                 f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>')
         return Response(body, media_type="application/xml")

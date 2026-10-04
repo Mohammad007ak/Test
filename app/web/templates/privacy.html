@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, bubble %}
+{% block shell %}
+<main class="install privacy" id="privacy">
+  <a href="/" class="install-back">{{ icon("chev", "flip") }} {{ s.APP_NAME }}</a>
+  <img class="brand-logo" src="{{ static('logo.svg') }}" alt="" width="80" height="80">
+  <h1>{{ T.privacy_title }}</h1>
+  <p class="muted">{{ T.privacy_intro }}</p>
+  {% for title, icon_name, lines in s.PRIVACY_SECTIONS %}
+  <section class="install-card">
+    <h2>{{ bubble(icon_name, loop.index) }} {{ title }}</h2>
+    <ul>{% for line in lines %}<li>{{ line }}</li>{% endfor %}</ul>
+  </section>
+  {% endfor %}
+  {% if contact %}<p class="privacy-contact">{{ T.privacy_contact }} <a href="mailto:{{ contact }}" dir="ltr">{{ contact }}</a></p>{% endif %}
+  <p class="muted small">{{ T.privacy_updated }}</p>
+</main>
+{% endblock %}

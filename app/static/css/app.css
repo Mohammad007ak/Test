@@ -1950,6 +1950,10 @@ body { font-size: 15px; letter-spacing: -.005em; }
 .install-card.mine { opacity: 1; border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline)); box-shadow: 0 10px 30px var(--accent-soft); }
 .install-card h2 { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; font-weight: 800; }
 .install-card h2 .i { width: 20px; height: 20px; color: var(--accent); }
+.install-card ul { margin: 0; padding-inline-start: 18px; display: flex; flex-direction: column; gap: 8px; color: var(--text-2); line-height: 1.95; font-size: .92rem; }
+.install-card h2 .bubble { width: 34px; height: 34px; }
+.privacy-contact { font-weight: 700; }
+.lx-footer a { color: var(--text-2); }
 .install-card ol { margin: 0; padding-inline-start: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--text-2); line-height: 1.9; font-size: .92rem; }
 
 /* ورود با چهره */

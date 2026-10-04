@@ -76,3 +76,20 @@ def test_landing_without_apk_points_android_to_install_page(tmp_path: Path) -> N
                                otp_sender=FakeSender())) as c:
         page = c.get("/").text
     assert "دانلود APK" not in page and 'href="/install"' in page
+
+
+def test_privacy_page_is_public_and_linked(tmp_path: Path) -> None:
+    settings = Settings(database_url=f"sqlite:///{tmp_path / 'p.db'}", secret_key="t",
+                        contact_email="hi@example.com")
+    with TestClient(create_app(settings, price_sources=[], schedule=False,
+                               otp_sender=FakeSender())) as c:
+        page = c.get("/privacy")
+        assert page.status_code == 200 and "noindex" not in page.text
+        assert "حریم خصوصی، به زبان ساده" in page.text and "۴ رقم آخر" in page.text
+        assert 'href="mailto:hi@example.com"' in page.text
+        assert 'href="/privacy"' in c.get("/").text
+        assert "/privacy</loc>" in c.get("/sitemap.xml").text
+
+
+def test_privacy_page_without_contact_hides_email_line(client: TestClient) -> None:
+    assert "mailto:" not in client.get("/privacy").text

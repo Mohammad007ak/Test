@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     android_package: str = "ir.getvazir.app"
     android_cert_sha256: str = ("FA:D5:12:18:A0:0D:60:1D:9B:A1:A0:44:C6:0D:B6:CA:"
                                 "3E:E1:93:D6:9A:BF:2E:B1:CC:03:82:B1:89:CA:87:2F")
+    contact_email: str = ""  # ایمیل تماس و درخواست حذف حساب در صفحه حریم خصوصی
     public_url: str = ""  # آدرس اصلی سایت برای sitemap و canonical، مثل https://getvazir.ir
     timezone: str = "Asia/Tehran"
     price_refresh_seconds: int = 30  # وقتی اپ باز است؛ ۰ = دریافت خودکار خاموش
