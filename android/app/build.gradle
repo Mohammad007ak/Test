@@ -1,0 +1,52 @@
+// اپ اندروید «وزیر»: Trusted Web Activity که getvazir.ir را تمام‌صفحه باز می‌کند.
+// امضا: اگر متغیرهای KEYSTORE_* (از GitHub Secrets) باشند نسخه release امضا می‌شود.
+plugins {
+    id 'com.android.application'
+}
+
+def host = project.findProperty('vazirHost') ?: 'getvazir.ir'
+def keystore = System.getenv('KEYSTORE_FILE')
+
+android {
+    namespace 'ir.getvazir.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'ir.getvazir.app'
+        minSdk 21
+        targetSdk 34
+        versionCode((project.findProperty('versionCode') ?: '1') as int)
+        versionName(project.findProperty('versionName') ?: '1.0')
+        manifestPlaceholders = [hostName: host, defaultUrl: "https://${host}/?source=android"]
+        resValue 'string', 'host_name', host
+    }
+
+    signingConfigs {
+        release {
+            if (keystore) {
+                storeFile file(keystore)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystore) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}
