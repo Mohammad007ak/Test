@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ s.LEARN.hub_title }} | {{ s.APP_NAME }}{% endblock %}
+{% block body_class %}site{% endblock %}
+{% block shell %}
+{% include "_public_header.html" %}
+<main class="pub">
+  <h1>{{ s.LEARN.hub_title }}</h1>
+  <p class="muted pub-lead">{{ s.LEARN.hub_lead }}</p>
+  <div class="learn-list">
+    {% for a in articles %}
+    <a class="learn-card" href="/learn/{{ a.slug }}">
+      <h2>{{ a.title }}</h2>
+      <p>{{ a.description }}</p>
+      <small>{{ s.LEARN.minutes.format(n=a.minutes | fa) }}</small>
+    </a>
+    {% endfor %}
+  </div>
+  <h2 class="pub-h2">{{ s.LEARN.tools }}</h2>
+  <div class="pub-links"><a href="/tools/loan">{{ s.LOAN_TOOL.title }}</a><a href="/price">{{ s.PRICE_PAGE.hub_title }}</a></div>
+</main>
+{% include "_public_footer.html" %}
+{% endblock %}

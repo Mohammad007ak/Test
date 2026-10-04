@@ -24,7 +24,7 @@
   <details class="card disclosure lx-faq"><summary>{{ q }}</summary><p>{{ a }}</p></details>
   {% endfor %}
 </main>
-<footer class="lx-footer">{{ s.LANDING.footer }} · <a href="/price">{{ s.PRICE_PAGE.all_prices }}</a> · <a href="/privacy">{{ T.privacy_link }}</a></footer>
+{% include "_public_footer.html" %}
 <script type="application/ld+json">
 {{ {"@context": "https://schema.org", "@graph": [
   {"@type": "WebApplication", "name": s.LOAN_TOOL.title, "url": canonical, "inLanguage": "fa-IR",

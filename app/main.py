@@ -49,6 +49,8 @@ from app.web.common import (
 )
 from app.web.entities import ENTITIES, build_entity
 from app.web.forms import Field, FormError
+from app.web.learn_routes import paths as learn_paths
+from app.web.learn_routes import register_learn_routes
 from app.web.passkey_routes import register_passkey_routes
 from app.web.persona_routes import register_persona_routes
 from app.web.price_pages import PAGES as PRICE_PAGES
@@ -174,6 +176,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_spending_routes(app)
     register_extra_routes(app)
     register_price_pages(app)
+    register_learn_routes(app)
     _register_routes(app)
     return app
 
@@ -280,7 +283,7 @@ def _register_routes(app: FastAPI) -> None:
         base = site_url(request)
         urls = "".join(f"<url><loc>{base}{path}</loc></url>"
                        for path in ("/", "/signup", "/login", "/install", "/privacy", "/tools/loan",
-                                     *PRICE_PATHS))
+                                     *PRICE_PATHS, *learn_paths()))
         body = ('<?xml version="1.0" encoding="UTF-8"?>'
                 f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>')
         return Response(body, media_type="application/xml")

@@ -84,3 +84,25 @@ def test_story_states_facts_only() -> None:
     assert "۱۰٪ پایین آمده" in lines[2]
     assert "کمترین" in lines[3]
     assert len(story("دلار", "x", Decimal(1), None, {"changes": {}})) == 1  # بدون داده، فقط قیمت
+
+
+def test_learn_hub_and_article_pages(client: TestClient) -> None:
+    hub = client.get("/learn").text
+    assert "آموزش مالی شخصی به زبان ساده" in hub and 'href="/learn/coin-bubble"' in hub
+    article = client.get("/learn/coin-bubble")
+    assert article.status_code == 200 and "noindex" not in article.text
+    assert "<h2>حباب را چطور حساب کنیم؟</h2>" in article.text
+    assert '"@type": "Article"' in article.text and 'href="/price/coin-emami"' in article.text
+    assert client.get("/learn/nothing").status_code == 404
+    sitemap = client.get("/sitemap.xml").text
+    assert "<loc>https://getvazir.ir/learn/net-worth</loc>" in sitemap
+
+
+def test_article_internal_links_all_resolve(client: TestClient) -> None:
+    import re
+
+    from app.web.articles import all_articles
+
+    for a in all_articles():
+        for href in re.findall(r'href="(/[^"]*)"', str(a.html)):
+            assert client.get(href).status_code == 200, (a.slug, href)

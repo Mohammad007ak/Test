@@ -55,7 +55,7 @@
 
   <p class="muted small pub-note">{{ s.PRICE_PAGE.disclaimer }}</p>
 </main>
-<footer class="lx-footer">{{ s.LANDING.footer }} · <a href="/privacy">{{ T.privacy_link }}</a></footer>
+{% include "_public_footer.html" %}
 <script type="application/ld+json">
 {{ {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
   {"@type": "ListItem", "position": 1, "name": s.APP_NAME, "item": site_url ~ "/"},

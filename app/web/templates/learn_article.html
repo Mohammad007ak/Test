@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ a.title }} | {{ s.APP_NAME }}{% endblock %}
+{% block body_class %}site{% endblock %}
+{% block shell %}
+{% include "_public_header.html" %}
+<main class="pub">
+  <nav class="pub-crumbs" aria-label="breadcrumb"><a href="/">{{ s.APP_NAME }}</a> / <a href="/learn">{{ s.LEARN.nav }}</a></nav>
+  <article class="learn-body">
+    <h1>{{ a.title }}</h1>
+    <p class="muted small">{{ s.LEARN.updated }}: {{ a.updated | jalali(False) }} · {{ s.LEARN.minutes.format(n=a.minutes | fa) }}</p>
+    {{ a.html }}
+  </article>
+  <section class="pub-cta">
+    <h2>{{ s.PRICE_PAGE.cta_title }}</h2>
+    <p>{{ s.PRICE_PAGE.cta_body }}</p>
+    <a href="/signup" class="btn">{{ s.PRICE_PAGE.cta }}</a>
+  </section>
+  <h2 class="pub-h2">{{ s.LEARN.related }}</h2>
+  <div class="learn-list">
+    {% for r in related %}
+    <a class="learn-card" href="/learn/{{ r.slug }}"><h2>{{ r.title }}</h2><small>{{ s.LEARN.minutes.format(n=r.minutes | fa) }}</small></a>
+    {% endfor %}
+  </div>
+  <div class="pub-links"><a href="/learn">{{ s.LEARN.all }}</a><a href="/tools/loan">{{ s.LOAN_TOOL.title }}</a><a href="/price">{{ s.PRICE_PAGE.all_prices }}</a></div>
+</main>
+{% include "_public_footer.html" %}
+<script type="application/ld+json">
+{{ {"@context": "https://schema.org", "@type": "Article", "headline": a.title, "description": a.description,
+    "inLanguage": "fa-IR", "dateModified": a.updated.isoformat(), "datePublished": a.updated.isoformat(),
+    "mainEntityOfPage": canonical, "image": site_url ~ "/static/icon-512.png",
+    "author": {"@type": "Organization", "name": s.APP_NAME, "url": site_url ~ "/"},
+    "publisher": {"@type": "Organization", "name": s.APP_NAME,
+                  "logo": {"@type": "ImageObject", "url": site_url ~ "/static/icon-512.png"}}} | tojson }}
+</script>
+{% endblock %}
