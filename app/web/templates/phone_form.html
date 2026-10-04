@@ -4,12 +4,23 @@
 <main class="auth">
   <img class="brand-logo" src="{{ static('logo.svg') }}" alt="" width="88" height="88">
   <h1>{{ T.signup_title if purpose == "signup" else T.reset_title }}</h1>
-  <p class="muted">{{ T.signup_hint if purpose == "signup" else T.reset_hint }}</p>
+  {% if purpose == "reset" and direct %}
+  <p class="muted">{{ T.reset_unavailable }}</p>
+  <a href="/login" class="btn wide">{{ T.login }}</a>
+  {% else %}
+  <p class="muted">{% if purpose == "signup" %}{{ T.signup_hint_direct if direct else T.signup_hint }}{% else %}{{ T.reset_hint }}{% endif %}</p>
   {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
   <form method="post" action="{{ '/signup' if purpose == 'signup' else '/forgot' }}" class="form">
-    <div class="input"><input id="phone" type="tel" name="phone" value="{{ phone or '' }}" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="{{ T.phone_placeholder }}" aria-label="{{ T.phone }}" required autofocus></div>
+    <div class="input"><input id="phone" type="tel" name="phone" value="{{ phone or '' }}" inputmode="tel" autocomplete="{{ 'username' if direct else 'tel' }}" dir="ltr" placeholder="{{ T.phone_placeholder }}" aria-label="{{ T.phone }}" required autofocus></div>
+    {% if direct %}
+    <div class="input"><input id="password" type="password" name="password" autocomplete="new-password" minlength="8" placeholder="{{ T.choose_password }}" aria-label="{{ T.password }}" required></div>
+    <div class="input"><input id="password_repeat" type="password" name="password_repeat" autocomplete="new-password" minlength="8" placeholder="{{ T.password_repeat }}" aria-label="{{ T.password_repeat }}" required></div>
+    <button type="submit" class="btn wide">{{ T.finish_signup }}</button>
+    {% else %}
     <button type="submit" class="btn wide">{{ T.send_code }}</button>
+    {% endif %}
   </form>
+  {% endif %}
   <p class="auth-alt">{{ T.have_account }} <a href="/login">{{ T.login }}</a></p>
 </main>
 {% endblock %}

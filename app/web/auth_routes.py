@@ -1,4 +1,8 @@
-"""ورود با موبایل و رمز؛ ثبت‌نام و بازیابی رمز با کد پیامکی."""
+"""ورود با موبایل و رمز؛ ثبت‌نام و بازیابی رمز با کد پیامکی.
+
+تا وقتی پنل پیامک وصل نیست (sms_verification=False)، ثبت‌نام فقط با شماره و رمز است و
+بازیابی رمز بسته است؛ شماره صاحب برنامه هم از این راه ثبت نمی‌شود تا داده قبلی‌اش امن بماند.
+"""
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, Response
@@ -30,8 +34,10 @@ def _allowlist(settings: Settings) -> set[str]:
     return phones
 
 
-def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService) -> None:
+def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService,
+                         sms_verification: bool = True) -> None:
     throttle = auth.LoginThrottle()
+    signups = auth.LoginThrottle(max_failures=5, window_seconds=60 * 60)  # حساب تازه بر IP
     allowlist = _allowlist(settings)
     owner = settings.owner_phone and normalize_phone(settings.owner_phone)
 
@@ -41,9 +47,12 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService) -> N
     def phone_page(request: Request, purpose: str, error: str = "", phone: str = "",
                    status: int = 200) -> Response:
         return page(request, "phone_form.html", {
-            "purpose": purpose, "error": error, "phone": phone, "auth_page": True}, status)
+            "purpose": purpose, "error": error, "phone": phone, "auth_page": True,
+            "direct": not sms_verification}, status)
 
     def verify_page(request: Request, error: str = "", status: int = 200) -> Response:
+        if not sms_verification:
+            return redirect("/signup")
         phone, purpose = request.session.get("otp_phone"), request.session.get("otp_purpose")
         if not phone or purpose not in PURPOSES:
             return redirect("/signup")
@@ -117,7 +126,37 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService) -> N
 
     @app.post("/signup", response_class=HTMLResponse)
     async def signup(request: Request, db: Db) -> Response:
+        if not sms_verification:
+            return await direct_signup(request, db)
         return await start(request, db, "signup")
+
+    async def direct_signup(request: Request, db: Db) -> Response:
+        """ثبت‌نام بدون پیامک: شماره + رمز، بلافاصله ورود."""
+        data = await read_form(request)
+        raw_phone = data.get("phone", "")
+        try:
+            phone = normalize_phone(raw_phone)
+        except ValueError:
+            return phone_page(request, "signup", s.T["phone_invalid"], raw_phone, 400)
+        if auth.user_by_phone(db, phone) is not None:
+            return phone_page(request, "signup", s.T["phone_taken"], phone, 409)
+        if phone == owner or not may_sign_up(phone):
+            return phone_page(request, "signup", s.T["signup_closed"], phone, 403)
+        password = data.get("password", "")
+        if len(password) < auth.MIN_PASSWORD_LENGTH:
+            return phone_page(request, "signup", s.T["password_short"], phone, 400)
+        if password != data.get("password_repeat"):
+            return phone_page(request, "signup", s.T["password_mismatch"], phone, 400)
+        ip_key = f"ip:{_client_ip(request)}"
+        if not signups.allowed(ip_key):
+            return phone_page(request, "signup", s.T["signup_throttled"], phone, 429)
+        signups.failed(ip_key)
+        user = User(phone=phone, password_hash=auth.hash_password(password), session_version=1)
+        db.add(user)
+        db.commit()
+        auth.log_in(request, user)
+        request.session["toast"] = s.T["welcome"]
+        return redirect("/")
 
     @app.get("/forgot", response_class=HTMLResponse)
     def forgot_form(request: Request) -> Response:
@@ -125,6 +164,8 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService) -> N
 
     @app.post("/forgot", response_class=HTMLResponse)
     async def forgot(request: Request, db: Db) -> Response:
+        if not sms_verification:
+            return phone_page(request, "reset", status=404)
         return await start(request, db, "reset")
 
     # ---------- کد + رمز ----------
@@ -135,6 +176,8 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService) -> N
 
     @app.post("/verify/resend", response_class=HTMLResponse)
     def resend(request: Request, db: Db) -> Response:
+        if not sms_verification:
+            return redirect("/signup")
         phone, purpose = request.session.get("otp_phone"), request.session.get("otp_purpose")
         if not phone or purpose not in PURPOSES:
             return redirect("/signup")
@@ -148,6 +191,8 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService) -> N
 
     @app.post("/verify", response_class=HTMLResponse)
     async def verify(request: Request, db: Db) -> Response:
+        if not sms_verification:
+            return redirect("/signup")
         phone, purpose = request.session.get("otp_phone"), request.session.get("otp_purpose")
         if not phone or purpose not in PURPOSES:
             return redirect("/signup")

@@ -127,6 +127,9 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     app.state.otp_sender = otp_sender or default_otp_sender(settings)
     otp = OtpService(app.state.otp_sender, secret=secret, daily_limit=settings.otp_daily_limit)
     app.state.otp = otp
+    # تا پنل پیامک وصل نشده، ثبت‌نام بدون کد است و بازیابی رمز بسته می‌ماند
+    app.state.sms_verification = otp_sender is not None or bool(
+        settings.smsir_api_key and settings.smsir_template_id)
 
     @app.middleware("http")
     async def _track_activity(request: Request, call_next: Any) -> Response:
@@ -147,7 +150,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
 
     if chat_model == "default":
         chat_model = default_chat_model(settings.llm_url, settings.llm_key, settings.llm_model)
-    register_auth_routes(app, settings, otp)
+    register_auth_routes(app, settings, otp, app.state.sms_verification)
     register_assistant_routes(app, chat_model, settings.llm_daily_limit,
                               settings.llm_mode if settings.llm_mode in MODES else "strict")
     register_sms_routes(app)
