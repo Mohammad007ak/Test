@@ -1014,88 +1014,7 @@ details.disclosure > :not(summary) { margin: 0 16px 16px; }
 }
 
 /* ---------- روی صفحه بزرگ (مک): اپ داخل قاب آیفون ---------- */
-@media (min-width: 700px) {
-  :root {
-    --device-w: 393px;
-    --device-h: min(852px, calc(100dvh - 40px));
-    --device-top: calc((100dvh - var(--device-h)) / 2);
-    --safe-t: 50px;
-    --safe-b: 22px;
-  }
-
-  html, body { height: 100%; overflow: hidden; }
-
-  body {
-    background:
-      radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent),
-      var(--desk-bg);
-    display: grid;
-    place-items: center;
-  }
-
-  .device {
-    position: relative;
-    width: var(--device-w);
-    height: var(--device-h);
-    border-radius: 52px;
-    background: var(--bg);
-    overflow: hidden;
-    transform: translateZ(0); /* لنگر عناصر fixed (نوار تب، دکمه +، پیام) داخل قاب */
-    box-shadow:
-      0 0 0 11px #1b1d22,
-      0 0 0 13px #3a3d44,
-      0 30px 80px rgba(0, 0, 0, .35);
-  }
-
-  /* جزیره پویا و نشانگر خانه */
-  .device::before {
-    content: "";
-    position: absolute;
-    z-index: 80;
-    top: 11px;
-    left: 50%;
-    width: 120px;
-    height: 34px;
-    border-radius: 20px;
-    background: #000;
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
-
-  .device::after {
-    content: "";
-    position: absolute;
-    z-index: 80;
-    bottom: 8px;
-    left: 50%;
-    width: 134px;
-    height: 5px;
-    border-radius: 3px;
-    background: var(--text);
-    opacity: .85;
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
-
-  .screen {
-    height: 100%;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-  }
-
-  .screen::-webkit-scrollbar { display: none; }
-  .auth { min-height: 100%; }
-  .fab { left: 16px; }
-
-  /* برگه پایین در لایه بالای صفحه است؛ دستی هم‌اندازه قاب می‌شود */
-  .sheet {
-    inset: auto 0 var(--device-top) 0;
-    width: var(--device-w);
-    max-height: calc(var(--device-h) * .9);
-    border-radius: 24px 24px 52px 52px;
-  }
-}
+/* قاب گوشی دسکتاپ حذف شد؛ نسخه دسکتاپ واقعی در انتهای فایل است */
 
 @media (max-width: 360px) {
   .fields { grid-template-columns: 1fr; }
@@ -1946,3 +1865,45 @@ body { font-size: 15px; letter-spacing: -.005em; }
 }
 /* زبانه‌های بالای صفحه: سه یا چهار گزینه در یک ردیف */
 .seg a { font-size: .85rem; padding-inline: 4px; white-space: nowrap; }
+
+/* =====================================================================
+   نسخه دسکتاپ: نوار کناری به‌جای نوار پایین، محتوای پهن و دوستونه
+   ===================================================================== */
+.tabbar .side-brand { display: none; }
+@media (min-width: 900px) {
+  :root { --side-w: 236px; }
+  .tabbar { inset: 16px 16px 16px auto; width: var(--side-w); height: auto; flex-direction: column; justify-content: flex-start;
+    align-items: stretch; gap: 4px; padding: 18px 12px; border-radius: 28px; }
+  .tabbar .side-brand { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; gap: 10px;
+    padding: 4px 10px 18px; margin-bottom: 6px; color: var(--text); font-size: 1.3rem; font-weight: 900;
+    border-bottom: 1px solid var(--hairline); border-radius: 0; background: none !important; }
+  .side-brand img { width: 38px; height: 38px; border-radius: 12px; box-shadow: 0 0 18px var(--accent-glow); }
+  .tabbar a { flex: none; max-width: none; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 10px 12px;
+    border-radius: 16px; font-size: .95rem; font-weight: 700; }
+  .tabbar a:hover { background: var(--surface-2); color: var(--text); }
+  .tabbar a.on { background: var(--accent-soft); color: var(--text); }
+  .tabbar a.on .tab-ic, .tab-ic { width: auto; height: auto; background: none; }
+  .tab-vazir-orb { width: 36px; height: 36px; margin: -4px 0; animation: none !important; box-shadow: 0 4px 14px var(--accent-glow); border-width: 1px; }
+  .tab-vazir-orb img { width: 24px; height: 24px; border-radius: 7px; }
+  .tabbar .tab-vazir { order: 9; margin-top: auto; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), transparent); }
+  .tab-vazir span:last-child { color: var(--text); }
+  .appbar { margin-inline-start: calc(var(--side-w) + 32px); padding-top: 18px; background: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .appbar-inner { max-width: 1080px; padding-inline: 24px; margin-inline: 0 auto; }
+  .page { margin-inline-start: calc(var(--side-w) + 32px); max-width: 1080px; margin-inline-end: auto; padding: 8px 24px 48px; }
+  .page:not(.page-dashboard) > :not(.fab) { max-width: 760px; width: 100%; }
+  #live { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  #live > .hero, #live > .qa, #live > .notices, #live > .watch, #live > .persona-cta { grid-column: 1 / -1; }
+  #live > .hero { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; }
+  #live > .hero > .hero-top, #live > .hero > .hero-value, #live > .hero > .hero-meta { grid-column: 1; }
+  #live > .hero > .spark { grid-column: 2; grid-row: 1 / span 3; height: 120px; align-self: center; }
+  #live > .hero > .hero-mix, #live > .hero > .hero-split { grid-column: 1 / -1; }
+  .qa { grid-template-columns: repeat(4, minmax(0, 140px)); justify-content: start; }
+  .watch-scroll { flex-wrap: wrap; overflow: visible; }
+  .fab { bottom: 32px; left: 32px; }
+  .sheet { inset: 0; margin: auto; max-width: 560px; max-height: 86dvh; border-radius: 28px; padding: 18px 20px 20px; }
+  .sheet-grip { display: none; }
+  .chat-composer, .chat-attach-preview { width: min(720px, calc(100% - 24px)); margin-inline: auto; }
+  .chat-head { padding-inline: max(14px, calc((100% - 720px) / 2)); }
+  .toast { left: calc((100% - var(--side-w) - 32px) / 2); }
+}

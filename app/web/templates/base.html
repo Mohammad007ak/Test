@@ -51,10 +51,11 @@
       {% block appbar %}<h1>{{ title }}</h1>{% endblock %}
     </div>
   </header>
-  <main class="page">
+  <main class="page page-{{ active or "none" }}">
     {% block content %}{% endblock %}
   </main>
   <nav class="tabbar" aria-label="ناوبری اصلی">
+    <a href="/" class="side-brand"><img src="{{ static('logo.svg') }}" alt=""><span>{{ s.APP_NAME }}</span></a>
     {% for key, url, label, icon_name in s.TABS %}
       {% if icon_name == "vazir" %}
       <a href="{{ url }}" class="tab-vazir {{ 'on' if tab == key }}" {{ 'aria-current="page"' | safe if tab == key }}>
