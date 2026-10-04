@@ -1,5 +1,6 @@
 """لایه بین منطق مالی (domain) و دیتابیس: کوئری‌ها، خلاصه پرتفوی و اسنپ‌شات."""
 
+import json
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -9,12 +10,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import USER_KEY
+from app.domain import persona as persona_domain
 from app.domain.income import monthly_income_toman
 from app.domain.liabilities import (
     LiabilityTerms,
     monthly_installment_toman,
     remaining_balance_toman,
 )
+from app.domain.normalize import normalize_chars
 from app.domain.spending import CategoryTotal, month_bounds_utc, spending_by_category
 from app.domain.valuation import AssetHolding, NetWorth, asset_value_toman, debt_to_income
 from app.models import (
@@ -30,6 +33,7 @@ from app.models import (
     UserSetting,
     utcnow,
 )
+from app.sms.text import mask_numbers
 
 STALE_MANUAL_VALUE = timedelta(days=30)
 
@@ -322,3 +326,66 @@ def watchlist(session: Session, now: datetime | None = None) -> list[WatchItem]:
                 change = (quote.per_unit - before.per_unit) / before.per_unit
         items.append(WatchItem(key, quote, change))
     return items
+
+
+# ---------- پرسونای مالی ----------
+
+PERSONA_KEY = "persona"
+AVATAR_KEY = "avatar"
+MAX_PERSONA_NOTE = 300
+_WATCH_OF_INTEREST = {"fx": ("usd", "eur"), "gold": ("gold18_gram", "coin_emami"),
+                      "crypto": ("crypto:btc", "crypto:usdt")}
+
+
+@dataclass(frozen=True)
+class StoredPersona:
+    persona: persona_domain.Persona
+    card: str
+    note: str
+
+
+def load_persona(session: Session) -> StoredPersona | None:
+    raw = get_user_setting(session, PERSONA_KEY)
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+        return _stored(data["answers"], str(data.get("note", "")))
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return None
+
+
+def save_persona(session: Session, answers: dict[str, object], note: str) -> StoredPersona:
+    """جواب‌ها ذخیره می‌شوند و امتیاز هر بار از نو حساب می‌شود؛ یادداشت بدون شماره حساب و کارت.
+
+    اگر کاربر قیمت‌های صفحه اصلی را هنوز دستی انتخاب نکرده، از روی علاقه‌هایش چیده می‌شود.
+    """
+    clean_note = mask_numbers(normalize_chars(" ".join(note.split())))[:MAX_PERSONA_NOTE]
+    set_user_setting(session, PERSONA_KEY, json.dumps(
+        {"answers": answers, "note": clean_note, "at": utcnow().isoformat()},
+        ensure_ascii=False))
+    stored = _stored(answers, clean_note)
+    if get_user_setting(session, WATCHLIST_KEY) is None:
+        interests = stored.persona.interests
+        keys = [k for i in interests for k in _WATCH_OF_INTEREST.get(i, ())]
+        if keys:
+            set_watchlist(session, keys)
+    if get_user_setting(session, AVATAR_KEY) is None:
+        set_user_setting(session, AVATAR_KEY, stored.card)
+    return stored
+
+
+def _stored(answers: dict[str, object], note: str) -> StoredPersona:
+    persona = persona_domain.build_persona(answers)
+    return StoredPersona(persona, persona_domain.card_for(persona), note)
+
+
+def avatar(session: Session) -> str | None:
+    value = get_user_setting(session, AVATAR_KEY)
+    return value if value in persona_domain.CARDS else None
+
+
+def set_avatar(session: Session, card: str) -> None:
+    if card not in persona_domain.CARDS:
+        raise ValueError(card)
+    set_user_setting(session, AVATAR_KEY, card)

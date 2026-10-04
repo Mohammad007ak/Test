@@ -5,9 +5,14 @@
 در هر دو حالت عدد مربوط به کاربر فقط از ابزارها می‌آید.
 """
 
+from typing import TYPE_CHECKING
+
 import jdatetime
 
 from app.domain.spending import TEHRAN
+
+if TYPE_CHECKING:
+    from app.services import StoredPersona
 
 _COMMON = """تو «وزیر» هستی، {role} کاربر در اپ وزیر.
 
@@ -56,8 +61,51 @@ _STRICT = """
 MODES = ("open", "strict")
 
 
-def system_prompt(mode: str = "strict") -> str:
+def system_prompt(mode: str = "strict", persona: str = "") -> str:
     today = jdatetime.datetime.now(TEHRAN).strftime("%Y-%m-%d") + " (شمسی)"
     role = "مشاور مالی شخصی" if mode == "open" else "دستیار تحلیل مالی شخصی"
     body = _OPEN if mode == "open" else _STRICT
-    return _COMMON.format(role=role, today=today) + body
+    return _COMMON.format(role=role, today=today) + body + persona
+
+
+def persona_brief(stored: "StoredPersona | None") -> str:
+    """پرسونای کاربر برای دستورالعمل مدل؛ فقط برچسب‌های مصاحبه و یادداشت پوشانده‌شده."""
+    if stored is None:
+        return ""
+    from app.web import strings as s
+
+    p = stored.persona
+    lines = []
+    for key, (_question, options) in s.PERSONA_QUESTIONS.items():
+        if key == "interests":
+            value = "، ".join(options[i] for i in p.interests) or "مشخص نکرده"
+        else:
+            value = options.get(p.get(key), "")
+        lines.append(f"- {_FIELD_NAMES[key]}: {value}")
+    card = s.PERSONA_CARDS[stored.card]
+    lines.append(f"- ریسک‌پذیری: {s.PERSONA_PROFILES[p.profile]} ({p.risk} از ۱۰۰؛ "
+                 f"تمایل {p.tolerance}، توان {p.capacity})")
+    if p.gap:
+        lines.append(f"- نکته: {s.PERSONA_GAPS[p.gap]}")
+    lines.append(f"- کارت شخصیت: {card['name']} (هم‌تیپ {card['twin']})")
+    if stored.note:
+        lines.append(f"- یادداشت خود کاربر: {stored.note}")
+    return _PERSONA.format(lines="\n".join(lines))
+
+
+_FIELD_NAMES = {
+    "age": "سن", "job": "شغل", "income": "ثبات درآمد", "household": "خانوار",
+    "housing": "مسکن", "goal": "هدف اصلی", "horizon": "افق زمانی", "drop": "واکنش به افت ۲۰٪",
+    "choice": "انتخاب بین سود قطعی و احتمالی", "experience": "تجربه سرمایه‌گذاری",
+    "style": "سبک خرج", "emergency": "پس‌انداز اضطراری", "interests": "بازارهای مورد علاقه",
+    "tone": "لحن دلخواه",
+}
+
+_PERSONA = """
+پرسونای این کاربر (از مصاحبه خودش):
+{lines}
+- جواب‌ها را برای همین آدم شخصی کن: هدف و افق زمانی‌اش را در نظر بگیر، از ریسک‌پذیری‌اش
+  جلوتر نرو و لحنت را مطابق «لحن دلخواه» کن. اگر سؤال کلی بود، آن را به هدفش وصل کن.
+- اگر داده واقعی ابزارها با پرسونا نمی‌خواند (مثلاً گفته پس‌انداز دارد ولی موجودی کم است)،
+  داده واقعی ملاک است و این تفاوت را مؤدبانه بگو.
+"""

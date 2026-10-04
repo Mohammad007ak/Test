@@ -12,6 +12,7 @@ from app import services
 from app.assistant import actions
 from app.assistant.agent import AssistantError, ask
 from app.assistant.client import ChatModel
+from app.assistant.prompt import persona_brief
 from app.assistant.tools import run_tool
 from app.domain.money import to_persian_digits
 from app.domain.spending import TEHRAN
@@ -38,13 +39,23 @@ def _used_today(db: Db) -> tuple[str, int]:
     return today, usage.get("count", 0) if usage.get("date") == today else 0
 
 
+def _suggestions(db: Db, mode: str) -> list[str]:
+    """پیشنهادهای شروع گفتگو؛ اولی از روی هدف پرسونای کاربر."""
+    general = list(s.ASSISTANT_SUGGESTIONS[mode])
+    stored = services.load_persona(db)
+    if stored is None or mode != "open":
+        return general
+    goal = s.PERSONA_GOAL_SUGGESTIONS.get(stored.persona.get("goal"))
+    return [goal, *general[:4]] if goal else general
+
+
 def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit: int,
                               mode: str = "strict") -> None:
     def chat_page(request: Request, db: Db, status: int = 200) -> Response:
         return page(request, "assistant.html", {
             "active": "assistant", "configured": model is not None,
             "consented": services.get_user_setting(db, CONSENT_KEY) == "yes",
-            "history": _history(db), "suggestions": s.ASSISTANT_SUGGESTIONS[mode],
+            "history": _history(db), "suggestions": _suggestions(db, mode),
             "disclaimer": s.T[f"assistant_disclaimer_{mode}"],
             "pending": list(actions.pending(db).items()),
         }, status)
@@ -86,7 +97,8 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
         history = _history(db)
         before = set(actions.pending(db))
         try:
-            answer = ask(model, partial(run_tool, db), text, history, mode)
+            answer = ask(model, partial(run_tool, db), text, history, mode,
+                         persona_brief(services.load_persona(db)))
         except AssistantError as exc:
             return turn(request, text, str(exc), error=True, status=200)
         services.set_user_setting(db, USAGE_KEY, json.dumps({"date": today, "count": used + 1}))

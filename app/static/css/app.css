@@ -1349,3 +1349,104 @@ details[open].group, details[open].disclosure { border-color: color-mix(in srgb,
   color: var(--accent); padding: 10px 14px; }
 .action-card.done .i { width: 18px; height: 18px; }
 .action-card.cancelled { color: var(--muted); border-color: var(--hairline); }
+
+/* ---------- پرسونا: آواتار، مصاحبه و کارت شخصیت ---------- */
+.avatar { --size: 44px; width: var(--size); height: var(--size); flex: none; display: grid; place-items: center;
+  border-radius: 32%; color: #fff; background: linear-gradient(140deg, var(--a1, var(--accent)), var(--a2, var(--accent-2)));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--a1, var(--accent)) 35%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, .35); }
+.avatar svg { width: 64%; height: 64%; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .18)); }
+.avatar.xl { --size: 112px; border-radius: 34px; }
+.avatar.avatar-empty { background: var(--surface-2); color: var(--accent); box-shadow: none; border: 1px dashed var(--border); }
+.avatar.avatar-empty .i { width: 20px; height: 20px; }
+.appbar-inner .greet { flex: 1; }
+.greet-avatar { display: block; border-radius: 32%; transition: transform .2s var(--spring); }
+.greet-avatar:active { transform: scale(.92); }
+.greet-avatar .avatar { --size: 42px; }
+
+.persona-cta { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius);
+  color: inherit; text-decoration: none; border: 1px solid color-mix(in srgb, var(--s7) 35%, var(--hairline));
+  background: radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--s7) 18%, transparent), transparent 65%), var(--surface);
+  box-shadow: var(--shadow); transition: transform .2s var(--spring); }
+.persona-cta:active { transform: scale(.98); }
+.persona-cta-stack { display: flex; flex: none; }
+.persona-cta-stack .avatar { --size: 34px; border: 2px solid var(--surface); }
+.persona-cta-stack .avatar + .avatar { margin-inline-start: -12px; }
+.persona-cta-text { flex: 1; display: flex; flex-direction: column; line-height: 1.5; }
+.persona-cta-text small { color: var(--muted); font-size: .78rem; }
+.persona-row .avatar { --size: 40px; }
+
+/* مصاحبه: هر سؤال یک پیام وزیر و چند گزینه؛ با جاوااسکریپت یکی‌یکی ظاهر می‌شوند */
+.interview-progress { width: 64px; height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.interview-progress span { display: block; height: 100%; width: var(--p, 0%); background: var(--grad);
+  transition: width .4s var(--ease); }
+.interview .chat-scroll { padding-bottom: calc(var(--safe-b) + 32px); }
+.q { display: flex; flex-direction: column; gap: 10px; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; padding-inline-start: 10%;
+  animation: rise .35s var(--ease) both; }
+.choice { position: relative; cursor: pointer; }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice span { display: inline-block; padding: 10px 14px; border-radius: 16px; font-size: .9rem; font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--hairline)); background: var(--surface);
+  color: var(--text); box-shadow: var(--shadow); transition: transform .2s var(--spring), background .2s, border-color .2s; }
+.choice:active span { transform: scale(.95); }
+.choice input:checked + span { background: var(--grad); color: var(--on-accent); border-color: transparent; }
+.choice input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.q-next { align-self: center; }
+.btn.small { min-height: 40px; padding: 0 18px; font-size: .88rem; }
+.q-answer { display: none; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; width: 100%; }
+.q.answered .choices { display: none; }
+.q.answered .q-answer { display: flex; }
+.interview.js .q { display: none; }
+.interview.js .q.shown { display: flex; }
+.note-box { display: flex; flex-direction: column; gap: 10px; animation: rise .35s var(--ease) both; }
+.note-box textarea { min-height: 70px; resize: vertical; }
+
+/* کارت شخصیت */
+.pcard { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 6px; padding: 22px 18px 18px; border-radius: 28px; color: #f3f6f9;
+  background:
+    radial-gradient(90% 60% at 50% 0%, color-mix(in srgb, var(--a1) 55%, transparent), transparent 70%),
+    radial-gradient(80% 60% at 100% 100%, color-mix(in srgb, var(--a2) 35%, transparent), transparent 70%),
+    linear-gradient(170deg, #161b23, #0b0e12);
+  border: 1px solid color-mix(in srgb, var(--a1) 45%, transparent);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--a1) 25%, rgba(0, 0, 0, .4)); }
+.pcard::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .12) 50%, transparent 65%);
+  transform: translateX(-120%); animation: shine 3.5s 1s var(--ease) infinite; }
+@keyframes shine { 0% { transform: translateX(-120%); } 40%, 100% { transform: translateX(120%); } }
+.pcard.reveal { animation: flipin .9s var(--spring) both; }
+@keyframes flipin { from { opacity: 0; transform: perspective(900px) rotateY(-80deg) scale(.85); } to { opacity: 1; transform: none; } }
+.pcard-kicker { font-size: .74rem; font-weight: 700; letter-spacing: .02em; color: rgba(243, 246, 249, .65); }
+.pcard .avatar.xl { margin: 8px 0 4px; }
+.pcard-name { font-size: 1.7rem; font-weight: 900; letter-spacing: -.02em; }
+.pcard-twin { font-size: .82rem; color: rgba(243, 246, 249, .7); }
+.pcard-tag { font-size: .95rem; line-height: 1.8; max-width: 320px; margin: 4px 0; }
+.pcard-traits { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.pcard-traits span { padding: 4px 12px; border-radius: 999px; font-size: .78rem; font-weight: 700;
+  background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .14); }
+.pcard-risk { width: 100%; margin-top: 12px; padding: 12px 14px; border-radius: 18px;
+  background: rgba(0, 0, 0, .25); border: 1px solid rgba(255, 255, 255, .08); text-align: right; }
+.pcard-risk-head { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; }
+.pcard-risk-head strong { font-size: 1rem; }
+.pcard-risk-head small { color: rgba(243, 246, 249, .55); font-weight: 600; }
+.pcard-meter { display: block; height: 8px; margin: 8px 0 6px; border-radius: 4px; background: rgba(255, 255, 255, .1);
+  overflow: hidden; }
+.pcard-meter span { display: block; height: 100%; width: var(--w); border-radius: 4px;
+  background: linear-gradient(90deg, #3ee8a6, #ffc857 60%, #ff8a5b); }
+.pcard-risk-sub { display: flex; justify-content: space-between; font-size: .74rem; color: rgba(243, 246, 249, .6); }
+.pcard-facts { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0 0; }
+.pcard-facts div { padding: 8px 6px; border-radius: 14px; background: rgba(255, 255, 255, .06); }
+.pcard-facts dt { font-size: .7rem; color: rgba(243, 246, 249, .55); }
+.pcard-facts dd { margin: 2px 0 0; font-size: .8rem; font-weight: 700; line-height: 1.5; }
+.pcard + .notice, .pcard ~ .ask-vazir { margin-top: 14px; }
+.avatar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+.avatar-pick { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px;
+  border-radius: 18px; border: 1px solid var(--hairline); background: var(--surface); color: var(--text);
+  font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; box-shadow: var(--shadow);
+  transition: transform .2s var(--spring), border-color .2s; }
+.avatar-pick:active { transform: scale(.95); }
+.avatar-pick .avatar { --size: 52px; }
+.avatar-pick.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.avatar-pick.mine > span:last-child::after { content: " ★"; color: var(--warn); }
+.redo { margin-top: 18px; }

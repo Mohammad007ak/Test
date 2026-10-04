@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block shell %}
+<div id="interview" class="chat-app interview" data-none="{{ T.persona_none_choice }}">
+  <header class="chat-head">
+    <a href="{{ '/persona' if has_persona else '/' }}" class="icon-btn chat-back" aria-label="{{ T.close }}">{{ icon("chev") }}</a>
+    <img class="chat-head-logo" src="{{ static('logo.svg') }}" alt="">
+    <div class="chat-head-title"><strong>{{ T.persona_cta_title }}</strong><span><span class="online-dot"></span>{{ s.APP_NAME }}</span></div>
+    <span class="interview-progress" aria-hidden="true"><span></span></span>
+  </header>
+
+  <form id="persona-form" class="chat-scroll" method="post" action="/persona" hx-boost="false">
+    <div class="chat-log">
+      <div class="chat-row vazir"><div class="chat-msg vazir">{{ T.persona_intro }}</div></div>
+      {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
+      {% for q in questions %}
+      {% set text, options = s.PERSONA_QUESTIONS[q.key] %}
+      <div class="q" role="group" aria-labelledby="q-{{ q.key }}" {{ 'data-multi' if q.multi }}>
+        <div class="chat-row vazir"><div class="chat-msg vazir" id="q-{{ q.key }}">{{ text }}</div></div>
+        <div class="choices">
+          {% for key, label in options.items() %}
+          {% set chosen = answers.get(q.key) %}
+          <label class="choice"><input type="{{ 'checkbox' if q.multi else 'radio' }}" name="{{ q.key }}" value="{{ key }}" {{ 'checked' if (q.multi and chosen and key in chosen) or chosen == key }} {{ 'required' if not q.multi }}><span>{{ label }}</span></label>
+          {% endfor %}
+          {% if q.multi %}<button type="button" class="btn small q-next" data-next>{{ T.persona_next }}</button>{% endif %}
+        </div>
+        <button type="button" class="chat-row me q-answer" data-edit><span class="chat-msg me"></span></button>
+      </div>
+      {% endfor %}
+      <div class="q" data-final>
+        <div class="chat-row vazir"><div class="chat-msg vazir">{{ T.persona_note_q }}</div></div>
+        <div class="note-box">
+          <textarea name="note" rows="2" maxlength="300" placeholder="{{ T.persona_note_placeholder }}" aria-label="{{ T.persona_note_q }}">{{ note }}</textarea>
+          <button type="submit" class="btn wide">{{ icon("spark") }} {{ T.persona_finish }}</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

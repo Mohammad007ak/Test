@@ -20,8 +20,8 @@ class Answer:
 
 
 def ask(model: ChatModel, run_tool: Callable[[str, str], str], question: str,
-        history: list[dict[str, Any]], mode: str = "strict") -> Answer:
-    messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt(mode)},
+        history: list[dict[str, Any]], mode: str = "strict", persona: str = "") -> Answer:
+    messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt(mode, persona)},
                                       *history, {"role": "user", "content": question}]
     used: list[str] = []
     for _ in range(MAX_ROUNDS):

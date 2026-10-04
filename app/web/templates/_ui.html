@@ -32,3 +32,9 @@
 {% macro bubble(icon_name, slot) -%}
 <span class="bubble s{{ slot }}">{{ icon(icon_name) }}</span>
 {%- endmacro %}
+
+{# آواتار کارت شخصیت؛ رنگ‌ها از PERSONA_CARDS #}
+{% macro avatar(key, size="") -%}
+{% set c = s.PERSONA_CARDS[key] %}
+<span class="avatar {{ size }}" style="--a1: {{ c.colors[0] }}; --a2: {{ c.colors[1] }}" aria-hidden="true"><svg viewBox="0 0 64 64"><use href="#av-{{ key }}"></use></svg></span>
+{%- endmacro %}

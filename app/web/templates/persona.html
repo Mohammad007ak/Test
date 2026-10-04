@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, avatar %}
+{% block content %}
+{% set c = s.PERSONA_CARDS[card] %}
+{% set p = stored.persona %}
+<section class="pcard {{ 'reveal' if reveal }}" style="--a1: {{ c.colors[0] }}; --a2: {{ c.colors[1] }}">
+  <span class="pcard-kicker">{{ T.persona_your_card }}</span>
+  {{ avatar(card, "xl") }}
+  <h2 class="pcard-name">{{ c.name }}</h2>
+  <p class="pcard-twin">{{ T.persona_twin.format(twin=c.twin) }}</p>
+  <p class="pcard-tag">«{{ c.tagline }}»</p>
+  <div class="pcard-traits">{% for t in c.traits %}<span>{{ t }}</span>{% endfor %}</div>
+  <div class="pcard-risk">
+    <div class="pcard-risk-head"><span>{{ T.persona_risk }}</span><strong>{{ s.PERSONA_PROFILES[p.profile] }} · {{ p.risk | fa }}<small>/۱۰۰</small></strong></div>
+    <span class="pcard-meter"><span style="--w: {{ p.risk }}%"></span></span>
+    <div class="pcard-risk-sub"><span>{{ T.persona_willing }} {{ p.tolerance | fa }}</span><span>{{ T.persona_able }} {{ p.capacity | fa }}</span></div>
+  </div>
+  <dl class="pcard-facts">
+    <div><dt>{{ T.persona_goal }}</dt><dd>{{ s.PERSONA_QUESTIONS.goal[1][p.get("goal")] }}</dd></div>
+    <div><dt>{{ T.persona_horizon }}</dt><dd>{{ s.PERSONA_QUESTIONS.horizon[1][p.get("horizon")] }}</dd></div>
+    <div><dt>{{ T.persona_style }}</dt><dd>{{ s.PERSONA_QUESTIONS.style[1][p.get("style")] }}</dd></div>
+  </dl>
+</section>
+
+{% if p.gap %}<div class="notice warn">{{ icon("alert") }}<span>{{ s.PERSONA_GAPS[p.gap] }}</span></div>{% endif %}
+
+<a href="/assistant" class="ask-vazir"><img src="{{ static('logo.svg') }}" alt=""><span><strong>{{ T.persona_ask }}</strong><small>{{ s.PERSONA_GOAL_SUGGESTIONS[p.get("goal")] }}</small></span>{{ icon("chev", "end") }}</a>
+
+<h2 class="section-title">{{ T.persona_avatar }}</h2>
+<p class="muted small">{{ T.persona_avatar_hint }}</p>
+<form method="post" action="/persona/avatar" class="avatar-grid">
+  {% for key, item in s.PERSONA_CARDS.items() %}
+  <button type="submit" name="card" value="{{ key }}" class="avatar-pick {{ 'on' if key == current_avatar }} {{ 'mine' if key == card }}" {{ 'aria-pressed="true"' | safe if key == current_avatar }}>
+    {{ avatar(key) }}<span>{{ item.name }}</span>
+  </button>
+  {% endfor %}
+</form>
+
+<a href="/persona/interview" class="btn ghost wide redo">{{ icon("spark") }} {{ T.persona_redo }}</a>
+<p class="footnote">{{ T.persona_privacy }}</p>
+{% endblock %}

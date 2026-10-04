@@ -347,6 +347,69 @@
   }
 
   // ---------- راه‌اندازی هر محتوای تازه (بار اول و پس از هر جابه‌جایی htmx) ----------
+  // مصاحبه پرسونا: سؤال‌ها یکی‌یکی، مثل گفتگو با وزیر؛ بدون جاوااسکریپت همه با هم دیده می‌شوند
+  function initInterview(app) {
+    if (app.dataset.ready) return;
+    app.dataset.ready = "1";
+    app.classList.add("js");
+    var scroll = app.querySelector(".chat-scroll");
+    var steps = Array.prototype.slice.call(app.querySelectorAll(".q"));
+    var bar = app.querySelector(".interview-progress span");
+    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function checked(step) { return Array.prototype.slice.call(step.querySelectorAll("input:checked")); }
+    function toBottom() { scroll.scrollTo({ top: scroll.scrollHeight, behavior: reduced ? "auto" : "smooth" }); }
+    function progress() {
+      var done = steps.filter(function (s) { return s.classList.contains("answered"); }).length;
+      if (bar) bar.style.setProperty("--p", Math.round(done / (steps.length - 1) * 100) + "%");
+    }
+    function answer(step) {
+      var labels = checked(step).map(function (input) { return input.nextElementSibling.textContent; });
+      step.querySelector(".q-answer .chat-msg").textContent = labels.join("، ") || app.dataset.none;
+      step.classList.add("answered");
+      progress();
+    }
+    function reveal(index) {
+      var step = steps[index];
+      if (!step || step.classList.contains("shown")) return;
+      if (reduced) { step.classList.add("shown"); toBottom(); return; }
+      var typing = document.createElement("div");
+      typing.className = "chat-row vazir";
+      typing.innerHTML = '<div class="chat-msg vazir typing"><i></i><i></i><i></i></div>';
+      step.parentNode.insertBefore(typing, step);
+      toBottom();
+      setTimeout(function () { typing.remove(); step.classList.add("shown"); toBottom(); }, 550);
+    }
+
+    // پاسخ‌های قبلی (دوباره جواب دادن) همه باز می‌مانند تا هر کدام با یک ضربه عوض شود
+    for (var i = 0; i < steps.length; i++) {
+      var step = steps[i];
+      step.classList.add("shown");
+      if (step.hasAttribute("data-final")) break;
+      if (!checked(step).length) break;
+      answer(step);
+    }
+    progress();
+
+    app.addEventListener("change", function (e) {
+      var step = e.target.closest(".q");
+      if (!step || e.target.type !== "radio") return;
+      answer(step);
+      setTimeout(function () { reveal(steps.indexOf(step) + 1); }, reduced ? 0 : 180);
+    });
+    app.addEventListener("click", function (e) {
+      var next = e.target.closest("[data-next]");
+      if (next) {
+        var step = next.closest(".q");
+        answer(step);
+        reveal(steps.indexOf(step) + 1);
+        return;
+      }
+      var edit = e.target.closest("[data-edit]");
+      if (edit) edit.closest(".q").classList.remove("answered");
+    });
+  }
+
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));
     if (root.matches && root.matches(selector)) found.unshift(root);
@@ -365,6 +428,7 @@
     applyTheme();
     all(root, "canvas[data-trend]").forEach(drawTrend);
     all(root, "#chat-app").forEach(initChat);
+    all(root, "#interview").forEach(initInterview);
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduced && !(root.id === "live")) all(root, "[data-countup]").forEach(countUp);
   }

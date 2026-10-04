@@ -47,6 +47,7 @@ from app.web.common import (
 )
 from app.web.entities import ENTITIES, build_entity
 from app.web.forms import Field, FormError
+from app.web.persona_routes import register_persona_routes
 from app.web.render import jalali, sparkline, tehran_today
 from app.web.sms_routes import queue_count, register_sms_routes
 from app.web.spending_routes import parse_month, register_spending_routes
@@ -153,6 +154,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_auth_routes(app, settings, otp, app.state.sms_verification)
     register_assistant_routes(app, chat_model, settings.llm_daily_limit,
                               settings.llm_mode if settings.llm_mode in MODES else "strict")
+    register_persona_routes(app)
     register_sms_routes(app)
     register_spending_routes(app)
     register_extra_routes(app)
@@ -210,6 +212,8 @@ def _register_routes(app: FastAPI) -> None:
             "watch_labels": _watch_labels(db),
             "cat_labels": categories.labels(db),
             "deposits": deposits,
+            "avatar_key": services.avatar(db),
+            "has_persona": services.get_user_setting(db, services.PERSONA_KEY) is not None,
         })
 
     # آیفون و مرورگرها این‌ها را بی‌اجازه از ریشه سایت می‌خواهند
@@ -225,8 +229,11 @@ def _register_routes(app: FastAPI) -> None:
     @app.get("/more", response_class=HTMLResponse, dependencies=[LoggedIn])
     def more(request: Request, db: Db) -> Response:
         user = db.get(User, request.state.user_id)
+        stored = services.load_persona(db)
         return page(request, "more.html", {"active": "more",
-                                           "phone": mask_phone(user.phone) if user else ""})
+                                           "phone": mask_phone(user.phone) if user else "",
+                                           "persona_card": stored.card if stored else None,
+                                           "avatar_key": services.avatar(db)})
 
     # ---------- CRUD عمومی دارایی، حساب، بدهی، درآمد ----------
 
