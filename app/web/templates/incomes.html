@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon, sheet_link, segments, empty_state, fab, bubble %}
 {% block content %}
-{{ segments("cashflow", "incomes") }}
+{{ segments("spending", "incomes") }}
 {% if p.incomes %}
   <div class="summary">
     <span class="mini-label">جمع درآمد ماهانه</span>

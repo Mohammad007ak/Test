@@ -162,7 +162,7 @@ T = {
 TABS: tuple[tuple[str, str, str, str], ...] = (
     ("dashboard", "/", "خانه", "home"),
     ("assets", "/assets", "دارایی", "wallet"),
-    ("cashflow", "/liabilities", "اقساط و درآمد", "flow"),
+    ("assistant", "/assistant", "وزیر", "vazir"),
     ("spending", "/spending", "دخل و خرج", "bag"),
     ("more", "/more", "بیشتر", "more"),
 )
@@ -171,16 +171,15 @@ TABS: tuple[tuple[str, str, str, str], ...] = (
 TAB_OF_PAGE: dict[str, str] = {
     "assets": "assets",
     "accounts": "assets",
-    "liabilities": "cashflow",
-    "incomes": "cashflow",
+    "liabilities": "assets",
+    "incomes": "spending",
     "prices": "more",
     "settings": "more",
 }
 
 # زبانه‌های بالای صفحه برای صفحه‌های جفتی
 SEGMENTS: dict[str, tuple[tuple[str, str], ...]] = {
-    "assets": (("assets", "دارایی‌ها"), ("accounts", "حساب‌های بانکی")),
-    "cashflow": (("liabilities", "بدهی و اقساط"), ("incomes", "درآمدها")),
+    "assets": (("assets", "دارایی‌ها"), ("accounts", "حساب‌ها"), ("liabilities", "بدهی‌ها")),
 }
 
 ASSET_ICONS: dict[str, str] = {
@@ -474,7 +473,7 @@ PAGE_TITLES.update({"spending": "خرج‌ها", "deposits": "واریزها", "
 TAB_OF_PAGE.update({"spending": "spending", "deposits": "spending", "bills": "spending",
                     "loan": "more"})
 SEGMENTS["spending"] = (("spending", "خرج‌ها"), ("deposits", "واریزها"),
-                        ("bills", "هزینه‌های ثابت"))
+                        ("bills", "ثابت‌ها"), ("incomes", "درآمدها"))
 NAV.update({"spending": "خرج‌ها", "bills": "هزینه‌های ثابت"})
 EMPTY_STATES.update({
     "bills": ("هزینه ثابتی ثبت نشده",
@@ -574,7 +573,7 @@ TOASTS["watchlist"] = "قیمت‌های صفحه اصلی به‌روز شد"
 
 # ---------- از وزیر بپرس ----------
 PAGE_TITLES["assistant"] = "از وزیر بپرس"
-TAB_OF_PAGE["assistant"] = "dashboard"
+TAB_OF_PAGE["assistant"] = "assistant"
 ASSISTANT_SUGGESTIONS: dict[str, tuple[str, ...]] = {
     "strict": (
         "خرج این ماهم چطور بود؟",
@@ -995,6 +994,7 @@ T.update({
     "qa_asset": "دارایی",
     "qa_spend": "خرج",
     "qa_vazir": "وزیر",
+    "qa_market": "بازار",
     "qa_loan": "وام",
     "share_of_total": "از کل",
     "prices_edit": "ثبت دستی",

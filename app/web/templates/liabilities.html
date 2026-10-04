@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon, sheet_link, segments, empty_state, fab, bubble %}
 {% block content %}
-{{ segments("cashflow", "liabilities") }}
+{{ segments("assets", "liabilities") }}
 {% if p.liabilities %}
   <section class="sum-card two">
     <div><small>{{ T.total_liabilities }}</small><strong>{{ p.liabilities_toman | amt }}</strong></div>

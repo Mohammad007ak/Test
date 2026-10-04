@@ -56,9 +56,15 @@
   </main>
   <nav class="tabbar" aria-label="ناوبری اصلی">
     {% for key, url, label, icon_name in s.TABS %}
-      <a href="{{ url }}" class="{{ 'on' if tab == key }}" {{ 'aria-current="page"' | safe if tab == key }}>
-        {{ icon(icon_name) }}<span>{{ label }}</span>
+      {% if icon_name == "vazir" %}
+      <a href="{{ url }}" class="tab-vazir {{ 'on' if tab == key }}" {{ 'aria-current="page"' | safe if tab == key }}>
+        <span class="tab-vazir-orb"><img src="{{ static('logo.svg') }}" alt=""></span><span>{{ label }}</span>
       </a>
+      {% else %}
+      <a href="{{ url }}" class="{{ 'on' if tab == key }}" {{ 'aria-current="page"' | safe if tab == key }}>
+        <span class="tab-ic">{{ icon(icon_name) }}</span><span>{{ label }}</span>
+      </a>
+      {% endif %}
     {% endfor %}
   </nav>
 {% endblock %}

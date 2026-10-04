@@ -4,6 +4,24 @@
   font-weight: 100 900;
   font-display: swap;
 }
+/* ممیز «٫» و جداکننده هزارگان وزیرمتن در عدد درشت بزرگ و پررنگ‌اند؛ همین چند نویسه
+   از همان فایل ولی کوچک‌تر کشیده می‌شوند (بدون تغییر متن یا HTML) */
+@font-face {
+  font-family: "VazirNum";
+  src: url("../fonts/Vazirmatn.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range: U+066B;
+  size-adjust: 60%;
+}
+@font-face {
+  font-family: "VazirNum";
+  src: url("../fonts/Vazirmatn.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range: U+002C, U+066C;
+  size-adjust: 78%;
+}
 
 /* ---------- توکن‌ها: «شب زمردی» با دو حالت؛ data-theme را اسکریپت سر صفحه می‌گذارد ---------- */
 :root {
@@ -106,7 +124,7 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  font-family: "Vazirmatn", system-ui, -apple-system, sans-serif;
+  font-family: "VazirNum", "Vazirmatn", system-ui, -apple-system, sans-serif;
   font-size: 15px;
   line-height: 1.65;
   background:
@@ -123,7 +141,7 @@ body {
 
 /* وزیرمتن همه جا: کنترل‌های فرم و حتی بلوک‌های کد (توکن، راهنمای Shortcuts) هم */
 button, input, select, textarea, optgroup, code, pre, kbd, samp, ::placeholder {
-  font-family: "Vazirmatn", system-ui, -apple-system, sans-serif;
+  font-family: "VazirNum", "Vazirmatn", system-ui, -apple-system, sans-serif;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -1892,3 +1910,39 @@ body { font-size: 15px; letter-spacing: -.005em; }
 .chg.down { color: var(--bad); background: var(--bad-soft); }
 .chg.flat { color: var(--muted); background: var(--surface-2); font-weight: 600; direction: rtl; }
 .other-prices .list.flat { background: none; border: 0; box-shadow: none; }
+
+/* =====================================================================
+   طراحی سوم: عدد سبک‌تر، نوار پایین با «وزیر» در مرکز
+   ===================================================================== */
+/* عددها ۷۰۰ به‌جای ۹۰۰: خواناتر و ظریف‌تر؛ عنوان‌ها ۸۰۰ */
+.amt, .hero-value, .hero.hx .hero-value, .summary strong, .sum-card strong, .row-end strong, .month-split strong,
+.flow-grid strong, .hero-split strong, .watch-card strong, .mix-value, .debt-line strong, .pc-now strong,
+.market-row .row-end strong, .tstat b, .chart-nums b { font-weight: 700; letter-spacing: -.01em; }
+.hero.hx .hero-value { font-size: 2.55rem; letter-spacing: -.02em; }
+.amt small, .hero-value small { font-weight: 500; }
+.appbar h1 { font-weight: 800; }
+.panel-head h2, .section-title, .card-head h2 { font-weight: 800; }
+.row-title { font-weight: 600; }
+
+/* نوار پایین: آیکون در قرص روشن برای تب فعال، «وزیر» گرد و درخشان در مرکز */
+.tabbar { height: 70px; padding: 0 8px; align-items: center; border-radius: 28px; overflow: visible; }
+.tabbar a { gap: 3px; font-size: .68rem; font-weight: 700; color: var(--muted); }
+.tabbar a.on::after { display: none; }
+.tab-ic { display: grid; place-items: center; width: 52px; height: 30px; border-radius: 15px; transition: background .25s var(--ease); }
+.tabbar a .tab-ic .i { width: 22px; height: 22px; }
+.tabbar a.on .tab-ic { background: var(--accent-soft); }
+.tabbar a.on .tab-ic .i { transform: none; filter: none; }
+.tabbar a.on { color: var(--text); }
+.tab-vazir { position: relative; }
+.tab-vazir-orb { width: 54px; height: 54px; margin-top: -26px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 35%, #134d38, #07120d 75%); border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 8px 24px var(--accent-glow), 0 0 0 5px var(--bg); transition: transform .25s var(--spring); }
+.tab-vazir-orb img { width: 34px; height: 34px; border-radius: 10px; }
+.tab-vazir:active .tab-vazir-orb { transform: scale(.92); }
+.tab-vazir span:last-child { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .tab-vazir-orb { animation: orb 4s ease-in-out infinite; }
+  @keyframes orb { 50% { box-shadow: 0 8px 30px var(--accent-glow), 0 0 0 5px var(--bg), 0 0 0 9px color-mix(in srgb, var(--accent) 12%, transparent); } }
+}
+/* زبانه‌های بالای صفحه: سه یا چهار گزینه در یک ردیف */
+.seg a { font-size: .85rem; padding-inline: 4px; white-space: nowrap; }
