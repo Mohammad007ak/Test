@@ -44,8 +44,8 @@ from app.web.common import (
     LoggedIn,
     done,
     page,
-    site_url,
     read_form,
+    site_url,
     wants_fragment,
 )
 from app.web.entities import ENTITIES, build_entity
