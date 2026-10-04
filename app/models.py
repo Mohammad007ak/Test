@@ -280,3 +280,65 @@ class Passkey(UserOwned, Base):
     name: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     last_used_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+
+
+# ---------- دنگ (تقسیم خرج گروهی) ----------
+# همه جدول‌ها UserOwned: گروه و هر چه در آن است فقط مال سازنده است؛ دوستان با لینک
+# اشتراک (share_token) فقط می‌بینند.
+
+class SplitGroup(UserOwned, Base):
+    __tablename__ = "split_groups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    share_token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class SplitMember(UserOwned, Base):
+    __tablename__ = "split_members"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("split_groups.id", ondelete="CASCADE"),
+                                          index=True)
+    name: Mapped[str] = mapped_column(String(60))
+    is_me: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class SplitExpense(UserOwned, Base):
+    __tablename__ = "split_expenses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("split_groups.id", ondelete="CASCADE"),
+                                          index=True)
+    title: Mapped[str] = mapped_column(String(100))
+    amount_toman: Mapped[int] = mapped_column(BigInteger)
+    payer_id: Mapped[int] = mapped_column(ForeignKey("split_members.id", ondelete="CASCADE"))
+    category: Mapped[str | None] = mapped_column(String(50))
+    spent_on: Mapped[date] = mapped_column(Date)
+    # سهم خود کاربر وقتی دیگری حساب کرده، به‌عنوان خرج او ثبت می‌شود
+    transaction_id: Mapped[int | None] = mapped_column(
+        ForeignKey("transactions.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class SplitShare(UserOwned, Base):
+    __tablename__ = "split_shares"
+
+    expense_id: Mapped[int] = mapped_column(
+        ForeignKey("split_expenses.id", ondelete="CASCADE"), primary_key=True)
+    member_id: Mapped[int] = mapped_column(
+        ForeignKey("split_members.id", ondelete="CASCADE"), primary_key=True)
+    amount_toman: Mapped[int] = mapped_column(BigInteger)
+
+
+class SplitSettlement(UserOwned, Base):
+    __tablename__ = "split_settlements"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("split_groups.id", ondelete="CASCADE"),
+                                          index=True)
+    payer_id: Mapped[int] = mapped_column(ForeignKey("split_members.id", ondelete="CASCADE"))
+    payee_id: Mapped[int] = mapped_column(ForeignKey("split_members.id", ondelete="CASCADE"))
+    amount_toman: Mapped[int] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)

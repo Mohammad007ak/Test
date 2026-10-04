@@ -817,4 +817,17 @@
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
+
+  // دکمه کپی (مثلاً لینک دنگ برای دوستان)
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest("[data-copy]");
+    if (!btn) return;
+    var source = document.querySelector(btn.getAttribute("data-copy"));
+    if (!source || !navigator.clipboard) return;
+    navigator.clipboard.writeText(source.textContent.trim()).then(function () {
+      var label = btn.textContent;
+      btn.textContent = btn.getAttribute("data-copied") || label;
+      setTimeout(function () { btn.textContent = label; }, 1800);
+    });
+  });
 })();

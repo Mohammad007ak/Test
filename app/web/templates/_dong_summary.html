@@ -1,0 +1,27 @@
+{# مانده هر نفر و کمترین کارت‌به‌کارت؛ مشترک صفحه گروه و صفحه دیدنی دوستان. editable: دکمه «پرداخت شد» #}
+<section class="card">
+  <h2>{{ s.DONG.balances }}</h2>
+  <ul class="dong-balances">
+    {% for m in v.members %}{% set b = v.balances.get(m.id, 0) %}
+    <li><span>{{ m.name }}</span>
+      {% if b > 0 %}<b class="pos">{{ b | amt }}</b><small>{{ s.DONG.gets }}</small>
+      {% elif b < 0 %}<b class="neg">{{ (-b) | amt }}</b><small>{{ s.DONG.owes }}</small>
+      {% else %}<small class="muted">{{ s.DONG.even }}</small>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</section>
+<section class="card">
+  <h2>{{ s.DONG.transfers }}</h2>
+  {% if v.transfers %}
+  <ul class="dong-transfers">
+    {% for t in v.transfers %}
+    <li><span>{{ s.DONG.transfer_line.format(debtor=v.names[t.debtor], creditor=v.names[t.creditor]) }}</span>
+      <b>{{ t.amount | amt }}</b>
+      {% if editable %}<form method="post" action="/dong/{{ v.group.id }}/settle">
+        <input type="hidden" name="payer" value="{{ t.debtor }}"><input type="hidden" name="payee" value="{{ t.creditor }}">
+        <input type="hidden" name="amount" value="{{ t.amount }}">
+        <button type="submit" class="btn ghost small-btn">{{ s.DONG.mark_paid }}</button></form>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted">{{ s.DONG.all_settled }}</p>{% endif %}
+</section>

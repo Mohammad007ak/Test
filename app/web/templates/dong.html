@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, segments, bubble %}
+{% block content %}
+{{ segments("spending", "dong") }}
+<p class="lead small">{{ s.DONG.intro }}</p>
+{% if groups %}
+<div class="list">
+  {% for v in groups %}
+  <a href="/dong/{{ v.group.id }}" class="row">
+    {{ bubble("handshake", loop.index0 % 6) }}
+    <span class="row-main"><span class="row-title">{{ v.group.name }}</span>
+      <span class="row-sub">{{ v.members | length | fa }} نفر · {{ s.DONG.count_expenses.format(n=v.expenses | length | fa) }}</span></span>
+    <span class="row-end">
+      {% if v.my_balance > 0 %}<strong class="pos">{{ v.my_balance | amt }}</strong><span class="muted small">{{ s.DONG.you_get }}</span>
+      {% elif v.my_balance < 0 %}<strong class="neg">{{ (-v.my_balance) | amt }}</strong><span class="muted small">{{ s.DONG.you_owe }}</span>
+      {% else %}<span class="muted small">{{ s.DONG.settled_up }}</span>{% endif %}
+    </span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty"><div class="empty-icon">{{ icon("handshake") }}</div><h2>{{ s.DONG.empty_title }}</h2></div>
+{% endif %}
+
+<section class="card" id="new-group">
+  <h2>{{ icon("plus") }} {{ s.DONG.new_group }}</h2>
+  <form method="post" action="/dong" class="form">
+    <div class="field {{ 'has-error' if errors.name }}"><label class="label" for="g-name">{{ s.DONG.group_name }}</label>
+      <input id="g-name" name="name" value="{{ values.get('name', '') }}" placeholder="{{ s.DONG.group_name_hint }}" required maxlength="100">
+      {% if errors.name %}<span class="error">{{ errors.name }}</span>{% endif %}</div>
+    <div class="field"><label class="label" for="g-me">{{ s.DONG.my_name }}</label>
+      <input id="g-me" name="me" value="{{ values.get('me', s.DONG.me) }}" maxlength="60"></div>
+    <div class="field full {{ 'has-error' if errors.members }}"><label class="label" for="g-members">{{ s.DONG.members }}</label>
+      <textarea id="g-members" name="members" rows="4" placeholder="{{ s.DONG.members_hint }}">{{ values.get('members', '') }}</textarea>
+      {% if errors.members %}<span class="error">{{ errors.members }}</span>{% endif %}</div>
+    <button type="submit" class="btn wide">{{ s.DONG.create }}</button>
+  </form>
+</section>
+{% endblock %}

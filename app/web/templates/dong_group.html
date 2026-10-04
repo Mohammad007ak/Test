@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, segments, bubble %}
+{% from "_fields.html" import field %}
+{% block content %}
+{{ segments("spending", "dong") }}
+<section class="hero dong-hero">
+  <span class="hero-label">{{ v.group.name }}</span>
+  {% if v.my_balance > 0 %}<div class="hero-value">{{ v.my_balance | amt }}</div><div class="hero-sub">{{ s.DONG.you_get }}</div>
+  {% elif v.my_balance < 0 %}<div class="hero-value">{{ (-v.my_balance) | amt }}</div><div class="hero-sub">{{ s.DONG.you_owe }}</div>
+  {% else %}<div class="hero-value">{{ s.DONG.settled_up }}</div>{% endif %}
+  <div class="hero-sub">{{ s.DONG.total }}: {{ v.total | toman_short }} · {{ v.members | length | fa }} نفر</div>
+</section>
+
+{% set editable = True %}{% include "_dong_summary.html" %}
+
+<section class="card" id="add-expense">
+  <h2>{{ icon("plus") }} {{ s.DONG.add_expense }}</h2>
+  <form method="post" action="/dong/{{ v.group.id }}/expenses" class="form dong-form" novalidate>
+    {% set f = fields %}
+    <div class="fields">{{ field(f[0], values, errors) }}{{ field(f[1], values, errors) }}{{ field(f[2], values, errors) }}</div>
+    <div class="field full {{ 'has-error' if errors.who }}">
+      <span class="label">{{ s.DONG.who }}</span>
+      <div class="chips" role="radiogroup">
+        <label class="chip"><input type="radio" name="mode" value="equal" {{ 'checked' if values.get('mode', 'equal') != 'exact' }}><span>{{ s.DONG.mode_equal }}</span></label>
+        <label class="chip"><input type="radio" name="mode" value="exact" {{ 'checked' if values.get('mode') == 'exact' }}><span>{{ s.DONG.mode_exact }}</span></label>
+      </div>
+      <ul class="dong-who">
+        {% for m in v.members %}
+        <li><label class="switch"><input type="checkbox" name="who" value="{{ m.id }}" checked><span class="track"></span><span>{{ m.name }}</span></label>
+          <input class="dong-exact" name="share_{{ m.id }}" inputmode="numeric" placeholder="{{ s.DONG.amount }}" value="{{ values.get('share_' ~ m.id, '') }}"></li>
+        {% endfor %}
+      </ul>
+      {% if errors.who %}<span class="error">{{ errors.who }}</span>{% endif %}
+    </div>
+    <div class="fields">{{ field(f[3], values, errors) }}{{ field(f[4], values, errors) }}</div>
+    <button type="submit" class="btn wide">{{ s.DONG.save_expense }}</button>
+  </form>
+</section>
+
+<h2 class="section-title">{{ s.DONG.expenses }}</h2>
+{% if v.expenses %}
+<div class="list">
+  {% for e in v.expenses %}{% set cat = e.expense.category or "other" %}
+  <div class="row static">
+    {{ bubble(s.CATEGORY_ICONS.get(cat, "box"), s.CATEGORY_SLOT.get(cat, 0)) }}
+    <span class="row-main"><span class="row-title">{{ e.expense.title }}</span>
+      <span class="row-sub">{{ s.DONG.paid_by.format(name=v.names.get(e.expense.payer_id, '')) }} · {{ e.expense.spent_on | jalali(False) }}{% if e.my_share %} · {{ s.DONG.my_share.format(amount=e.my_share | toman_short) }}{% endif %}</span></span>
+    <span class="row-end"><strong>{{ e.expense.amount_toman | amt }}</strong>
+      <form method="post" action="/dong/{{ v.group.id }}/expenses/{{ e.expense.id }}/delete" hx-confirm="{{ s.DONG.delete_expense_confirm }}"><button type="submit" class="text-btn">{{ T.delete }}</button></form></span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}<p class="lead small">{{ s.DONG.no_expenses }}</p>{% endif %}
+
+<section class="card">
+  <h2>{{ icon("handshake") }} {{ s.DONG.share_link }}</h2>
+  <p class="muted small">{{ s.DONG.share_hint }}</p>
+  <div class="token-row"><code dir="ltr" class="token" id="dong-share">{{ share_url }}</code></div>
+  <button type="button" class="btn ghost small-btn" data-copy="#dong-share" data-copied="{{ s.DONG.copied }}">{{ s.DONG.copy_link }}</button>
+</section>
+
+<section class="card">
+  <h2>{{ s.DONG.add_member }}</h2>
+  <form method="post" action="/dong/{{ v.group.id }}/members" class="inline-form">
+    <input name="name" maxlength="60" placeholder="{{ s.DONG.members_hint }}" required>
+    <button type="submit" class="btn small-btn">{{ s.DONG.add_member }}</button>
+  </form>
+</section>
+
+<form method="post" action="/dong/{{ v.group.id }}/delete" hx-confirm="{{ s.DONG.delete_confirm }}" class="dong-delete">
+  <button type="submit" class="text-btn danger">{{ s.DONG.delete_group }}</button>
+</form>
+{% endblock %}

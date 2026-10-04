@@ -59,6 +59,7 @@ from app.web.price_pages import register_price_pages
 from app.web.render import VersionedStatic, jalali, sparkline, tehran_today
 from app.web.sms_routes import queue_count, register_sms_routes
 from app.web.spending_routes import parse_month, register_spending_routes
+from app.web.split_routes import register_split_routes
 
 STATIC_DIR = Path(__file__).parent / "static"
 log = logging.getLogger("finassist")
@@ -177,6 +178,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_extra_routes(app)
     register_price_pages(app)
     register_learn_routes(app)
+    register_split_routes(app)
     _register_routes(app)
     return app
 

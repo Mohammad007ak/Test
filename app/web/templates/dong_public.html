@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ v.group.name }} · {{ s.DONG.title }} | {{ s.APP_NAME }}{% endblock %}
+{% block body_class %}site{% endblock %}
+{% block shell %}
+{% include "_public_header.html" %}
+<main class="pub">
+  <h1>{{ v.group.name }}</h1>
+  <p class="muted">{{ s.DONG.total }}: {{ v.total | toman_short }} · {{ v.members | length | fa }} نفر</p>
+  {% set editable = False %}{% include "_dong_summary.html" %}
+  <section class="pub-card">
+    <h2>{{ s.DONG.expenses }}</h2>
+    {% if v.expenses %}
+    <ul class="pub-table dong-public-list">
+      {% for e in v.expenses %}
+      <li><div><span class="pub-name">{{ e.expense.title }}</span>
+        <small class="muted">{{ s.DONG.paid_by.format(name=v.names.get(e.expense.payer_id, '')) }} · {{ e.expense.spent_on | jalali(False) }}</small></div>
+        <span class="pub-val">{{ e.expense.amount_toman | toman }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">{{ s.DONG.no_expenses }}</p>{% endif %}
+  </section>
+  <section class="pub-cta">
+    <h2>{{ s.DONG.public_cta_title }}</h2>
+    <p>{{ s.DONG.public_cta_body }}</p>
+    <a href="/signup" class="btn">{{ s.PRICE_PAGE.cta }}</a>
+  </section>
+</main>
+{% include "_public_footer.html" %}
+{% endblock %}
