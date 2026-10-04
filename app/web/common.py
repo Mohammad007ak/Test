@@ -51,8 +51,18 @@ def toast(request: Request, message: str) -> None:
     request.session["toast"] = message
 
 
+def site_url(request: Request) -> str:
+    """آدرس اصلی سایت: FINASSIST_PUBLIC_URL، وگرنه همان آدرسی که درخواست با آن آمده."""
+    configured = getattr(request.app.state, "public_url", "")
+    return (configured or str(request.base_url)).rstrip("/")
+
+
 def page(request: Request, name: str, context: dict[str, Any], status: int = 200) -> HTMLResponse:
+    """indexable=True فقط برای صفحه‌های عمومی (معرفی، ورود، ثبت‌نام)؛ بقیه noindex."""
     active = context.get("active")
+    if context.get("indexable"):
+        base = site_url(request)
+        context = {"site_url": base, "canonical": base + request.url.path, **context}
     return templates.TemplateResponse(request, name, {
         "active": None,
         "tab": s.TAB_OF_PAGE.get(active, active) if active else None,

@@ -172,4 +172,6 @@ templates.env.filters.update(
     jalali_long=jalali_long,
     chat_md=chat_markdown,
 )
+templates.env.filters["faq_item"] = lambda qa: {
+    "@type": "Question", "name": qa[0], "acceptedAnswer": {"@type": "Answer", "text": qa[1]}}
 templates.env.globals.update(s=strings, T=strings.T, static=static_url)

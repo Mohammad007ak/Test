@@ -29,7 +29,7 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
 
 class TestSignup:
     def test_signup_logs_in_and_phone_is_username(self, client: TestClient) -> None:
-        assert client.get("/", follow_redirects=False).headers["location"] == "/login"
+        assert client.get("/more", follow_redirects=False).headers["location"] == "/login"
         register(client, "۰۹۱۲ ۱۱۱ ۱۱۱۱")  # ارقام فارسی و فاصله
         assert client.get("/").status_code == 200
         with client.app.state.session_factory() as s:  # type: ignore[attr-defined]
@@ -54,7 +54,7 @@ class TestSignup:
         bad = client.post("/verify", data={"code": wrong, "password": PASSWORD,
                                            "password_repeat": PASSWORD})
         assert bad.status_code == 400
-        assert client.get("/", follow_redirects=False).status_code == 303  # هنوز وارد نشده
+        assert client.get("/more", follow_redirects=False).status_code == 303  # هنوز وارد نشده
 
     def test_verify_without_pending_phone_goes_back(self, client: TestClient) -> None:
         assert client.get("/verify", follow_redirects=False).headers["location"] == "/signup"
@@ -97,7 +97,7 @@ class TestReset:
         with TestClient(app) as phone_a, TestClient(app) as phone_b:
             register(phone_a)
             phone_b.post("/login", data={"phone": PHONE, "password": PASSWORD})
-            assert phone_b.get("/", follow_redirects=False).status_code == 200
+            assert phone_b.get("/more", follow_redirects=False).status_code == 200
             phone_b.post("/logout")
             later = utcnow() + timedelta(minutes=2)  # فاصله لازم بین دو پیامک به یک شماره
             app.state.otp.clock = lambda: later
@@ -108,7 +108,7 @@ class TestReset:
                 follow_redirects=False)
             assert response.headers["location"] == "/"
             # دستگاه اول با رمز قدیم وارد شده بود؛ نشستش باطل شد
-            assert phone_a.get("/", follow_redirects=False).status_code == 303
+            assert phone_a.get("/more", follow_redirects=False).status_code == 303
             assert phone_a.post("/login", data={"phone": PHONE, "password": new},
                                 follow_redirects=False).status_code == 303
 

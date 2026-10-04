@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, bubble, avatar %}
+{% block title %}{{ s.SEO.title }}{% endblock %}
+{% block shell %}
+<main class="landing">
+  <header class="land-top">
+    <a href="/" class="land-brand"><img src="{{ static('logo.svg') }}" alt="" width="36" height="36"><strong>{{ s.APP_NAME }}</strong></a>
+    <a href="/login" class="btn ghost small">{{ s.LANDING.login }}</a>
+  </header>
+
+  <section class="land-hero">
+    <img class="land-logo" src="{{ static('logo.svg') }}" alt="{{ s.APP_NAME }}" width="96" height="96">
+    <h1>{{ s.LANDING.hero_title }}</h1>
+    <p>{{ s.LANDING.hero_body }}</p>
+    <div class="land-cta">
+      <a href="/signup" class="btn">{{ s.LANDING.cta }}</a>
+      <a href="/login" class="btn ghost">{{ s.LANDING.login }}</a>
+    </div>
+    <div class="land-avatars" aria-hidden="true">{% for key in ("owl", "eagle", "coin", "simorgh", "fox") %}{{ avatar(key) }}{% endfor %}</div>
+  </section>
+
+  <section class="land-section">
+    <h2>{{ s.LANDING.features_title }}</h2>
+    <div class="land-features">
+      {% for icon_name, title, body, slot in s.LANDING_FEATURES %}
+      <article class="land-feature">{{ bubble(icon_name, slot) }}<h3>{{ title }}</h3><p>{{ body }}</p></article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="land-section land-privacy">
+    {{ bubble("lock", 3) }}
+    <h2>{{ s.LANDING.privacy_title }}</h2>
+    <p>{{ s.LANDING.privacy_body }}</p>
+  </section>
+
+  <section class="land-section">
+    <h2>{{ s.LANDING.faq_title }}</h2>
+    {% for q, a in s.LANDING_FAQ %}
+    <details class="card disclosure land-faq"><summary>{{ q }}</summary><p>{{ a }}</p></details>
+    {% endfor %}
+  </section>
+
+  <section class="land-final">
+    <h2>{{ s.TAGLINE }}</h2>
+    <a href="/signup" class="btn">{{ s.LANDING.cta }}</a>
+  </section>
+  <footer class="land-footer">{{ s.LANDING.footer }}</footer>
+</main>
+<script type="application/ld+json">
+{{ {"@context": "https://schema.org", "@graph": [
+  {"@type": "WebApplication", "name": s.APP_NAME, "url": canonical, "inLanguage": "fa-IR",
+   "applicationCategory": "FinanceApplication", "operatingSystem": "Web",
+   "description": s.SEO.description, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "IRR"}},
+  {"@type": "FAQPage", "mainEntity": s.LANDING_FAQ | map("faq_item") | list}
+]} | tojson }}
+</script>
+{% endblock %}

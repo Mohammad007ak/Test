@@ -44,6 +44,7 @@ from app.web.common import (
     LoggedIn,
     done,
     page,
+    site_url,
     read_form,
     wants_fragment,
 )
@@ -129,6 +130,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     app.state.history_sources = (history_sources if history_sources is not None
                                  else [AlanchandHistory()] if price_sources is None else [])
     app.state.llm = DisabledLLM()  # ارائه‌دهنده LLM هنوز انتخاب نشده (SPEC: تصمیم باز)
+    app.state.public_url = settings.public_url
     app.state.poll_seconds = settings.price_refresh_seconds if sources else 0
     app.state.otp_sender = otp_sender or default_otp_sender(settings)
     otp = OtpService(app.state.otp_sender, secret=secret, daily_limit=settings.otp_daily_limit)
@@ -170,8 +172,10 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
 def _register_routes(app: FastAPI) -> None:
     # ---------- داشبورد ----------
 
-    @app.get("/", response_class=HTMLResponse, dependencies=[LoggedIn])
+    @app.get("/", response_class=HTMLResponse)
     def dashboard(request: Request, db: Db) -> Response:
+        if request.state.user_id is None:  # بازدیدکننده و موتور جستجو: صفحه معرفی
+            return page(request, "landing.html", {"indexable": True})
         portfolio = services.build_portfolio(db)
         today = tehran_today()
         services.record_snapshot(db, portfolio, today)
@@ -220,6 +224,20 @@ def _register_routes(app: FastAPI) -> None:
             "avatar_key": services.avatar(db),
             "has_persona": services.get_user_setting(db, services.PERSONA_KEY) is not None,
         })
+
+    @app.get("/robots.txt", include_in_schema=False)
+    def robots(request: Request) -> Response:
+        body = ("User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /export.json\n"
+                f"Sitemap: {site_url(request)}/sitemap.xml\n")
+        return Response(body, media_type="text/plain")
+
+    @app.get("/sitemap.xml", include_in_schema=False)
+    def sitemap(request: Request) -> Response:
+        base = site_url(request)
+        urls = "".join(f"<url><loc>{base}{path}</loc></url>" for path in ("/", "/signup", "/login"))
+        body = ('<?xml version="1.0" encoding="UTF-8"?>'
+                f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>')
+        return Response(body, media_type="application/xml")
 
     # آیفون و مرورگرها این‌ها را بی‌اجازه از ریشه سایت می‌خواهند
     @app.get("/favicon.ico", include_in_schema=False)

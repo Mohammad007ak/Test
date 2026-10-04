@@ -48,7 +48,7 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService,
                    status: int = 200) -> Response:
         return page(request, "phone_form.html", {
             "purpose": purpose, "error": error, "phone": phone, "auth_page": True,
-            "direct": not sms_verification}, status)
+            "direct": not sms_verification, "indexable": purpose == "signup"}, status)
 
     def verify_page(request: Request, error: str = "", status: int = 200) -> Response:
         if not sms_verification:
@@ -64,7 +64,7 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService,
 
     @app.get("/login", response_class=HTMLResponse)
     def login_form(request: Request) -> Response:
-        return page(request, "login.html", {"auth_page": True})
+        return page(request, "login.html", {"auth_page": True, "indexable": True})
 
     @app.post("/login", response_class=HTMLResponse)
     async def login(request: Request, db: Db) -> Response:

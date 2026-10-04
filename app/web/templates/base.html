@@ -24,7 +24,21 @@
   <link rel="icon" type="image/png" href="{{ static('favicon.png') }}">
   <link rel="preload" href="/static/fonts/Vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ static('css/app.css') }}">
-  <title>{{ title }}</title>
+  <title>{% block title %}{{ title }}{% endblock %}</title>
+  {% if indexable %}
+  <meta name="description" content="{{ s.SEO.description }}">
+  <link rel="canonical" href="{{ canonical }}">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fa_IR">
+  <meta property="og:site_name" content="{{ s.APP_NAME }}">
+  <meta property="og:title" content="{{ s.SEO.title }}">
+  <meta property="og:description" content="{{ s.SEO.description }}">
+  <meta property="og:url" content="{{ canonical }}">
+  <meta property="og:image" content="{{ site_url }}/static/icon-512.png">
+  <meta name="twitter:card" content="summary">
+  {% else %}
+  <meta name="robots" content="noindex, nofollow">
+  {% endif %}
   <script src="{{ static('js/htmx.min.js') }}" defer></script>
   <script src="{{ static('js/chart.min.js') }}" defer></script>
   <script src="{{ static('js/app.js') }}" defer></script>
