@@ -660,9 +660,8 @@ if (BOARD) {
   add((n) => matrixPage(n), { label: "نقشه محصولات به تفکیک مشتری", level: "sec" });
   addSections({ deep: true });
   const k = sections.length + 1;
-  add((n) => divider(n, { title: "هم‌افزایی در گروه دیجی‌کالا", en: ["Digikala Group", "Synergy"], desc: "جایگاه دیجی‌پی در اکوسیستم گروه، نقشه هم‌افزایی با شرکت‌های گروه، فرصت‌های کلیدی و چرخه ارزش.", kicker: `بخش ${faDigits(k)}`, big: `0${k}` }), { label: "هم‌افزایی در گروه دیجی‌کالا", level: "sec" });
+  add((n) => divider(n, { title: "هم‌افزایی در گروه دیجی‌کالا", en: ["Digikala Group", "Synergy"], desc: "جایگاه دیجی‌پی در اکوسیستم گروه، فرصت‌های کلیدی هم‌افزایی و چرخه ارزش.", kicker: `بخش ${faDigits(k)}`, big: `0${k}` }), { label: "هم‌افزایی در گروه دیجی‌کالا", level: "sec" });
   add((n) => ecosystemPage(n), { label: "دیجی‌پی در اکوسیستم گروه", level: "sub" });
-  add((n) => synergyMatrixPage(n), { label: "نقشه هم‌افزایی با شرکت‌های گروه", level: "sub" });
   add((n) => synergyIdeasPage(n), { label: "فرصت‌های کلیدی هم‌افزایی", level: "sub" });
   add((n) => flywheelPage(n), { label: "چرخه ارزش دیجی‌پی در گروه", level: "sub" });
   add((n) => summaryPage(n), { label: "جمع‌بندی", level: "sec" });
