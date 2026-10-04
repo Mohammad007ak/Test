@@ -1920,3 +1920,13 @@ body { font-size: 15px; letter-spacing: -.005em; }
 .install-card h2 { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; font-weight: 800; }
 .install-card h2 .i { width: 20px; height: 20px; color: var(--accent); }
 .install-card ol { margin: 0; padding-inline-start: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--text-2); line-height: 1.9; font-size: .92rem; }
+
+/* ورود با چهره */
+.passkey-login { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.passkey-login .or { color: var(--muted); font-size: .8rem; display: flex; align-items: center; gap: 10px; }
+.passkey-login .or::before, .passkey-login .or::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+.passkey-login .btn .i, .passkey-card .btn .i { width: 20px; height: 20px; }
+.passkey-card { align-items: center; text-align: center; gap: 12px; }
+.passkey-card p { color: var(--text-2); line-height: 1.9; font-size: .92rem; }
+.passkey-face { width: 64px; height: 64px; border-radius: 22px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.passkey-face .i { width: 34px; height: 34px; }

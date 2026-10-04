@@ -703,6 +703,86 @@
     });
   }
 
+  // ---------- ورود با چهره / اثر انگشت (WebAuthn) ----------
+  function b64u(buf) {
+    var s = "", bytes = new Uint8Array(buf);
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function unb64u(text) {
+    var s = atob(text.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((text.length + 3) % 4));
+    var out = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+    return out.buffer;
+  }
+  function creationOptions(o) {
+    o.challenge = unb64u(o.challenge);
+    o.user.id = unb64u(o.user.id);
+    (o.excludeCredentials || []).forEach(function (c) { c.id = unb64u(c.id); });
+    return o;
+  }
+  function requestOptions(o) {
+    o.challenge = unb64u(o.challenge);
+    (o.allowCredentials || []).forEach(function (c) { c.id = unb64u(c.id); });
+    return o;
+  }
+  function credentialJSON(cred) {
+    var r = cred.response, response = { clientDataJSON: b64u(r.clientDataJSON) };
+    if (r.attestationObject) {
+      response.attestationObject = b64u(r.attestationObject);
+      if (r.getTransports) response.transports = r.getTransports();
+    } else {
+      response.authenticatorData = b64u(r.authenticatorData);
+      response.signature = b64u(r.signature);
+      if (r.userHandle) response.userHandle = b64u(r.userHandle);
+    }
+    return { id: cred.id, rawId: b64u(cred.rawId), type: cred.type, response: response,
+             clientExtensionResults: {}, authenticatorAttachment: cred.authenticatorAttachment || null };
+  }
+  function postJSON(url, body) {
+    return fetch(url, { method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : "{}" })
+      .then(function (r) { return r.json().then(function (j) { j.status = r.status; return j; }); });
+  }
+  function showError(box, message) {
+    var el = box.querySelector("[data-passkey-error]");
+    if (el) { el.textContent = message; el.hidden = !message; }
+  }
+  function initPasskeys(root) {
+    var supported = !!window.PublicKeyCredential;
+    all(root, "[data-passkey-login-box]").forEach(function (box) {
+      if (!supported) return;
+      box.hidden = false;
+      box.querySelector("[data-passkey-login]").addEventListener("click", function () {
+        showError(box, "");
+        postJSON("/passkeys/login/options").then(function (o) {
+          return navigator.credentials.get({ publicKey: requestOptions(o) });
+        }).then(function (cred) {
+          return postJSON("/passkeys/login/verify", credentialJSON(cred));
+        }).then(function (res) {
+          if (res.ok) window.location.href = res.next || "/";
+          else showError(box, res.error || box.getAttribute("data-error"));
+        }).catch(function () { showError(box, box.getAttribute("data-error")); });
+      });
+    });
+    all(root, "#passkeys").forEach(function (box) {
+      var button = box.querySelector("[data-passkey-register]");
+      if (!supported) { button.disabled = true; showError(box, box.getAttribute("data-unsupported")); return; }
+      button.addEventListener("click", function () {
+        showError(box, "");
+        button.disabled = true;
+        postJSON("/passkeys/register/options").then(function (o) {
+          return navigator.credentials.create({ publicKey: creationOptions(o) });
+        }).then(function (cred) {
+          return postJSON("/passkeys/register/verify", credentialJSON(cred));
+        }).then(function (res) {
+          if (res.ok) window.location.reload();
+          else { showError(box, res.error || box.getAttribute("data-error")); button.disabled = false; }
+        }).catch(function () { showError(box, box.getAttribute("data-error")); button.disabled = false; });
+      });
+    });
+  }
+
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));
     if (root.matches && root.matches(selector)) found.unshift(root);
@@ -725,6 +805,7 @@
     all(root, "#interview").forEach(initInterview);
     all(root, "#landing").forEach(initLanding);
     all(root, "#install").forEach(initInstall);
+    initPasskeys(root);
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduced && !(root.id === "live")) all(root, "[data-countup]").forEach(countUp);
   }

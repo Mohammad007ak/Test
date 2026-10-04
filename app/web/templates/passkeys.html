@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, bubble %}
+{% block content %}
+<section class="sum-card passkey-card" id="passkeys" data-error="{{ T.passkey_failed }}" data-unsupported="{{ T.passkey_unsupported }}">
+  <span class="passkey-face" aria-hidden="true">{{ icon("face") }}</span>
+  <p>{{ T.passkey_hint }}</p>
+  <button type="button" class="btn wide" data-passkey-register>{{ icon("face") }} {{ T.passkey_add }}</button>
+  <p class="error" data-passkey-error hidden></p>
+</section>
+<h2 class="section-title">{{ T.passkey_list }}</h2>
+{% if keys %}
+<div class="list">
+  {% for key in keys %}
+  <div class="row static">
+    {{ bubble("lock", 3) }}
+    <span class="row-main"><span class="row-title">{{ key.name }}</span>
+      <span class="row-sub">{{ T.passkey_added_at.format(date=key.created_at | jalali(false)) }}{% if key.last_used_at %} · {{ T.passkey_used_at.format(date=key.last_used_at | jalali) }}{% endif %}</span></span>
+    <form method="post" action="/passkeys/{{ key.id }}/delete" class="row-end"><button type="submit" class="btn ghost small">{{ T.passkey_remove }}</button></form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted small">{{ T.passkey_none }}</p>
+{% endif %}
+{% endblock %}

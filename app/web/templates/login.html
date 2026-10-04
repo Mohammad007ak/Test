@@ -12,6 +12,11 @@
     <div class="input"><input id="password" type="password" name="password" autocomplete="current-password" placeholder="{{ T.password }}" aria-label="{{ T.password }}" required></div>
     <button type="submit" class="btn wide">{{ T.login }}</button>
   </form>
+  <div class="passkey-login" data-passkey-login-box hidden data-error="{{ T.passkey_failed }}">
+    <span class="or">{{ T.passkey_or }}</span>
+    <button type="button" class="btn ghost wide" data-passkey-login>{{ icon("face") }} {{ T.passkey_login }}</button>
+    <p class="error" data-passkey-error hidden></p>
+  </div>
   <a href="/forgot" class="auth-link">{{ T.forgot }}</a>
   <p class="auth-alt">{{ T.no_account }} <a href="/signup">{{ T.signup }}</a></p>
 </main>

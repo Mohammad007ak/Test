@@ -24,6 +24,7 @@
 <h2 class="section-title">{{ T.more_account }}</h2>
 <div class="list">
   <div class="row static">{{ bubble("lock", 3) }}<span class="row-main"><span class="row-title" dir="ltr">{{ phone }}</span><span class="row-sub">{{ T.phone }}</span></span></div>
+  <a href="/passkeys" class="row">{{ bubble("face", 3) }}<span class="row-main"><span class="row-title">{{ T.passkey }}</span><span class="row-sub">{{ T.passkey_sub }}</span></span>{{ icon("chev", "end") }}</a>
   <a href="/settings" class="row">{{ bubble("gear", 0) }}<span class="row-main"><span class="row-title">{{ s.PAGE_TITLES.settings }}</span><span class="row-sub">آستانه نسبت اقساط و تورم فرضی</span></span>{{ icon("chev", "end") }}</a>
   <form method="post" action="/logout" class="row-form">
     <button type="submit" class="row danger">{{ bubble("logout", 0) }}<span class="row-main"><span class="row-title">{{ T.logout }}</span></span></button>

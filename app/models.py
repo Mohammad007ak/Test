@@ -3,7 +3,17 @@
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+)
 from sqlalchemy.engine import Dialect
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from sqlalchemy.types import TypeDecorator
@@ -250,3 +260,17 @@ class PriceHistory(Base):
     price_toman: Mapped[int] = mapped_column(BigInteger)  # قیمت یک واحد
     real_price_toman: Mapped[int | None] = mapped_column(BigInteger)  # ارزش ذاتی سکه (حباب)
     source: Mapped[str] = mapped_column(String(50))
+
+
+class Passkey(UserOwned, Base):
+    """ورود با چهره یا اثر انگشت (WebAuthn): فقط کلید عمومی دستگاه ذخیره می‌شود، نه داده زیستی."""
+
+    __tablename__ = "passkeys"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    credential_id: Mapped[str] = mapped_column(String(512), unique=True, index=True)  # base64url
+    public_key: Mapped[bytes] = mapped_column(LargeBinary)
+    sign_count: Mapped[int] = mapped_column(BigInteger, default=0)
+    name: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    last_used_at: Mapped[datetime | None] = mapped_column(UTCDateTime)

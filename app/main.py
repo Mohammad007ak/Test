@@ -50,6 +50,7 @@ from app.web.common import (
 )
 from app.web.entities import ENTITIES, build_entity
 from app.web.forms import Field, FormError
+from app.web.passkey_routes import register_passkey_routes
 from app.web.persona_routes import register_persona_routes
 from app.web.render import jalali, sparkline, tehran_today
 from app.web.sms_routes import queue_count, register_sms_routes
@@ -165,6 +166,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_assistant_routes(app, chat_model, settings.llm_daily_limit,
                               settings.llm_mode if settings.llm_mode in MODES else "strict")
     register_persona_routes(app, chat_model)
+    register_passkey_routes(app)
     register_sms_routes(app)
     register_spending_routes(app)
     register_extra_routes(app)
