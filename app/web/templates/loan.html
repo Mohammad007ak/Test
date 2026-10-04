@@ -3,91 +3,13 @@
 {% from "_ui.html" import icon %}
 {% block content %}
 {% if result %}
-<section class="hero loan-hero">
-  <span class="hero-label">{{ T.effective_rate }}</span>
-  <div class="hero-value">{{ result.effective_rate | percent(2) }}</div>
-  {% if loan.nominal_rate is not none %}
-  <div class="hero-sub">{{ T.nominal_rate }}: {{ loan.nominal_rate | percent(1) }} ·
-    {{ (result.effective_rate - loan.nominal_rate) | percent(1) }} بیشتر از اعلام‌شده</div>
-  {% endif %}
-</section>
-
-<div class="pair">
-  <div class="card mini">
-    <span class="mini-label">{{ T.real_rate.format(inflation=inflation | percent(0)) }}</span>
-    <strong class="{{ 'neg' if result.real_rate < 0 }}">{{ result.real_rate | percent(1) }}</strong>
-  </div>
-  <div class="card mini">
-    <span class="mini-label">{{ T.installment_amount }}</span>
-    <strong>{{ result.installment_toman | amt }}</strong>
-  </div>
-  <div class="card mini">
-    <span class="mini-label">{{ T.total_cost }}</span>
-    <strong>{{ result.total_cost_toman | amt }}</strong>
-  </div>
-  <div class="card mini">
-    <span class="mini-label">{{ T.net_received }}</span>
-    <strong>{{ result.net_received_toman | amt }}</strong>
-  </div>
-</div>
-
-{% if result.dti_after is not none %}
-<section class="card">
-  <div class="card-head"><h2>{{ T.dti }}</h2></div>
-  {% set after_pct = [result.dti_after * 100, 100] | min %}
-  <div class="meter {{ 'over' if result.dti_exceeds }}">
-    <span class="meter-fill" style="--w: {{ after_pct }}%"></span>
-    <span class="meter-mark" style="--at: {{ threshold * 100 }}%"></span>
-  </div>
-  <div class="meter-legend">
-    <span>{{ result.dti_before | percent }} ← <strong class="{{ 'neg' if result.dti_exceeds }}">{{ result.dti_after | percent }}</strong></span>
-    <span class="muted">آستانه {{ threshold | percent(0) }}</span>
-  </div>
-  {% if result.dti_exceeds %}<div class="alert danger">{{ icon("alert") }} {{ T.dti_warning.format(threshold=threshold | percent(0)) }}</div>{% endif %}
-</section>
-{% endif %}
-
-<section class="card">
-  <div class="card-head"><h2>{{ T.cost_steps }}</h2></div>
-  {% set top = result.cost_steps | map(attribute="effective_rate") | max %}
-  <ul class="steps-bars">
-    {% for step in result.cost_steps %}
-    <li>
-      <div class="steps-head"><span>{{ step.label }}</span>
-        <span>{% if not loop.first %}<span class="muted">+{{ step.added_rate | percent(1) }} ←</span> {% endif %}<strong>{{ step.effective_rate | percent(1) }}</strong></span></div>
-      <span class="progress"><span style="--w: {{ (step.effective_rate / top * 100) if top > 0 else 0 }}%"></span></span>
-    </li>
-    {% endfor %}
-  </ul>
-</section>
-
-<details class="card disclosure">
-  <summary>{{ T.cash_flows }}</summary>
-  <table class="table">
-    <thead><tr><th>{{ T.month }}</th><th class="num">{{ T.cash_flow }}</th></tr></thead>
-    {% for cf in result.cash_flows %}<tr><td>{{ loop.index0 | fa }}</td><td class="num" dir="ltr">{{ cf }}</td></tr>{% endfor %}
-  </table>
-  <p class="muted small">ماهانه {{ result.monthly_rate | percent(4) }} — در اکسل: ‎=IRR(ستون بالا)</p>
-</details>
-<p class="disclaimer">{{ T.loan_disclaimer }}</p>
-<h2 class="section-title">{{ T.loan_new }}</h2>
+{% include "_loan_result.html" %}<h2 class="section-title">{{ T.loan_new }}</h2>
 {% else %}
 <p class="lead">{{ T.loan_empty }}</p>
 {% endif %}
 
-<form method="post" action="/loan" class="form" novalidate>
-  {% for key, label, open in s.LOAN_GROUPS %}
-  {% set group_fields = fields | selectattr("group", "equalto", key) | list %}
-  {% set has_error = group_fields | selectattr("name", "in", errors) | list %}
-  {% set has_value = group_fields | selectattr("name", "in", values) | list %}
-  <details class="card group" {{ 'open' if open or has_error }}>
-    <summary>{{ label }}</summary>
-    <div class="fields">{% for f in group_fields %}{{ field(f, values, errors) }}{% endfor %}</div>
-  </details>
-  {% endfor %}
-  <div class="sticky-actions"><button type="submit" class="btn wide">{{ icon("calc") }} {{ T.analyze }}</button></div>
-  <p class="muted small">تورم فرضی {{ inflation | percent(0) }} و آستانه {{ threshold | percent(0) }} از <a href="/settings">تنظیمات</a> می‌آیند.</p>
-</form>
+{% set loan_action = "/loan" %}{% include "_loan_form.html" %}
+<p class="muted small">تورم فرضی {{ inflation | percent(0) }} و آستانه {{ threshold | percent(0) }} از <a href="/settings">تنظیمات</a> می‌آیند.</p>
 
 {% if history %}
 <h2 class="section-title">{{ T.history }}</h2>

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ s.LOAN_TOOL.title }} | {{ s.APP_NAME }}{% endblock %}
+{% block body_class %}site{% endblock %}
+{% block shell %}
+{% include "_public_header.html" %}
+<main class="pub pub-tool">
+  <h1>{{ s.LOAN_TOOL.title }}</h1>
+  <p class="muted pub-lead">{{ s.LOAN_TOOL.lead }}</p>
+  {% if result %}
+  <h2 class="pub-h2" id="result">{{ s.LOAN_TOOL.result_title }}</h2>
+  <div class="pub-result">{% include "_loan_result.html" %}</div>
+  {% endif %}
+  {% set loan_action = "/tools/loan#result" %}{% include "_loan_form.html" %}
+  <p class="muted small">{{ s.LOAN_TOOL.assumptions.format(inflation=inflation | percent(0)) }}</p>
+
+  <section class="pub-cta">
+    <h2>{{ s.LOAN_TOOL.cta_title }}</h2>
+    <p>{{ s.LOAN_TOOL.cta_body }}</p>
+    <a href="/signup" class="btn">{{ s.PRICE_PAGE.cta }}</a>
+  </section>
+
+  <h2 class="pub-h2">{{ s.LOAN_TOOL.faq_title }}</h2>
+  {% for q, a in s.LOAN_TOOL_FAQ %}
+  <details class="card disclosure lx-faq"><summary>{{ q }}</summary><p>{{ a }}</p></details>
+  {% endfor %}
+</main>
+<footer class="lx-footer">{{ s.LANDING.footer }} · <a href="/price">{{ s.PRICE_PAGE.all_prices }}</a> · <a href="/privacy">{{ T.privacy_link }}</a></footer>
+<script type="application/ld+json">
+{{ {"@context": "https://schema.org", "@graph": [
+  {"@type": "WebApplication", "name": s.LOAN_TOOL.title, "url": canonical, "inLanguage": "fa-IR",
+   "applicationCategory": "FinanceApplication", "operatingSystem": "Web",
+   "offers": {"@type": "Offer", "price": "0", "priceCurrency": "IRR"}},
+  {"@type": "FAQPage", "mainEntity": s.LOAN_TOOL_FAQ | map("faq_item") | list}]} | tojson }}
+</script>
+{% endblock %}

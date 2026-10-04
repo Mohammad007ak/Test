@@ -279,7 +279,8 @@ def _register_routes(app: FastAPI) -> None:
     def sitemap(request: Request) -> Response:
         base = site_url(request)
         urls = "".join(f"<url><loc>{base}{path}</loc></url>"
-                       for path in ("/", "/signup", "/login", "/install", "/privacy", *PRICE_PATHS))
+                       for path in ("/", "/signup", "/login", "/install", "/privacy", "/tools/loan",
+                                     *PRICE_PATHS))
         body = ('<?xml version="1.0" encoding="UTF-8"?>'
                 f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>')
         return Response(body, media_type="application/xml")
@@ -461,7 +462,8 @@ def register_extra_routes(app: FastAPI) -> None:
             values = forms.parse_form(LOAN_FIELDS, data)
             if values["installment"] is None and values["nominal_rate"] is None:
                 raise FormError({"installment": "قسط یا نرخ اسمی را وارد کن."})
-            loan = _loan_input(db, values)
+            loan = _loan_input(values, services.get_decimal_setting(db, "inflation"),
+                               services.get_decimal_setting(db, "dti_threshold"))
             result = analyze_loan(loan)
         except FormError as exc:
             return _loan_page(request, db, data, exc.errors, status=400)
@@ -471,6 +473,35 @@ def register_extra_routes(app: FastAPI) -> None:
             {k: v for k, v in asdict(result).items() if k != "cash_flows"})))
         db.commit()
         return _loan_page(request, db, data, result=result, loan=loan)
+
+    # ابزار عمومی (بدون ورود، برای جستجو): همان تحلیلگر وام با پیش‌فرض‌های عمومی، بدون ذخیره
+    def public_loan_page(request: Request, values: dict[str, str],
+                         errors: dict[str, str] | None = None, status: int = 200,
+                         **extra: Any) -> Response:
+        return page(request, "loan_public.html", {
+            "active": "tool_loan", "indexable": True, "fields": LOAN_FIELDS, "values": values,
+            "errors": errors or {}, "inflation": _PUBLIC_INFLATION,
+            "threshold": _PUBLIC_DTI, "meta_description": s.LOAN_TOOL["description"],
+            "og_title": s.LOAN_TOOL["title"], **extra}, status)
+
+    @app.get("/tools/loan", response_class=HTMLResponse)
+    def public_loan(request: Request) -> Response:
+        return public_loan_page(request, {})
+
+    @app.post("/tools/loan", response_class=HTMLResponse)
+    async def public_loan_analyze(request: Request) -> Response:
+        data = await read_form(request)
+        try:
+            values = forms.parse_form(LOAN_FIELDS, data)
+            if values["installment"] is None and values["nominal_rate"] is None:
+                raise FormError({"installment": "قسط یا نرخ اسمی را وارد کن."})
+            loan = _loan_input(values, _PUBLIC_INFLATION, _PUBLIC_DTI)
+            result = analyze_loan(loan)
+        except FormError as exc:
+            return public_loan_page(request, data, exc.errors, status=400)
+        except ValueError as exc:
+            return public_loan_page(request, data, {"amount": str(exc)}, status=400)
+        return public_loan_page(request, data, result=result, loan=loan)
 
     @app.get("/settings", response_class=HTMLResponse, dependencies=[LoggedIn])
     def settings_page(request: Request, db: Db) -> Response:
@@ -580,7 +611,11 @@ SETTINGS_FIELDS = [
 ]
 
 
-def _loan_input(db: Session, v: dict[str, Any]) -> LoanInput:
+_PUBLIC_INFLATION = Decimal(services.DEFAULT_SETTINGS["inflation"])
+_PUBLIC_DTI = Decimal(services.DEFAULT_SETTINGS["dti_threshold"])
+
+
+def _loan_input(v: dict[str, Any], inflation: Decimal, dti_threshold: Decimal) -> LoanInput:
     blocked = v["blocked_deposit"] or 0
     averaging = v["averaging_deposit"] or 0
     if blocked and not v["blocked_months"]:
@@ -601,10 +636,10 @@ def _loan_input(db: Session, v: dict[str, Any]) -> LoanInput:
         averaging_deposit_toman=averaging,
         averaging_months=v["averaging_months"] or 0,
         averaging_rate=v["averaging_rate"] or Decimal(0),
-        inflation=services.get_decimal_setting(db, "inflation"),
+        inflation=inflation,
         monthly_income_toman=v["monthly_income"] or 0,
         current_installments_toman=v["current_installments"] or 0,
-        dti_threshold=services.get_decimal_setting(db, "dti_threshold"),
+        dti_threshold=dti_threshold,
     )
 
 

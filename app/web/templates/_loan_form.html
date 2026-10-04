@@ -1,0 +1,14 @@
+{% from "_fields.html" import field %}
+{% from "_ui.html" import icon %}
+<form method="post" action="{{ loan_action }}" class="form" novalidate>
+  {% for key, label, open in s.LOAN_GROUPS %}
+  {% set group_fields = fields | selectattr("group", "equalto", key) | list %}
+  {% set has_error = group_fields | selectattr("name", "in", errors) | list %}
+  {% set has_value = group_fields | selectattr("name", "in", values) | list %}
+  <details class="card group" {{ 'open' if open or has_error }}>
+    <summary>{{ label }}</summary>
+    <div class="fields">{% for f in group_fields %}{{ field(f, values, errors) }}{% endfor %}</div>
+  </details>
+  {% endfor %}
+  <div class="sticky-actions"><button type="submit" class="btn wide">{{ icon("calc") }} {{ T.analyze }}</button></div>
+</form>
