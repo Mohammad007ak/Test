@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, avatar %}
+{% from "_fields.html" import field with context %}
+{% block shell %}
+{% set O = s.ONBOARDING %}
+<div class="onb">
+  <header class="onb-head">
+    <img src="{{ static('logo.svg') }}" alt="" width="34" height="34">
+    <div class="onb-progress" role="progressbar" aria-valuemin="1" aria-valuemax="{{ total }}" aria-valuenow="{{ n }}"
+         aria-label="{{ O.step_of.format(n=n | fa, total=total | fa) }}"><span style="--p: {{ (n / total * 100) | round }}%"></span></div>
+    <a href="/start/skip" class="text-btn onb-skip" hx-boost="false">{{ O.skip_all }}</a>
+  </header>
+
+  <main class="onb-body">
+    <p class="onb-step muted small">{{ O.step_of.format(n=n | fa, total=total | fa) }}</p>
+
+    {% if step == "have" %}
+    <h1>{{ O.have_title }}</h1>
+    <p class="muted">{{ O.have_body }}</p>
+    <form method="post" action="/start/have" class="onb-form">
+      <div class="onb-choices">
+        {% for key in choices %}
+        <label class="onb-choice"><input type="checkbox" name="kinds" value="{{ key }}" {{ 'checked' if key in chosen }}>
+          <span>{{ icon(O.choice_icons[key]) }}<b>{{ O.choices[key] }}</b></span></label>
+        {% endfor %}
+      </div>
+      <div class="onb-actions"><button type="submit" class="btn wide">{{ O.next }}</button></div>
+    </form>
+
+    {% elif step == "amounts" %}
+    <h1>{{ O.amounts_title }}</h1>
+    <p class="muted">{{ O.amounts_body }}</p>
+    <form method="post" action="/start/amounts" class="onb-form form" novalidate>
+      {% if errors %}<div class="alert danger">{{ icon("alert") }} {{ O.fix_errors }}</div>{% endif %}
+      {% for kind, group in groups.items() %}
+      <section class="onb-group">
+        <h2>{{ icon(O.choice_icons[kind]) }} {{ O.choices[kind] }}</h2>
+        <div class="fields{{ ' onb-grid' if kind == 'coin' }}">{% for f in group %}{{ field(f, values, errors) }}{% endfor %}</div>
+      </section>
+      {% endfor %}
+      <div class="onb-actions">
+        <button type="submit" class="btn wide">{{ O.next }}</button>
+        <a href="/start/have" class="text-btn">{{ O.back }}</a>
+      </div>
+    </form>
+
+    {% elif step == "monthly" %}
+    <h1>{{ O.monthly_title }}</h1>
+    <p class="muted">{{ O.monthly_body }}</p>
+    <form method="post" action="/start/monthly" class="onb-form form" novalidate>
+      {% if errors %}<div class="alert danger">{{ icon("alert") }} {{ O.fix_errors }}</div>{% endif %}
+      <section class="onb-group">
+        <div class="fields">{{ field(fields[0], values, errors) }}</div>
+        <label class="onb-check"><input type="checkbox" name="no_income" value="1" {{ 'checked' if values.no_income }}> {{ O.no_income }}</label>
+      </section>
+      <section class="onb-group">
+        <h2>{{ O.fixed_title }}</h2>
+        <div class="fields onb-grid">{% for f in fields[1:] %}{{ field(f, values, errors) }}{% endfor %}</div>
+      </section>
+      <div class="onb-actions">
+        <button type="submit" class="btn wide">{{ O.next }}</button>
+        <a href="/start/sms" class="text-btn">{{ O.skip_step }}</a>
+      </div>
+    </form>
+
+    {% elif step == "sms" %}
+    {% if networth.assets_toman or left is not none %}
+    <div class="onb-summary">
+      {% if networth.assets_toman %}<div><span class="muted small">{{ O.summary_networth }}</span><strong>{{ networth.networth_toman | toman_short }}</strong></div>{% endif %}
+      {% if left is not none %}<div><span class="muted small">{{ O.summary_left if left >= 0 else O.summary_short }}</span><strong class="{{ 'up' if left >= 0 else 'down' }}">{{ left | abs | num }} <small>تومان</small></strong></div>{% endif %}
+    </div>
+    {% endif %}
+    <h1>{{ O.sms_title }}</h1>
+    <p class="muted">{{ O.sms_body }}</p>
+    <div class="onb-sms card">
+      {% if platform == "android" %}
+      <a href="{{ android_pair }}" class="btn wide" hx-boost="false">{{ icon("android") }} {{ O.sms_android }}</a>
+      <p class="muted small">{{ O.sms_android_hint }}</p>
+      {% elif platform == "ios" %}
+      <a href="/sms" class="btn wide">{{ icon("phone") }} {{ O.sms_ios }}</a>
+      <p class="muted small">{{ O.sms_ios_hint }}</p>
+      {% else %}
+      <p>{{ icon("phone") }} {{ O.sms_desktop }}</p>
+      <a href="/sms" class="text-btn">{{ O.sms_page }}</a>
+      {% endif %}
+      <p class="muted small">{{ icon("lock") }} {{ O.sms_safe }}</p>
+    </div>
+    <div class="onb-actions">
+      <a href="/start/card" class="btn {{ 'ghost' if platform in ('android', 'ios') else '' }} wide">{{ O.sms_done if platform in ('android', 'ios') else O.next }}</a>
+      {% if platform in ("android", "ios") %}<a href="/start/card" class="text-btn">{{ O.sms_later }}</a>{% endif %}
+    </div>
+
+    {% elif step == "card" %}
+    <div class="onb-cards" aria-hidden="true">{{ avatar("owl") }}{{ avatar("eagle") }}{{ avatar("coin") }}</div>
+    <h1>{{ O.card_title }}</h1>
+    <p class="muted">{{ O.card_body }}</p>
+    <div class="onb-actions">
+      <a href="/persona" class="btn wide">{{ icon("spark") }} {{ O.card_go }}</a>
+      <a href="/" class="text-btn">{{ O.card_later }}</a>
+    </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}

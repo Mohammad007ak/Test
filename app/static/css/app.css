@@ -2125,3 +2125,54 @@ a.lx-tick { color: inherit; text-decoration: none; }
 .admin-delete[open] { flex-basis: 100%; }
 .admin-delete .form { margin-top: 8px; display: grid; gap: 8px; }
 .admin-pages { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 14px 0; }
+
+/* مصاحبه پرسونا: جوابی که وزیر از داده‌های کاربر حدس زده */
+.q-inferred { display: flex; align-items: center; gap: 6px; margin: -2px 0 8px; font-size: .78rem; color: var(--accent); }
+.q-inferred .i { width: 14px; height: 14px; }
+
+/* راه‌اندازی اولیه (/start) */
+.onb { min-height: 100dvh; display: flex; flex-direction: column; background: var(--bg); }
+.onb-head { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+            background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(12px); }
+.onb-head img { border-radius: 10px; flex: none; }
+.onb-progress { flex: 1; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.onb-progress span { display: block; height: 100%; width: var(--p); background: var(--grad); border-radius: 3px; transition: width .4s; }
+.onb-skip { font-size: .8rem; white-space: nowrap; }
+.onb-body { width: 100%; max-width: 560px; margin: 0 auto; padding: 8px 16px calc(32px + env(safe-area-inset-bottom)); }
+.onb-body h1 { font-size: 1.6rem; font-weight: 900; margin: 4px 0 8px; line-height: 1.4; }
+.onb-body > p.muted { line-height: 1.9; margin-bottom: 18px; }
+.onb-step { margin-top: 8px; }
+.onb-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.onb-choice { position: relative; }
+.onb-choice input { position: absolute; opacity: 0; inset: 0; }
+.onb-choice span { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 96px; padding: 12px 6px;
+                   border-radius: 18px; background: var(--surface); border: 2px solid transparent; text-align: center; cursor: pointer;
+                   transition: border-color .15s, background .15s, transform .15s; }
+.onb-choice .i { width: 28px; height: 28px; color: var(--muted); }
+.onb-choice b { font-size: .86rem; font-weight: 700; }
+.onb-choice input:checked + span { border-color: var(--accent); background: var(--accent-soft); }
+.onb-choice input:checked + span .i { color: var(--accent); }
+.onb-choice input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.onb-choice input:active + span { transform: scale(.97); }
+.onb-group { background: var(--surface); border-radius: 20px; padding: 16px; margin-bottom: 12px; }
+.onb-group h2 { display: flex; align-items: center; gap: 8px; font-size: 1rem; margin-bottom: 10px; }
+.onb-group h2 .i { width: 20px; height: 20px; color: var(--accent); }
+.onb-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 10px; }
+.onb-check { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: .9rem; }
+.onb-check input { width: 20px; height: 20px; min-height: 0; }
+.onb-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px; }
+.onb-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 8px 0 18px; }
+.onb-summary > div { background: var(--surface); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.onb-summary strong { font-size: 1.3rem; font-weight: 900; }
+.onb-summary strong.up { color: var(--good, var(--accent)); }
+.onb-summary strong.down { color: var(--bad); }
+.onb-sms { display: grid; gap: 10px; }
+.onb-sms p { display: flex; gap: 6px; align-items: flex-start; }
+.onb-sms .i { flex: none; width: 18px; height: 18px; margin-top: 3px; }
+.onb-cards { display: flex; justify-content: center; margin: 24px 0 8px; }
+.onb-cards .avatar { width: 72px; height: 72px; margin: 0 -10px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.onb-cards .avatar:nth-child(2) { transform: translateY(-10px) scale(1.12); z-index: 1; }
+.onb-resume { display: flex; align-items: center; gap: 14px; padding: 16px; margin-bottom: 14px; border-radius: 20px; text-decoration: none; color: inherit;
+              background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--surface); border: 1.5px solid var(--accent-soft); }
+.onb-resume-text { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.onb-resume-text small { color: var(--muted); line-height: 1.7; }

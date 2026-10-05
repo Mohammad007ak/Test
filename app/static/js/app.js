@@ -435,21 +435,56 @@
       step.classList.add("answered");
       progress();
     }
+    // جواب‌های قبلی: «کار=دانشجو» برچسب گزینه‌های درآمد را عوض می‌کند و هدف در متن سؤال می‌نشیند
+    function chosen() {
+      var map = {};
+      checked(app).forEach(function (input) { map[input.name] = input; });
+      return map;
+    }
+    function personalize(step) {
+      var picked = chosen();
+      var msg = step.querySelector("[data-template]");
+      if (msg) {
+        var goal = picked.goal;
+        msg.textContent = goal ? msg.dataset.template.replace("{goal}", goal.nextElementSibling.textContent)
+                               : msg.dataset.default;
+      }
+      if (!step.dataset.variants) return;
+      var variants = JSON.parse(step.dataset.variants), labels = Object.assign({}, variants["default"]);
+      Object.keys(variants).forEach(function (cond) {
+        var parts = cond.split("="), input = picked[parts[0]];
+        if (parts.length === 2 && input && input.value === parts[1]) Object.assign(labels, variants[cond]);
+      });
+      step.querySelectorAll("[data-option]").forEach(function (span) {
+        span.textContent = labels[span.dataset.option] || span.textContent;
+      });
+    }
     function reveal(index) {
       var step = steps[index];
       if (!step || step.classList.contains("shown")) return;
-      if (reduced) { step.classList.add("shown"); toBottom(); return; }
+      personalize(step);
+      function shown() {
+        step.classList.add("shown");
+        toBottom();
+        // جوابی که وزیر از داده‌های کاربر حدس زده: نشان داده می‌شود و مصاحبه جلو می‌رود
+        if (step.hasAttribute("data-inferred") && checked(step).length) {
+          answer(step);
+          setTimeout(function () { reveal(index + 1); }, reduced ? 0 : 350);
+        }
+      }
+      if (reduced) { shown(); return; }
       var typing = document.createElement("div");
       typing.className = "chat-row vazir";
       typing.innerHTML = '<div class="chat-msg vazir typing"><i></i><i></i><i></i></div>';
       step.parentNode.insertBefore(typing, step);
       toBottom();
-      setTimeout(function () { typing.remove(); step.classList.add("shown"); toBottom(); }, 550);
+      setTimeout(function () { typing.remove(); shown(); }, 550);
     }
 
     // پاسخ‌های قبلی (دوباره جواب دادن) همه باز می‌مانند تا هر کدام با یک ضربه عوض شود
     for (var i = 0; i < steps.length; i++) {
       var step = steps[i];
+      personalize(step);
       step.classList.add("shown");
       if (step.hasAttribute("data-final")) break;
       if (!checked(step).length) break;
@@ -460,6 +495,7 @@
     app.addEventListener("change", function (e) {
       var step = e.target.closest(".q");
       if (!step || e.target.type !== "radio") return;
+      steps.slice(steps.indexOf(step) + 1).forEach(personalize);
       answer(step);
       setTimeout(function () { reveal(steps.indexOf(step) + 1); }, reduced ? 0 : 180);
     });

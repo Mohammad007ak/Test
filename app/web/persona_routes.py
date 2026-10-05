@@ -8,11 +8,13 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from starlette.datastructures import FormData
 
+from app import onboarding_service as onboarding
 from app import services
 from app.assistant import interview
 from app.assistant.client import AssistantError, ChatModel
 from app.domain.money import to_persian_digits
 from app.domain.normalize import normalize_chars
+from app.domain.onboarding import infer_persona
 from app.domain.persona import QUESTIONS, PersonaError, parse_answers, stats
 from app.domain.persona_cards import rarity
 from app.domain.spending import TEHRAN
@@ -32,15 +34,21 @@ def _multi_values(form: FormData) -> list[str]:
     return [str(v) for q in QUESTIONS if q.multi for v in form.getlist(q.key)]
 
 
-def _opener() -> dict[str, Any]:
-    return {"role": "assistant", "content": s.T["persona_opener"],
+def known_answers(db: Db) -> dict[str, object]:
+    """حدس جواب‌ها از دارایی و دخل و خرجی که کاربر ثبت کرده (پیش‌فرض، قابل تغییر)."""
+    return infer_persona(onboarding.snapshot(db, onboarding.load_state(db)))
+
+
+def _opener(known: dict[str, object]) -> dict[str, Any]:
+    text = s.T["persona_opener_known"] if known else s.T["persona_opener"]
+    return {"role": "assistant", "content": text,
             "suggestions": list(s.PERSONA_OPENER_SUGGESTIONS)}
 
 
 def _chat(db: Db) -> list[dict[str, Any]]:
     raw = services.get_user_setting(db, CHAT_KEY)
     messages = json.loads(raw) if raw else []
-    return messages or [_opener()]
+    return messages or [_opener(known_answers(db))]
 
 
 def _used_today(db: Db) -> tuple[str, int]:
@@ -55,11 +63,15 @@ def register_persona_routes(app: FastAPI, model: ChatModel | None = None) -> Non
                    answers: dict[str, object] | None = None, note: str = "",
                    status: int = 200) -> Response:
         stored = services.load_persona(db)
+        inferred: dict[str, object] = {}
         if answers is None and stored is not None:
             answers, note = stored.persona.answers, stored.note
+        elif answers is None:  # بار اول: جواب‌هایی که از داده‌های ثبت‌شده معلوم است
+            answers = inferred = known_answers(db)
         return page(request, "persona_interview.html", {
             "active": "persona", "questions": QUESTIONS, "answers": answers or {},
-            "note": note, "error": error, "has_persona": stored is not None}, status)
+            "inferred": inferred, "note": note, "error": error,
+            "has_persona": stored is not None}, status)
 
     def interview_page(request: Request, db: Db) -> Response:
         if model is None:
@@ -112,7 +124,7 @@ def register_persona_routes(app: FastAPI, model: ChatModel | None = None) -> Non
         messages = _chat(db)
         history = [{"role": m["role"], "content": m["content"]} for m in messages]
         try:
-            result = interview.turn(model, history, text)
+            result = interview.turn(model, history, text, known_answers(db))
         except AssistantError as exc:
             return turn_fragment(request, str(exc), error=True)
         services.set_user_setting(db, USAGE_KEY, json.dumps({"date": today, "count": used + 1}))

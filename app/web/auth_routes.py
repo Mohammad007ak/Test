@@ -159,7 +159,7 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService,
         db.commit()
         auth.log_in(request, user)
         request.session["toast"] = s.T["welcome"]
-        return redirect("/")
+        return redirect("/start")
 
     @app.get("/forgot", response_class=HTMLResponse)
     def forgot_form(request: Request) -> Response:
@@ -224,4 +224,4 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService,
         db.commit()
         auth.log_in(request, user)
         request.session["toast"] = s.T["welcome" if purpose == "signup" else "password_changed"]
-        return redirect("/")
+        return redirect("/start" if purpose == "signup" else "/")

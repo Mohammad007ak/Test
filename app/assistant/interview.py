@@ -6,6 +6,7 @@
 """
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -63,8 +64,28 @@ SYSTEM = """تو «وزیر» هستی، وزیر مالی شخصی کاربر �
 """
 
 
-def system_prompt() -> str:
-    return SYSTEM.format(fields=_field_guide())
+KNOWN = """
+از دارایی‌ها و دخل و خرجی که کاربر خودش در اپ ثبت کرده، این موارد را حدس زده‌ایم:
+{facts}
+این‌ها را دوباره کامل نپرس. اگر لازم شد، فقط در یک جمله کوتاه تأیید بگیر (مثلاً «دیدم طلا داری،
+پس با طلا آشنایی»)؛ در save_persona همین‌ها را بگذار، مگر کاربر خلافش را گفته باشد. وقتت را
+روی چیزهایی بگذار که از داده معلوم نیست (سن، کار، هدف، واکنش به ریسک).
+"""
+
+
+def _facts(known: Mapping[str, object]) -> str:
+    lines = []
+    for key, value in known.items():
+        text, options = s.PERSONA_QUESTIONS[key]
+        values = value if isinstance(value, list) else [value]
+        labels = "، ".join(f"{v}={options.get(str(v), v)}" for v in values)
+        lines.append(f"- {key}: {labels}")
+    return "\n".join(lines)
+
+
+def system_prompt(known: Mapping[str, object] | None = None) -> str:
+    prompt = SYSTEM.format(fields=_field_guide())
+    return prompt + KNOWN.format(facts=_facts(known)) if known else prompt
 
 
 def _save_tool() -> dict[str, Any]:
@@ -112,8 +133,12 @@ def _ask(arguments: dict[str, Any]) -> Turn:
                 suggestions=[x for x in dict.fromkeys(suggestions) if x][:MAX_SUGGESTIONS])
 
 
-def _save(arguments: dict[str, Any]) -> Turn:
-    """جواب‌ها با همان اعتبارسنجی فرم دامنه؛ مورد ناقص PersonaError می‌دهد تا مدل بپرسد."""
+def _save(arguments: dict[str, Any], known: Mapping[str, object]) -> Turn:
+    """جواب‌ها با همان اعتبارسنجی فرم دامنه؛ مورد ناقص PersonaError می‌دهد تا مدل بپرسد.
+
+    موردی که مدل نگفته ولی از داده‌های کاربر معلوم است، از همان حدس پر می‌شود.
+    """
+    arguments = {**{k: v for k, v in known.items() if k not in arguments}, **arguments}
     single = {k: str(v) for k, v in arguments.items() if isinstance(v, str)}
     multi = [str(v) for q in QUESTIONS if q.multi
              for v in (arguments.get(q.key) or []) if isinstance(arguments.get(q.key), list)]
@@ -122,9 +147,14 @@ def _save(arguments: dict[str, Any]) -> Turn:
                 notes=str(arguments.get("notes") or "").strip())
 
 
-def turn(model: ChatModel, history: list[dict[str, str]], text: str) -> Turn:
-    """یک نوبت مصاحبه: پیام کاربر (پوشانده‌شده) ← سؤال بعدی یا پرسونای کامل."""
-    messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt()},
+def turn(model: ChatModel, history: list[dict[str, str]], text: str,
+         known: Mapping[str, object] | None = None) -> Turn:
+    """یک نوبت مصاحبه: پیام کاربر (پوشانده‌شده) ← سؤال بعدی یا پرسونای کامل.
+
+    known: جواب‌هایی که از داده‌های ثبت‌شده کاربر حدس زده شده (app.domain.onboarding).
+    """
+    known = known or {}
+    messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt(known)},
                                       *history, {"role": "user", "content": text}]
     for _ in range(MAX_ROUNDS):
         reply = model.complete(messages, TOOLS)
@@ -148,7 +178,7 @@ def turn(model: ChatModel, history: list[dict[str, str]], text: str) -> Turn:
                         return result
                     feedback = "question خالی است."
                 elif function.get("name") == "save_persona":
-                    return _save(arguments)
+                    return _save(arguments, known)
                 else:
                     feedback = "ابزار ناشناخته."
             except PersonaError as exc:

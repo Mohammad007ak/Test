@@ -74,3 +74,22 @@ def test_tools_and_prompt_cover_every_field() -> None:
     assert {"age", "drop", "interests", "tone", "summary"} <= set(props)
     assert props["drop"]["enum"] == ["sell", "wait", "buy"]
     assert "drop" in system_prompt() and "ask_user" in system_prompt()
+
+
+def test_known_facts_reach_the_prompt_and_fill_the_save() -> None:
+    known = {"housing": "renter", "interests": ["gold", "fx"]}
+    prompt = system_prompt(known)
+    assert "housing: renter=مستأجرم" in prompt and "fx=دلار و ارز" in prompt
+    assert "حدس زده‌ایم" not in system_prompt()
+    partial = {k: v for k, v in FULL.items() if k not in ("housing", "interests")}
+    model = Script(call("save_persona", {**partial, "summary": "تو…"}))
+    result = turn(model, [], "تمام", known)
+    assert result.answers is not None
+    assert result.answers["housing"] == "renter" and result.answers["interests"] == ["gold", "fx"]
+    assert model.seen[0][0]["content"] == prompt
+
+
+def test_user_correction_beats_known_fact() -> None:
+    model = Script(call("save_persona", {**FULL, "housing": "owner", "summary": "تو…"}))
+    result = turn(model, [], "خونه مال خودمه", {"housing": "renter"})
+    assert result.answers is not None and result.answers["housing"] == "owner"

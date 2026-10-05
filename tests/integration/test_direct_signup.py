@@ -38,7 +38,7 @@ def test_signup_form_asks_for_password_not_code(client: TestClient) -> None:
 
 def test_signup_logs_in_and_password_works_later(client: TestClient) -> None:
     response = signup(client, "۰۹۱۲۱۲۳۴۵۶۷")
-    assert response.status_code == 303 and response.headers["location"] == "/"
+    assert response.status_code == 303 and response.headers["location"] == "/start"
     assert client.get("/more", follow_redirects=False).status_code == 200
     client.post("/logout")
     assert client.get("/more", follow_redirects=False).status_code == 303

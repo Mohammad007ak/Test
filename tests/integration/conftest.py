@@ -29,4 +29,4 @@ def register(client: TestClient, phone: str = PHONE, password: str = PASSWORD) -
     assert response.headers["location"] == "/verify", response.text
     response = client.post("/verify", data={"code": last_code(client, phone), "password": password,
                                             "password_repeat": password}, follow_redirects=False)
-    assert response.status_code == 303 and response.headers["location"] == "/", response.text
+    assert response.status_code == 303 and response.headers["location"] == "/start", response.text

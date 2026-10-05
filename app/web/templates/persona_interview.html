@@ -15,12 +15,16 @@
       {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
       {% for q in questions %}
       {% set text, options = s.PERSONA_QUESTIONS[q.key] %}
-      <div class="q" role="group" aria-labelledby="q-{{ q.key }}" {{ 'data-multi' if q.multi }}>
-        <div class="chat-row vazir"><div class="chat-msg vazir" id="q-{{ q.key }}">{{ text }}</div></div>
+      {% set variants = s.PERSONA_LABEL_VARIANTS.get(q.key) %}
+      {% set template = s.PERSONA_QUESTION_TEMPLATES.get(q.key) %}
+      <div class="q" role="group" aria-labelledby="q-{{ q.key }}" {{ 'data-multi' if q.multi }} {{ 'data-inferred' if q.key in inferred }}
+           {% if variants %}data-variants='{{ dict(variants, default=options) | tojson }}'{% endif %}>
+        <div class="chat-row vazir"><div class="chat-msg vazir" id="q-{{ q.key }}" {% if template %}data-template="{{ template }}" data-default="{{ text }}"{% endif %}>{{ text }}</div></div>
+        {% if q.key in inferred %}<p class="q-inferred">{{ icon("spark") }} {{ T.persona_inferred }}</p>{% endif %}
         <div class="choices">
           {% for key, label in options.items() %}
           {% set chosen = answers.get(q.key) %}
-          <label class="choice"><input type="{{ 'checkbox' if q.multi else 'radio' }}" name="{{ q.key }}" value="{{ key }}" {{ 'checked' if (q.multi and chosen and key in chosen) or chosen == key }} {{ 'required' if not q.multi }}><span>{{ label }}</span></label>
+          <label class="choice"><input type="{{ 'checkbox' if q.multi else 'radio' }}" name="{{ q.key }}" value="{{ key }}" {{ 'checked' if (q.multi and chosen and key in chosen) or chosen == key }} {{ 'required' if not q.multi }}><span data-option="{{ key }}">{{ label }}</span></label>
           {% endfor %}
           {% if q.multi %}<button type="button" class="btn small q-next" data-next>{{ T.persona_next }}</button>{% endif %}
         </div>

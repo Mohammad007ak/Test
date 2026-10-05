@@ -23,6 +23,13 @@
 </div>
 
 {% if empty %}
+{% if not onboarding_done %}
+<a href="/start" class="onb-resume">
+  <span class="bubble s1 big">{{ icon("spark") }}</span>
+  <span class="onb-resume-text"><strong>{{ s.ONBOARDING.resume_title }}</strong><small>{{ s.ONBOARDING.resume_body }}</small></span>
+  {{ icon("chev", "end") }}
+</a>
+{% endif %}
 {% include "_watchlist.html" %}
 {% if not has_persona %}
 <a href="/persona" class="persona-cta">

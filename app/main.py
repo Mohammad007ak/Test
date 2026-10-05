@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.sessions import SessionMiddleware
 
+from app import onboarding_service as onboarding
 from app import price_history, price_refresh, services
 from app.adapters.prices import AlanchandSource, PriceSource, ShakhesbanSource
 from app.adapters.prices.history import AlanchandHistory, HistorySource
@@ -53,6 +54,7 @@ from app.web.entities import ENTITIES, build_entity
 from app.web.forms import Field, FormError
 from app.web.learn_routes import paths as learn_paths
 from app.web.learn_routes import register_learn_routes
+from app.web.onboarding_routes import register_onboarding_routes
 from app.web.passkey_routes import register_passkey_routes
 from app.web.persona_routes import register_persona_routes
 from app.web.price_pages import PAGES as PRICE_PAGES
@@ -184,6 +186,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_learn_routes(app)
     register_split_routes(app)
     register_admin_routes(app)
+    register_onboarding_routes(app)
     _register_routes(app)
     return app
 
@@ -250,6 +253,7 @@ def _register_routes(app: FastAPI) -> None:
             "deposits": deposits,
             "avatar_key": services.avatar(db),
             "has_persona": services.get_user_setting(db, services.PERSONA_KEY) is not None,
+            "onboarding_done": onboarding.load_state(db).done,
         })
 
     @app.get("/sw.js", include_in_schema=False)
