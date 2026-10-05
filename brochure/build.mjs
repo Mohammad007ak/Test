@@ -71,16 +71,16 @@ function cover() {
       <img class="logo" src="${img("logo-white.png")}" alt="digipay">
       <h1>${C.meta.title}</h1>
       <div class="sub">${C.meta.subtitle}</div>
-      <div class="partner"><span>قدرت گرفته از</span><img src="${img("tejarat-white.png")}" alt="بانک تجارت"><span class="sep"></span><img src="${img("digikala-white.png")}" alt="دیجی‌کالا"></div>
+      ${BOARD
+        ? `<div class="partner"><span>عضو گروه</span><img src="${img("digikala-white.png")}" alt="دیجی‌کالا"></div>`
+        : `<div class="partner"><span>قدرت گرفته از</span><img src="${img("tejarat-white.png")}" alt="بانک تجارت"><span class="sep"></span><img src="${img("digikala-white.png")}" alt="دیجی‌کالا"></div>`}
     </div>
     <div class="date">${C.meta.date}</div>
   </section>`;
 }
 
 function toc(n) {
-  const rows = pages
-    .map((p, i) => (p.toc ? { ...p.toc, pg: i + 1 } : null))
-    .filter(Boolean);
+  const rows = pages.flatMap((p, i) => (p.toc ? [].concat(p.toc).map((t) => ({ ...t, pg: i + 1 })) : []));
   const half = Math.ceil(rows.length / 2);
   // keep sections together: split at the first section header at/after half
   let cut = rows.findIndex((r, i) => i >= half - 2 && r.level === "sec");
@@ -148,7 +148,7 @@ function glancePage(n) {
         .map((s) => `<div class="s"><span class="n">${s.n}</span><span class="t">${s.t}</span></div>`)
         .join("")}</div>
       <div class="partnerband">
-        <div class="p"><img src="${img("tejarat-white.png")}" alt=""><span>قدرت گرفته از بانک تجارت</span></div>
+        ${BOARD ? "" : `<div class="p"><img src="${img("tejarat-white.png")}" alt=""><span>قدرت گرفته از بانک تجارت</span></div>`}
         <div class="p"><img src="${img("digikala-white.png")}" alt=""><span>قدرت گرفته از گروه تجارت الکترونیک دیجی‌کالا</span></div>
       </div>
       <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:12mm;margin-top:9mm">
@@ -426,7 +426,9 @@ function clientsPage(n) {
       <div class="h-title" style="font-size:24pt;color:var(--bright);line-height:1.5">سازمان‌های بزرگی که<br>به ما اعتماد کرده‌اند</div>
       <p class="lead">برخی از سازمان‌ها و شرکت‌های همکار دیجی‌پی</p>
     </div>
-    <div style="padding:0 6mm 0 16mm"><img src="${img("clients.png")}" style="width:100%" alt=""></div>
+    <div class="cgrid">${JSON.parse(readFileSync(path.join(ROOT, "assets/clients/clients.json"), "utf8"))
+      .map((c) => `<div class="c"><img src="assets/clients/${c.id}.png" alt="${c.fa}"></div>`)
+      .join("")}</div>
     ${footer(n)}</section>`;
 }
 
@@ -618,6 +620,33 @@ function summaryPage(n) {
     </div>${footer(n)}</section>`;
 }
 
+
+function multiProductPage(n, keys, eyebrow) {
+  const cards = keys.map((k) => {
+    const p = products[k];
+    const feats = (p.features || (p.groups || []).map((g) => ({ icon: g.icon, t: `${g.t}؛ ${g.d}` }))).slice(0, 4);
+    const pill = (p.pills || []).find((x) => x.primary);
+    const cos = (p.cos || []).map((id) => C.group.find((g) => g.id === id)).filter(Boolean);
+    return `<div class="mcard">
+      <div class="mimg" style="background-image:url(${img(p.photo)});background-position:${p.bandPos || "center 55%"}"></div>
+      <div class="mbody">
+        <div class="mhead"><span class="num-badge">${faDigits(p.no)}</span><div><div class="mt">${p.title}${p.status ? `<span class="status">${p.status}</span>` : ""}</div><div class="en">${p.en}</div></div></div>
+        <p class="mlead">${p.lead}</p>
+        ${segChips(p.seg, { onlyActive: true })}
+        <ul class="feat">${feats.map((f) => `<li>${icon(f.icon)}<span>${f.t}</span></li>`).join("")}</ul>
+        ${pill ? `<div class="pill primary">${icon(pill.icon)}<span>${pill.t}</span></div>` : ""}
+        ${p.val ? `<div class="mval"><div class="k">${icon("sparkles")}ارزش برای دیجی‌پی و گروه</div><ul>${p.val.group.map((x) => `<li>${x}</li>`).join("")}</ul></div>` : ""}
+        ${cos.length ? `<div class="cochips"><span class="k">هم‌افزایی با گروه</span>${cos.map((g) => `<span class="co">${icon(g.icon)}${g.fa}</span>`).join("")}</div>` : ""}
+      </div>
+    </div>`;
+  });
+  return `<section class="page pale multi">
+    <div class="content" style="inset:11mm 13mm 18mm 13mm">
+      <div class="eyebrow">${eyebrow}</div>
+      <div class="mcols c${keys.length}">${cards.join("")}</div>
+    </div>${footer(n)}</section>`;
+}
+
 // ---------------------------------------------------------------- assemble
 function addSections({ deep }) {
   sections.forEach((sec, si) => {
@@ -652,20 +681,37 @@ function addSections({ deep }) {
 add(() => cover());
 add((n) => toc(n));
 if (BOARD) {
-  add((n) => introBoardPage(n), { label: "درباره این سند", level: "" });
-  add((n) => divider(n, { title: "دیجی‌پی در یک نگاه", en: ["Digipay", "at a glance"] }), { label: "دیجی‌پی در یک نگاه", level: "sec" });
-  add((n) => glancePage(n), { label: "آمار، خدمات و خط زمانی", level: "sub" });
-  add((n) => networkPage(n), { label: "شبکه پذیرندگان دیجی‌پی", level: "sub" });
+  // compact board deck: no section dividers; B2O in depth, other products 2-3 per page
+  const S = Object.fromEntries(sections.map((x) => [x.id, x]));
+  const numberAll = () => sections.forEach((sec) => sec.products.forEach((k) => (products[k].no = ++productNo)));
+  numberAll();
+  add((n) => glancePage(n), { label: "دیجی‌پی در یک نگاه", level: "sec" });
   add((n) => merchantsPage(n), { label: "برخی از پذیرندگان طرف قرارداد", level: "sub" });
   add((n) => matrixPage(n), { label: "نقشه محصولات به تفکیک مشتری", level: "sec" });
-  addSections({ deep: true });
-  const k = sections.length + 1;
-  add((n) => divider(n, { title: "هم‌افزایی در گروه دیجی‌کالا", en: ["Digikala Group", "Synergy"], desc: "جایگاه دیجی‌پی در اکوسیستم گروه، فرصت‌های کلیدی هم‌افزایی و چرخه ارزش.", kicker: `بخش ${faDigits(k)}`, big: `0${k}` }), { label: "هم‌افزایی در گروه دیجی‌کالا", level: "sec" });
-  add((n) => ecosystemPage(n), { label: "دیجی‌پی در اکوسیستم گروه", level: "sub" });
+  add((n) => b2oOverviewPage(n), [{ label: S.org.title, level: "sec" }, { label: "چرا راهکارهای سازمانی (B2O)؟", level: "sub" }]);
+  add((n) => clientsPage(n), { label: "سازمان‌های همکار", level: "sub" });
+  S.org.products.forEach((k) => {
+    const p = products[k];
+    productPage[k] = pages.length + 1;
+    add((n) => (k === "welfare" ? welfarePage(n, k) : productPageHtml(n, k)), { label: p.title, level: "sub" });
+    if (p.deep && k !== "procredit") add((n) => deepDivePage(n, k));
+  });
+  const groups = [
+    ["biz", [["merchantbnpl", "workingcapital"], ["earlysettlement", "adservice"]]],
+    ["retail", [["bnpl", "ccredit"], ["digicard", "wealth", "insurance"], ["daily", "crypto"]]],
+  ];
+  groups.forEach(([sid, pagesOf]) => {
+    pagesOf.forEach((keys, i) => {
+      keys.forEach((k) => (productPage[k] = pages.length + 1));
+      const toc = keys.map((k) => ({ label: products[k].title, level: "sub" }));
+      if (i === 0) toc.unshift({ label: S[sid].title, level: "sec" });
+      add((n) => multiProductPage(n, keys, S[sid].title), toc);
+    });
+  });
+  add((n) => ecosystemPage(n), [{ label: "هم‌افزایی در گروه دیجی‌کالا", level: "sec" }, { label: "دیجی‌پی در اکوسیستم گروه", level: "sub" }]);
   add((n) => synergyIdeasPage(n), { label: "فرصت‌های کلیدی هم‌افزایی", level: "sub" });
   add((n) => flywheelPage(n), { label: "چرخه ارزش دیجی‌پی در گروه", level: "sub" });
   add((n) => summaryPage(n), { label: "جمع‌بندی", level: "sec" });
-  add((n) => contactPage(n), { label: "راه‌های ارتباطی", level: "sec" });
   add(() => backPage());
 } else {
   add((n) => introPage(n), { label: "درباره این سند", level: "" });

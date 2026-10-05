@@ -230,9 +230,16 @@ const extra = {
   },
 };
 
+// focal point of each photo inside the short image band on multi-product pages
+const bandPos = {
+  merchantbnpl: "center 45%", workingcapital: "center 60%", earlysettlement: "55% 62%", adservice: "center 50%",
+  bnpl: "center 48%", ccredit: "center 60%", digicard: "center 45%", wealth: "35% 72%", insurance: "center 35%",
+  daily: "center 45%", crypto: "center 50%",
+};
+
 export const products = Object.fromEntries(
   Object.entries(base.products).map(([k, p]) => {
-    const q = { ...p, seg: toBoardSeg(p.seg), ...(extra[k] || {}) };
+    const q = { ...p, seg: toBoardSeg(p.seg), ...(extra[k] || {}), bandPos: bandPos[k] };
     delete q.bankNote;
     delete q.guide;
     delete q.compactGuide;

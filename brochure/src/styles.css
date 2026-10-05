@@ -440,3 +440,38 @@ table.matrix th, table.matrix td { padding-top: 1.15mm; padding-bottom: 1.15mm; 
 .summ .vcard .ic { width: 11mm; height: 11mm; }
 .summ .vcard h5 { font-size: 13pt; margin-bottom: 2.5mm; }
 .summ .vcard p { font-size: 10pt; line-height: 1.95; }
+
+/* ---------- client logo grid ---------- */
+.cgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7mm 6mm; padding: 0 6mm 0 14mm; align-items: center; }
+.cgrid .c { height: 22mm; display: grid; place-items: center; }
+.cgrid .c img { max-width: 100%; max-height: 20mm; object-fit: contain; }
+
+/* ---------- multi-product page (board) ---------- */
+.multi .eyebrow { font-size: 9pt; color: var(--bright); font-weight: 800; margin-bottom: 3mm; }
+.mcols { display: grid; gap: 5mm; height: calc(100% - 9mm); }
+.mcols.c2 { grid-template-columns: 1fr 1fr; }
+.mcols.c3 { grid-template-columns: 1fr 1fr 1fr; gap: 4mm; }
+.mcard { background: #fff; border-radius: 4mm; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 .8mm 3mm rgba(21,71,158,.07); }
+.mimg { height: 44mm; background-size: cover; flex: none; }
+.c3 .mimg { height: 38mm; }
+.mbody { padding: 4mm 5mm 4mm; display: flex; flex-direction: column; gap: 2.2mm; }
+.mhead { display: flex; align-items: center; gap: 2.5mm; }
+.mhead .num-badge { width: 8.5mm; height: 8.5mm; font-size: 11pt; margin: 0; border-radius: 2.2mm; flex: none; }
+.mhead .mt { font-size: 13pt; font-weight: 800; color: var(--navy); line-height: 1.3; }
+.mhead .en { font-size: 7.6pt; color: var(--sky); }
+.mlead { font-size: 8.4pt; line-height: 1.8; color: var(--ink-2); }
+.c3 .mlead { font-size: 8pt; line-height: 1.75; }
+.mbody .segs { margin-top: 0; }
+.mbody .feat { margin-top: 0; gap: 1.6mm; }
+.mbody .feat li { font-size: 8.3pt; line-height: 1.5; }
+.mbody .feat .ic { width: 5.5mm; height: 5.5mm; }
+.c3 .mbody .feat li { font-size: 7.9pt; }
+.mbody .pill { padding: 2.2mm 3mm; font-size: 8pt; }
+.mbody .pill .ic { width: 5.5mm; height: 5.5mm; }
+.mval { background: var(--pale); border-radius: 2.5mm; padding: 2.4mm 3mm; }
+.mval .k { display: flex; align-items: center; gap: 1.5mm; font-size: 7.8pt; font-weight: 800; color: var(--bright); margin-bottom: 1mm; }
+.mval .k .ic { width: 4mm; height: 4mm; }
+.mval ul { list-style: none; display: grid; gap: .6mm; }
+.mval li { font-size: 7.9pt; line-height: 1.6; position: relative; padding-right: 3mm; }
+.mval li::before { content: ""; position: absolute; right: 0; top: 1.9mm; width: 1.2mm; height: 1.2mm; border-radius: 50%; background: var(--sky); }
+.mbody .cochips { margin-top: 0; }
