@@ -29,7 +29,19 @@
 
   /* ۱ قلاب */
   #kick { top: 470px; font-size: 54px; font-weight: 300; letter-spacing: 2px; color: rgba(242,245,241,.8); }
-  #big { top: 560px; font-size: 330px; font-weight: 900; line-height: 1.05; }
+  #big { top: 560px; font-size: 330px; font-weight: 900; line-height: 1.05;
+         background: linear-gradient(105deg, #c98a24 0%, #f5c76a 30%, #fff9e3 42%, #ffffff 46%, #fff9e3 50%, #f5c76a 62%, #c98a24 100%);
+         background-size: 320% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #big2 .uline { display: block; height: 6px; margin: 10px auto 0; width: 520px; border-radius: 3px; transform-origin: right;
+                 background: linear-gradient(90deg, transparent, #f5c76a 30%, #fff4c9 50%, #f5c76a 70%, transparent); }
+  .sp { position: absolute; width: 0; height: 0; z-index: 5; }
+  .sp::before, .sp::after { content: ""; position: absolute; left: -2px; top: calc(var(--r) * -1); width: 4px; height: calc(var(--r) * 2); border-radius: 2px;
+        background: linear-gradient(transparent, #fffbe8 45%, #fffbe8 55%, transparent); filter: drop-shadow(0 0 8px rgba(255,220,140,.9)); }
+  .sp::after { transform: rotate(90deg); }
+  .dust { position: absolute; width: var(--d); height: var(--d); border-radius: 50%; background: #ffe2a0; filter: blur(1px);
+          box-shadow: 0 0 12px rgba(245,199,106,.9); }
+  #beam { position: absolute; top: -200px; left: 0; width: 260px; height: 2400px; z-index: 6; pointer-events: none; mix-blend-mode: screen;
+          background: linear-gradient(90deg, transparent, rgba(255,240,200,.16), transparent); transform-origin: center; }
   #big2 { top: 930px; font-size: 104px; font-weight: 900; }
   #free { top: 1080px; font-size: 150px; font-weight: 900; }
   #hookSub { top: 1420px; font-size: 46px; font-weight: 300; color: rgba(242,245,241,.75); }
@@ -105,11 +117,12 @@
 <div class="abs" id="deadline">تا ۲۵ مهر</div>
 
 <div class="scene" id="s1">
-  <div class="abs center" id="kick">🎉 به مناسبت افتتاح وزیر</div>
+  <div class="abs center" id="kick">🎂 به مناسبت تولد وزیر</div>
   <div class="abs center gold" id="big">۳ ماه</div>
-  <div class="abs center" id="big2">وزیر ویژه</div>
+  <div class="abs center" id="big2">وزیر ویژه<span class="uline" id="uline"></span></div>
   <div class="abs center em" id="free">رایگان</div>
   <div class="abs center" id="hookSub">فقط با سه کار ساده 👇</div>
+  <div id="sparks"></div><div id="dustBox"></div><div id="beam"></div>
 </div>
 
 <div class="scene" id="s2">
@@ -162,7 +175,8 @@
 <div class="abs" id="finger"></div>
 <svg class="grain" width="1080" height="1920"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
 <script>
-const DURATION = 19;
+const DURATION = 23.7;
+const D = 4.7;  // قلاب ۸ ثانیه است؛ بقیه صحنه‌ها همین قدر عقب‌تر
 const $ = (s) => document.querySelector(s);
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const prog = (t, a, b) => clamp((t - a) / (b - a));
@@ -171,7 +185,8 @@ const easeInOut = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 
 const back = (x) => { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
 const FA = "۰۱۲۳۴۵۶۷۸۹", fa = (s) => String(s).replace(/\d/g, (d) => FA[d]);
 
-const SC = { s1: [0, 3.3], s2: [3.3, 12.0], s3: [12.0, 15.2], s4: [15.2, 19.3] };
+const HOOK = 8.0;
+const SC = { s2: [3.3, 12.0], s3: [12.0, 15.2], s4: [15.2, 19.3] };
 const STEPS = [[3.3, 6.2], [6.2, 9.1], [9.1, 12.0]];
 
 // نوار روزها: ۱۳ تا ۲۵ مهر (راست به چپ)
@@ -195,23 +210,70 @@ function pop(sel, t, at, dur = .5, dy = 60) {
 function center(sel) { const r = $(sel).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }
 function press(t, at) { return prog(t, at - .1, at) * (1 - prog(t, at + .1, at + .25)); }
 
-function render(t) {
+// برق‌ها و ذره‌های طلا دور «۳ ماه» (جای ثابت، فقط چشمک با زمان)
+const SPARKS = [[250, 640, 46, 0], [850, 600, 38, .7], [930, 820, 30, 1.5], [170, 860, 34, 2.2], [560, 560, 26, 2.9],
+                [330, 1010, 28, 3.4], [780, 1000, 36, 1.1], [120, 520, 22, 3.9], [980, 470, 26, .3]];
+const sparks = SPARKS.map(([x, y, r]) => { const d = document.createElement("div"); d.className = "sp";
+  d.style.left = x + "px"; d.style.top = y + "px"; d.style.setProperty("--r", r + "px"); $("#sparks").appendChild(d); return d; });
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const DUST = Array.from({ length: 46 }, () => ({ x: rnd() * 1080, y: rnd() * 1920, s: 30 + rnd() * 70, d: 3 + rnd() * 7, ph: rnd() * 6.28 }));
+const dust = DUST.map((p) => { const d = document.createElement("div"); d.className = "dust"; d.style.setProperty("--d", p.d + "px");
+  $("#dustBox").appendChild(d); return d; });
+
+function hook(T) {
+  const [, out] = vis($("#s1"), 0, HOOK, T, .3, .45);
+  $("#s1").style.transform = `scale(${1 + out * .12})`;
+  pop("#kick", T, .05, .45, 30);
+  // «۱ ماه ← ۲ ← ۳» تند و بعد ضربه
+  const n = T < .45 ? 1 : T < .7 ? 2 : 3;
+  $("#big").textContent = fa(n) + " ماه";
+  const thump = prog(T, .7, .78) * (1 - prog(T, .78, 1.1));
+  const p = prog(T, .2, .75);
+  $("#big").style.opacity = Math.min(1, p * 2);
+  const breathe = 1 + .025 * Math.sin((T - 1.2) * 2.6) * prog(T, 1.2, 1.8);
+  $("#big").style.transform = `translateY(${(1 - easeOut(p)) * 90}px) scale(${(p > 0 ? back(p) : .7) * (1 + .1 * thump) * breathe})`;
+  // نوار نور روی «۳ ماه» هر ۱٫۶ ثانیه
+  const sweep = ((T - .9) / 1.6) % 1;
+  $("#big").style.backgroundPosition = `${T < .9 ? 100 : 100 - sweep * 100}% 0`;
+  const glow = .45 + .35 * (.5 + .5 * Math.sin(T * 3.4));
+  $("#big").style.filter = `drop-shadow(0 0 ${20 + 40 * glow}px rgba(245,199,106,${glow})) drop-shadow(0 0 4px rgba(255,240,200,.5))`;
+  pop("#big2", T, 1.1, .45);
+  $("#uline").style.transform = `scaleX(${easeOut(prog(T, 1.6, 2.3))})`;
+  $("#uline").style.opacity = .5 + .5 * Math.sin(T * 2.2 + 1);
+  pop("#free", T, 1.5, .5);
+  const fg = .5 + .5 * Math.sin(T * 3.4 + 1.6);
+  $("#free").style.filter = `drop-shadow(0 0 ${14 + 30 * fg}px rgba(62,232,166,${.35 + .4 * fg}))`;
+  if (T > 2.0) $("#free").style.transform = `scale(${1 + .04 * Math.sin((T - 2.0) * 3.4)})`;
+  pop("#hookSub", T, 5.4, .45, 30);
+  if (T > 5.9) $("#hookSub").style.transform = `translateY(${Math.sin((T - 5.9) * 6) * 8}px)`;
+  sparks.forEach((el, i) => {
+    const [, , , ph] = SPARKS[i];
+    const tw = Math.max(0, Math.sin((T * 2.1 + ph) * 1.6));
+    el.style.opacity = tw * prog(T, .8, 1.3);
+    el.style.transform = `scale(${.3 + .9 * tw}) rotate(${T * 40 + i * 20}deg)`;
+  });
+  dust.forEach((el, i) => {
+    const q = DUST[i]; const y = ((q.y - T * q.s) % 1920 + 1920) % 1920;
+    el.style.left = (q.x + Math.sin(T + q.ph) * 18) + "px"; el.style.top = y + "px";
+    el.style.opacity = (.35 + .45 * Math.sin(T * 2 + q.ph) ** 2) * prog(T, .3, 1.2);
+  });
+  // دو بار پرتو نور از روی کل قاب رد می‌شود
+  const b = [2.4, 5.0].map((a) => prog(T, a, a + 1.1)).find((x) => x > 0 && x < 1) ?? 0;
+  $("#beam").style.opacity = b > 0 ? 1 : 0;
+  $("#beam").style.transform = `translateX(${-400 + b * 1900}px) rotate(18deg)`;
+}
+
+function render(T) {
+  hook(T);
+  const t = T - D;
   for (const id of Object.keys(SC)) vis($("#" + id), SC[id][0], SC[id][1], t);
   // پس‌زمینه: هاله طلایی که با قلاب و مهلت قوی‌تر است
-  const warm = Math.max(1 - prog(t, 2.6, 3.6), prog(t, 11.8, 12.6) * (1 - prog(t, 15.0, 15.8)));
+  const warm = Math.max(1 - prog(T, HOOK - .7, HOOK + .3), prog(t, 11.8, 12.6) * (1 - prog(t, 15.0, 15.8)));
   $("#bg").style.background = `radial-gradient(70% 42% at 50% 40%, rgba(245,199,106,${.10 + .22 * warm}), transparent 70%),
     radial-gradient(70% 40% at 50% 100%, rgba(62,232,166,${.16 - .06 * warm}), transparent 70%), #030c08`;
   $("#ray").style.opacity = warm * .9;
-  $("#ray").style.transform = `rotate(${t * 9}deg)`;
+  $("#ray").style.transform = `rotate(${T * 9}deg) scale(${1 + .06 * Math.sin(T * 1.7)})`;
   $("#deadline").style.opacity = prog(t, 3.3, 3.8) * (1 - prog(t, 11.8, 12.1)) + prog(t, 15.4, 15.9);
-
-  // ۱ قلاب: «۳ ماه» با برق طلا
-  pop("#kick", t, .05, .4, 30);
-  pop("#big", t, .25, .6, 90);
-  $("#big").style.backgroundPosition = `0 ${100 - 100 * easeInOut(prog(t, .3, 2.6))}%`;
-  pop("#big2", t, .75, .45);
-  pop("#free", t, 1.05, .5);
-  pop("#hookSub", t, 1.9, .45, 30);
 
   // ۲ سه قدم
   let fx = 540, fy = 1650, fon = 0, pr = 0;
