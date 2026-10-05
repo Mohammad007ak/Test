@@ -1598,8 +1598,8 @@ a.watch-card:active { transform: scale(.96); border-color: var(--accent); }
   background: radial-gradient(260px circle at var(--mx) var(--my), var(--accent-soft), transparent 70%); }
 .lx-card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--accent) 35%, var(--hairline)); }
 .lx-card:hover::before { opacity: 1; }
-.lx-card h3 { font-size: 1.05rem; font-weight: 800; margin: 12px 0 6px; }
-.lx-card p { color: var(--muted); font-size: .88rem; line-height: 1.95; }
+.lx-card h3, .lx-card .lx-h { font-size: 1.05rem; font-weight: 800; margin: 12px 0 6px; }
+.lx-card p:not(.lx-h) { color: var(--muted); font-size: .88rem; line-height: 1.95; }
 
 .lx-chart { display: grid; gap: 20px; align-items: center; padding: 26px 20px; border-radius: 30px;
   background: linear-gradient(170deg, #0f2a20, #07090c); color: #f3f6f9; border: 1px solid rgba(62, 232, 166, .2);
@@ -1638,8 +1638,8 @@ a.watch-card:active { transform: scale(.96); border-color: var(--accent); }
 .lx-steps li { position: relative; padding: 22px 20px; border-radius: 24px; background: color-mix(in srgb, var(--surface) 85%, transparent); border: 1px solid var(--hairline); }
 .lx-step-no { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px; font-weight: 900; font-size: 1.1rem;
   background: var(--grad); color: var(--on-accent); box-shadow: 0 8px 22px var(--accent-glow); }
-.lx-steps h3 { font-size: 1.05rem; font-weight: 800; margin: 12px 0 4px; }
-.lx-steps p { color: var(--muted); font-size: .88rem; line-height: 1.9; }
+.lx-steps h3, .lx-steps .lx-h { font-size: 1.05rem; font-weight: 800; margin: 12px 0 4px; }
+.lx-steps p:not(.lx-h) { color: var(--muted); font-size: .88rem; line-height: 1.9; }
 .lx-privacy { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 30px 20px;
   border-radius: 30px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); }
 .lx-privacy h2 { font-size: 1.4rem; font-weight: 900; }
@@ -1674,7 +1674,7 @@ a.watch-card:active { transform: scale(.96); border-color: var(--accent); }
 /* همه دستگاه‌ها */
 .lx-apps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .lx-app { display: flex; flex-direction: column; }
-.lx-app p { flex: 1; }
+.lx-app p:not(.lx-h) { flex: 1; }
 .lx-app .btn { margin-top: 12px; align-self: flex-start; gap: 6px; }
 @media (max-width: 420px) { .lx-hide-sm { display: none; } }
 
@@ -1682,7 +1682,7 @@ a.watch-card:active { transform: scale(.96); border-color: var(--accent); }
 .lx-faq p { color: var(--text-2); line-height: 1.95; padding-top: 8px; }
 .lx-final { margin: 80px auto 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .lx-final img { border-radius: 22px; box-shadow: 0 18px 50px var(--accent-glow); animation: hover 6s ease-in-out infinite; }
-.lx-final h2 { font-size: clamp(1.4rem, 6vw, 2.2rem); font-weight: 900; }
+.lx-final .lx-final-title { margin: 0; line-height: 1.5; font-size: clamp(1.4rem, 6vw, 2.2rem); font-weight: 900; }
 .lx-final .btn { min-width: 200px; min-height: 54px; }
 .lx-footer { text-align: center; color: var(--muted); font-size: .75rem; padding: 40px 16px calc(var(--safe-b) + 24px); }
 

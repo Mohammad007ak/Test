@@ -124,3 +124,19 @@ def test_logged_in_app_user_goes_to_dashboard(client: TestClient) -> None:
     register(client)
     assert client.get("/?source=android", follow_redirects=False).status_code == 200
     assert client.get("/welcome", follow_redirects=False).headers["location"] == "/"
+
+
+def test_landing_passes_basic_seo_checks(client: TestClient) -> None:
+    import re
+    from collections import Counter
+
+    page = client.get("/").text
+    title = re.search(r"<title>(.*?)</title>", page, re.S).group(1).strip()  # type: ignore[union-attr]
+    description = re.search(r'name="description" content="([^"]*)"', page).group(1)  # type: ignore[union-attr]
+    assert len(title) <= 60 and len(description) <= 160
+    headings = [re.sub(r"<[^>]+>", "", t).strip()
+                for _h, t in re.findall(r"<(h[1-6])[^>]*>(.*?)</\1>", page, re.S)]
+    assert len(headings) <= 20 and page.count("<h1") == 1
+    assert not [t for t, n in Counter(headings).items() if n > 1]
+    alts = re.findall(r'<img[^>]*\balt="([^"]*)"', page)
+    assert len(alts) == page.count("<img") and all(alts) and len(set(alts)) == len(alts)

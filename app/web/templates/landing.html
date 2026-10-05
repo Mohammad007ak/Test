@@ -8,7 +8,7 @@
   <div class="lx-grid" aria-hidden="true"></div>
 
   <header class="lx-nav">
-    <a href="/" class="lx-brand"><img src="{{ static('logo.svg') }}" alt="" width="34" height="34"><strong>{{ s.APP_NAME }}</strong></a>
+    <a href="/" class="lx-brand"><img src="{{ static('logo.svg') }}" alt="{{ s.SEO.logo_alt }}" width="34" height="34"><strong>{{ s.APP_NAME }}</strong></a>
     <nav><a href="/price" class="lx-link lx-hide-sm">{{ s.LANDING.nav_prices }}</a><a href="/learn" class="lx-link lx-hide-sm">{{ s.LEARN.nav }}</a><a href="/login" class="lx-link">{{ s.LANDING.login }}</a><a href="/signup" class="btn small">{{ s.LANDING.cta }}</a></nav>
   </header>
 
@@ -32,7 +32,7 @@
         <div class="lx-orbit" aria-hidden="true">{% for key in ("owl", "unicorn", "coin", "fox", "simorgh", "eagle") %}<span style="--i: {{ loop.index0 }}">{{ avatar(key) }}</span>{% endfor %}</div>
         <div class="lx-phone" aria-hidden="true">
           <div class="lx-notch"></div>
-          <div class="lx-phone-head"><img src="{{ static('logo.svg') }}" alt=""><span><strong>{{ s.LANDING.phone_name }}</strong><small><i></i>{{ s.LANDING.phone_status }}</small></span></div>
+          <div class="lx-phone-head"><img src="{{ static('logo.svg') }}" alt="{{ s.SEO.assistant_alt }}"><span><strong>{{ s.LANDING.phone_name }}</strong><small><i></i>{{ s.LANDING.phone_status }}</small></span></div>
           <div class="lx-chat" data-demo='{{ demo_json }}'></div>
           <div class="lx-phone-input"><span>{{ T.assistant_placeholder }}</span><b>{{ icon("up") }}</b></div>
         </div>
@@ -57,7 +57,7 @@
       <p class="lx-sub" data-reveal>{{ s.LANDING.ai_body }}</p>
       <div class="lx-bento">
         {% for icon_name, title, body, slot in s.LANDING_AI_POINTS %}
-        <article class="lx-card" data-reveal data-spot>{{ bubble(icon_name, slot) }}<h3>{{ title }}</h3><p>{{ body }}</p></article>
+        <article class="lx-card" data-reveal data-spot>{{ bubble(icon_name, slot) }}<p class="lx-h">{{ title }}</p><p>{{ body }}</p></article>
         {% endfor %}
       </div>
     </section>
@@ -125,7 +125,7 @@
       <h2 data-reveal>{{ s.LANDING.features_title }}</h2>
       <div class="lx-features">
         {% for icon_name, title, body, slot in s.LANDING_FEATURES %}
-        <article class="lx-card" data-reveal data-spot>{{ bubble(icon_name, slot) }}<h3>{{ title }}</h3><p>{{ body }}</p></article>
+        <article class="lx-card" data-reveal data-spot>{{ bubble(icon_name, slot) }}<p class="lx-h">{{ title }}</p><p>{{ body }}</p></article>
         {% endfor %}
       </div>
     </section>
@@ -135,7 +135,7 @@
       <h2 data-reveal>{{ s.LANDING.steps_title }}</h2>
       <ol class="lx-steps">
         {% for title, body in s.LANDING_STEPS %}
-        <li data-reveal><span class="lx-step-no">{{ loop.index | fa }}</span><h3>{{ title }}</h3><p>{{ body }}</p></li>
+        <li data-reveal><span class="lx-step-no">{{ loop.index | fa }}</span><p class="lx-h">{{ title }}</p><p>{{ body }}</p></li>
         {% endfor %}
       </ol>
     </section>
@@ -157,7 +157,7 @@
       <div class="lx-apps">
         {% for icon_name, title, body, slot, action in s.LANDING_APPS %}
         {% set apk = icon_name == "android" and apk_url %}
-        <article class="lx-card lx-app" data-reveal data-spot>{{ bubble(icon_name, slot) }}<h3>{{ title }}</h3><p>{{ body }}</p>
+        <article class="lx-card lx-app" data-reveal data-spot>{{ bubble(icon_name, slot) }}<p class="lx-h">{{ title }}</p><p>{{ body }}</p>
           <a href="{{ apk_url if apk else '/install' }}" class="btn {{ '' if apk else 'ghost' }} small"{% if apk %} download{% endif %}>{{ icon("download") if apk else "" }}{{ action if apk or icon_name != "android" else T.install }}</a></article>
         {% endfor %}
       </div>
@@ -194,8 +194,8 @@
     </section>
 
     <section class="lx-final" data-reveal>
-      <img src="{{ static('logo.svg') }}" alt="" width="72" height="72">
-      <h2>{{ s.TAGLINE }}</h2>
+      <img src="{{ static('logo.svg') }}" alt="{{ s.SEO.final_alt }}" width="72" height="72">
+      <p class="lx-final-title">{{ s.TAGLINE }}</p>
       <a href="/signup" class="btn lx-glow">{{ s.LANDING.cta }}</a>
     </section>
   </main>
