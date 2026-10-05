@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>کاروسل طلا یا دلار</title>
+<!--
+  کاروسل اینستاگرام ۵ اسلایدی (۱۰۸۰×۱۳۵۰) با قالب ثابت وزیر. ?s=1 تا ۵ هر اسلاید.
+  عددها واقعی‌اند (قیمت هفتگی بازار آزاد، منبع الان‌چند، مهر ۱۴۰۲ تا مهر ۱۴۰۵).
+-->
+<style>
+  @font-face { font-family: Vazir; src: url("../../app/static/fonts/Vazirmatn.woff2") format("woff2"); font-weight: 100 900; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; }
+  body { font-family: Vazir, sans-serif; color: #f3f6f9; position: relative;
+         background: radial-gradient(120% 80% at 80% 0%, #145c44 0%, #0b2219 45%, #050b09 100%); }
+  body::before { content: ""; position: absolute; inset: 0; opacity: .07;
+                 background-image: linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px);
+                 background-size: 54px 54px; }
+  .slide { position: absolute; inset: 0; padding: 90px 80px; display: none; }
+  .slide.on { display: block; }
+  .acc { background: linear-gradient(120deg, #3ee8a6, #b8f35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .gold { background: linear-gradient(120deg, #ffe7a3, #f5b82e 55%, #ffd36a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .usd { color: #3ee8a6; }
+  h1 { font-size: 104px; font-weight: 900; line-height: 1.3; }
+  h2 { font-size: 72px; font-weight: 900; line-height: 1.35; }
+  .sub { font-size: 44px; color: #b9c7c1; font-weight: 600; margin-top: 18px; line-height: 1.6; }
+  .brand { position: absolute; left: 70px; bottom: 60px; display: flex; align-items: center; gap: 14px; font-size: 34px; font-weight: 900; }
+  .brand img { width: 54px; height: 54px; border-radius: 14px; }
+  .page { position: absolute; right: 80px; bottom: 66px; font-size: 30px; color: rgba(255,255,255,.55); font-weight: 700; }
+  .swipe { position: absolute; right: 0; top: 50%; width: 70px; height: 140px; margin-top: -70px; border-radius: 70px 0 0 70px;
+           background: rgba(62,232,166,.18); display: grid; place-items: center; font-size: 54px; color: #3ee8a6; }
+  .src { position: absolute; left: 80px; right: 80px; bottom: 128px; font-size: 26px; color: rgba(255,255,255,.45); text-align: center; }
+
+  /* اسلاید ۱: جلد با تصویر مرکزی (شمش طلا و دسته دلار با CSS) */
+  .hero { position: absolute; left: 0; right: 0; top: 520px; height: 640px; }
+  .halo { position: absolute; left: 50%; top: 40px; width: 620px; height: 620px; margin-left: -310px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(62,232,166,.32), transparent 65%); }
+  .vs { position: absolute; left: 50%; top: 250px; width: 150px; height: 150px; margin-left: -75px; border-radius: 50%; z-index: 5;
+        background: #050b09; border: 4px solid #3ee8a6; display: grid; place-items: center; font-size: 56px; font-weight: 900; color: #3ee8a6;
+        box-shadow: 0 0 60px rgba(62,232,166,.5); direction: ltr; }
+  .ingot { position: absolute; width: 360px; height: 150px; transform: perspective(700px) rotateX(48deg) rotateZ(-14deg); }
+  .ingot .top { position: absolute; inset: 0; border-radius: 22px; clip-path: polygon(9% 0, 91% 0, 100% 100%, 0 100%);
+                background: linear-gradient(135deg, #fff4c6, #f7c64b 40%, #c98a12 75%, #ffe08a); box-shadow: inset 0 0 0 4px rgba(255,255,255,.25); }
+  .ingot .side { position: absolute; left: 0; right: 0; top: 100%; height: 52px; clip-path: polygon(0 0, 100% 0, 97% 100%, 3% 100%);
+                 background: linear-gradient(180deg, #b47a0d, #6e4705); }
+  .ingot b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 44px; font-weight: 900; color: rgba(120,78,6,.75); letter-spacing: 4px; direction: ltr; }
+  .bill { position: absolute; width: 380px; height: 176px; border-radius: 18px; transform: rotate(var(--r));
+          background: linear-gradient(135deg, #c9f7dc, #6fd3a0 60%, #3aa673); border: 6px solid #e9fff2;
+          box-shadow: 0 30px 60px rgba(0,0,0,.45); display: grid; place-items: center; font-size: 90px; font-weight: 900; color: rgba(14,80,50,.55); direction: ltr; }
+  .bill::before { content: ""; position: absolute; width: 112px; height: 112px; border-radius: 50%; border: 6px solid rgba(14,80,50,.35); }
+
+  /* اسلاید ۲ و ۳: مقایسه */
+  .cmp { margin-top: 50px; display: grid; gap: 28px; }
+  .row { background: rgba(255,255,255,.05); border: 2px solid rgba(255,255,255,.08); border-radius: 36px; padding: 28px 40px; }
+  .row .lbl { font-size: 44px; font-weight: 800; display: flex; align-items: center; gap: 18px; }
+  .row .big { font-size: 112px; font-weight: 900; line-height: 1.15; margin-top: 6px; }
+  .row .big small { font-size: 48px; font-weight: 800; color: #b9c7c1; }
+  .bar { height: 26px; border-radius: 13px; margin-top: 18px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 13px; }
+  .note { margin-top: 36px; font-size: 40px; line-height: 1.7; color: #dfe9e4; font-weight: 600; }
+  .note b { color: #fff; }
+  .chip { display: inline-block; padding: 10px 26px; border-radius: 30px; background: rgba(62,232,166,.15); color: #3ee8a6; font-size: 36px; font-weight: 800; }
+
+  /* اسلاید ۴: جدول ویژگی‌ها */
+  .table { margin-top: 44px; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 0; border-radius: 32px; overflow: hidden; border: 2px solid rgba(255,255,255,.1); }
+  .table div { padding: 22px 24px; font-size: 34px; font-weight: 700; border-bottom: 2px solid rgba(255,255,255,.07); line-height: 1.5; }
+  .table .h { background: rgba(255,255,255,.06); font-weight: 900; font-size: 40px; }
+  .table .k { color: #b9c7c1; }
+
+  /* اسلاید ۵: جمع‌بندی و دعوت */
+  .list { margin-top: 44px; display: grid; gap: 30px; }
+  .list div { font-size: 44px; line-height: 1.6; font-weight: 700; padding-right: 64px; position: relative; }
+  .list div::before { content: "✦"; position: absolute; right: 0; top: 0; color: #3ee8a6; }
+  .cta { margin-top: 56px; padding: 44px; border-radius: 40px; background: linear-gradient(135deg, rgba(62,232,166,.22), rgba(184,243,92,.12));
+         border: 2px solid rgba(62,232,166,.45); text-align: center; }
+  .cta strong { display: block; font-size: 52px; font-weight: 900; line-height: 1.5; }
+  .cta span { display: block; margin-top: 12px; font-size: 54px; font-weight: 900; color: #3ee8a6; direction: ltr; }
+</style>
+</head>
+<body>
+
+<section class="slide" data-s="1">
+  <span class="chip">مقایسه با عدد واقعی</span>
+  <h1 style="margin-top:36px"><span class="gold">طلا</span> بخریم<br>یا <span class="acc">دلار</span>؟</h1>
+  <p class="sub">کدوم گزینه برای پس‌انداز بهتره؟</p>
+  <div class="hero">
+    <div class="halo"></div>
+    <div class="bill" style="left:110px;top:150px;--r:-12deg">$</div>
+    <div class="bill" style="left:140px;top:250px;--r:-4deg">$</div>
+    <div class="ingot" style="left:590px;top:150px"><div class="top"><b>999.9</b></div><div class="side"></div></div>
+    <div class="ingot" style="left:560px;top:300px"><div class="top"><b>999.9</b></div><div class="side"></div></div>
+    <div class="vs">VS</div>
+  </div>
+  <div class="swipe">‹</div>
+</section>
+
+<section class="slide" data-s="2">
+  <h2>۳ سال اخیر<br><span class="acc">کدوم بیشتر رشد کرد؟</span></h2>
+  <div class="cmp">
+    <div class="row"><div class="lbl">🟡 طلای ۱۸ عیار</div><div class="big gold">۱۱٫۸ <small>برابر</small></div><div class="bar"><i style="width:100%;background:linear-gradient(90deg,#d99a1e,#ffd36a)"></i></div></div>
+    <div class="row"><div class="lbl">💵 دلار</div><div class="big usd">۵٫۴ <small>برابر</small></div><div class="bar"><i style="width:46%;background:linear-gradient(90deg,#1f9d6b,#3ee8a6)"></i></div></div>
+  </div>
+  <p class="note">مهر ۱۴۰۲ تا مهر ۱۴۰۵. ولی جالب اینجاست:<br>توی <b>یک سال اخیر</b> هر دو دقیقاً <b>۲٫۳ برابر</b> شدن.</p>
+</section>
+
+<section class="slide" data-s="3">
+  <h2>ولی سود فقط نصف ماجراست<br><span class="acc">بیشترین ریزش چقدر بود؟</span></h2>
+  <div class="cmp">
+    <div class="row"><div class="lbl">🟡 طلا · تیر ۱۴۰۵</div><div class="big" style="color:#ff8a80">۲۹٪ <small>افت از سقف</small></div></div>
+    <div class="row"><div class="lbl">💵 دلار · اردیبهشت ۱۴۰۴</div><div class="big" style="color:#ff8a80">۲۱٪ <small>افت از سقف</small></div></div>
+  </div>
+  <p class="note">طلا بیشتر سود داد، ولی <b>تکون‌هاش هم بیشتر بود</b>.<br>اگه وسط ریزش می‌ترسیدی و می‌فروختی، اون سود رو نمی‌دیدی.</p>
+</section>
+
+<section class="slide" data-s="4">
+  <h2>قبل از خرید<br><span class="acc">این‌ها رو هم بدون</span></h2>
+  <div class="table">
+    <div class="h"></div><div class="h"><span class="gold">طلا</span></div><div class="h usd">دلار</div>
+    <div class="k">هزینه پنهان</div><div>اجرت و مالیات طلای زینتی</div><div>فاصله قیمت خرید و فروش</div>
+    <div class="k">نقد شدن</div><div>سریع، ولی وزن و عیار بررسی می‌شه</div><div>سریع</div>
+    <div class="k">به چی وابسته‌ست</div><div>دلار و انس جهانی طلا</div><div>تورم، تحریم و سیاست ارزی</div>
+    <div class="k">نگهداری</div><div>جای امن لازم داره</div><div>جای امن لازم داره</div>
+  </div>
+  <p class="note">برای پس‌انداز با طلا، <b>آبشده یا سکه</b> معمولاً هزینه کمتری از طلای زینتی دارن، چون اجرت ساخت ندارن.</p>
+</section>
+
+<section class="slide" data-s="5">
+  <h2>خلاصه؟<br><span class="acc">به خودت بستگی داره</span></h2>
+  <div class="list">
+    <div>تحمل ریزش داری و افقت بلنده؟ طلا تو این ۳ سال جلو بود.</div>
+    <div>ریزش‌ها اذیتت می‌کنه؟ تکون دلار کمتر بود.</div>
+    <div>خیلی‌ها هم هر دو رو نگه می‌دارن تا ریسک پخش بشه.</div>
+  </div>
+  <div class="cta"><strong>تیپ مالی‌ت رو بشناس و<br>دارایی‌هات رو با قیمت روز ببین</strong><span>getvazir.ir</span></div>
+</section>
+
+<div class="src">قیمت هفتگی بازار آزاد، منبع: الان‌چند · آموزشی است، نه توصیه خرید</div>
+<div class="brand"><img src="../../app/static/logo.svg" alt="">وزیر</div>
+<div class="page" id="page"></div>
+<script>
+  const n = Number(new URLSearchParams(location.search).get("s") || 1);
+  document.querySelector(`[data-s="${n}"]`).classList.add("on");
+  document.getElementById("page").textContent = "۱۲۳۴۵"[n - 1] + " / ۵";
+  if (n === 1) document.querySelector(".src").style.display = "none";
+</script>
+</body>
+</html>
