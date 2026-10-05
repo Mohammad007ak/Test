@@ -189,7 +189,14 @@ def _register_routes(app: FastAPI) -> None:
 
     @app.get("/", response_class=HTMLResponse)
     def dashboard(request: Request, db: Db) -> Response:
-        if request.state.user_id is None:  # بازدیدکننده و موتور جستجو: صفحه معرفی
+        if request.state.user_id is None:
+            # از داخل اپ (اندروید یا آیفون نصب‌شده): خوش‌آمد کوتاه اپی، نه صفحه معرفی سایت
+            if request.query_params.get("source") in APP_SOURCES or request.cookies.get(APP_COOKIE):
+                response = RedirectResponse("/welcome", status_code=303)
+                response.set_cookie(APP_COOKIE, "1", max_age=APP_COOKIE_AGE, samesite="lax",
+                                    secure=request.url.scheme == "https", httponly=True)
+                return response
+            # بازدیدکننده و موتور جستجو: صفحه معرفی
             return page(request, "landing.html", {"indexable": True, **_landing_data(db),
                                                       "apk_url": request.app.state.android_apk_url})
         portfolio = services.build_portfolio(db)
@@ -249,6 +256,12 @@ def _register_routes(app: FastAPI) -> None:
     @app.get("/offline", response_class=HTMLResponse, include_in_schema=False)
     def offline(request: Request) -> Response:
         return page(request, "offline.html", {"auth_page": True})
+
+    @app.get("/welcome", response_class=HTMLResponse)
+    def welcome(request: Request, db: Db) -> Response:
+        if request.state.user_id is not None:
+            return RedirectResponse("/", status_code=303)
+        return page(request, "welcome.html", {"auth_page": True})
 
     @app.get("/install", response_class=HTMLResponse)
     def install(request: Request) -> Response:
@@ -713,6 +726,10 @@ def _prices_page(request: Request, db: Session, errors: dict[str, str] | None = 
 
 
 PRICE_SLUGS = {p.key: p.slug for p in PRICE_PAGES}
+# اپ اندروید با ?source=android و نسخه نصب‌شده آیفون با ?source=pwa باز می‌شوند
+APP_SOURCES = frozenset({"android", "pwa"})
+APP_COOKIE = "vazir_app"
+APP_COOKIE_AGE = 60 * 60 * 24 * 365
 LANDING_TICKER = ("usd", "eur", "gold18_gram", "coin_emami", "coin_bahar", "gold_mesghal",
                   "crypto:btc", "crypto:usdt", "crypto:eth", "aed", "try", "gbp")
 

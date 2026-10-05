@@ -2082,3 +2082,7 @@ a.lx-tick { color: inherit; text-decoration: none; }
 .install-nudge-text strong { font-size: .92rem; }
 .install-nudge-text strong[hidden] { display: none; }
 .install-nudge-text small { color: var(--text-2); font-size: .78rem; }
+/* خوش‌آمد داخل اپ */
+.welcome-app { gap: 12px; }
+.welcome-points { list-style: none; padding: 0; margin: 8px 0 14px; display: flex; flex-direction: column; gap: 10px; text-align: right; }
+.welcome-points li { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: .92rem; }

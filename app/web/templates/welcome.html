@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, bubble %}
+{% block shell %}
+<main class="auth welcome-app">
+  <img class="brand-logo" src="{{ static('logo.svg') }}" alt="" width="96" height="96">
+  <h1 class="brand-name">{{ s.APP_NAME }}<span class="brand-dot">.</span></h1>
+  <p class="brand-tag">{{ s.TAGLINE }}</p>
+  <ul class="welcome-points">
+    {% for icon_name, slot, text in s.WELCOME_POINTS %}<li>{{ bubble(icon_name, slot) }}<span>{{ text }}</span></li>{% endfor %}
+  </ul>
+  <a href="/signup" class="btn wide">{{ s.LANDING.cta }}</a>
+  <a href="/login" class="btn ghost wide">{{ T.login }}</a>
+</main>
+{% endblock %}

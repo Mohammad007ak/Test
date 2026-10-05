@@ -101,3 +101,26 @@ def test_landing_links_to_seo_pages(client: TestClient) -> None:
                  'href="/price/dollar"', 'href="/learn/coin-bubble"'):
         assert href in page, href
     assert "ابزارهای رایگان، بدون ثبت‌نام" in page and "پول را بهتر بشناس" in page
+
+
+def test_app_visitors_skip_landing(client: TestClient) -> None:
+    for source in ("android", "pwa"):
+        client.cookies.clear()
+        first = client.get(f"/?source={source}", follow_redirects=False)
+        assert first.status_code == 303 and first.headers["location"] == "/welcome"
+        # بعداً هم (مثلاً بعد از خروج) داخل اپ صفحه معرفی نمی‌آید
+        assert client.get("/", follow_redirects=False).headers["location"] == "/welcome"
+    welcome = client.get("/welcome").text
+    assert 'href="/signup"' in welcome and 'href="/login"' in welcome and "noindex" in welcome
+
+
+def test_browser_visitors_still_get_landing(client: TestClient) -> None:
+    client.cookies.clear()
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 200 and "شروع رایگان" in response.text
+
+
+def test_logged_in_app_user_goes_to_dashboard(client: TestClient) -> None:
+    register(client)
+    assert client.get("/?source=android", follow_redirects=False).status_code == 200
+    assert client.get("/welcome", follow_redirects=False).headers["location"] == "/"
