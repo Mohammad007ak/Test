@@ -170,7 +170,7 @@ def test_ui_labels_escapes_text() -> None:
         '&lt;b&gt;x&lt;/b&gt; <bdi class="ios-label">Run</bdi>'
 
 
-SHORTCUT = "https://www.icloud.com/shortcuts/0d12126aac574b74ad552ad8f72be702"
+SHORTCUT = "https://www.icloud.com/shortcuts/820e750167b9407d917563f481c92516"
 
 
 def _client_with(tmp_path: Path, shortcut: str) -> TestClient:
