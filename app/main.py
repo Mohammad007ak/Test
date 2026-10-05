@@ -140,6 +140,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     app.state.public_url = settings.public_url
     app.state.contact_email = settings.contact_email
     app.state.android_apk_url = settings.android_apk_url
+    app.state.ios_shortcut_url = settings.ios_shortcut_url
     app.state.android_package = settings.android_package
     app.state.android_cert_sha256 = settings.android_cert_sha256
     app.state.poll_seconds = settings.price_refresh_seconds if sources else 0

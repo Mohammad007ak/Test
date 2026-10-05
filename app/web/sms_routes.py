@@ -153,6 +153,7 @@ def register_sms_routes(app: FastAPI) -> None:
             "android_pair": android_pair_url(token, mask_phone(user.phone) if user and user.phone
                                              else "", site_url(request)),
             "android_unpair": ANDROID_UNPAIR,
+            "shortcut_url": getattr(request.app.state, "ios_shortcut_url", ""),
             "platform": phone_platform(request.headers.get("user-agent", "")),
             "endpoint": sms_endpoint(getattr(request.app.state, "public_url", ""),
                                      _public_scheme(request), request.url.hostname or "",

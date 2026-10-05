@@ -168,3 +168,30 @@ def test_ui_labels_escapes_text() -> None:
 
     assert str(ui_labels("<b>x</b> [[Run]]")) == \
         '&lt;b&gt;x&lt;/b&gt; <bdi class="ios-label">Run</bdi>'
+
+
+SHORTCUT = "https://www.icloud.com/shortcuts/0d12126aac574b74ad552ad8f72be702"
+
+
+def _client_with(tmp_path: Path, shortcut: str) -> TestClient:
+    settings = Settings(database_url=f"sqlite:///{tmp_path / 's.db'}", secret_key="t",
+                        ios_shortcut_url=shortcut)
+    return TestClient(create_app(settings, price_sources=[], schedule=False,
+                                 otp_sender=FakeSender()))
+
+
+def test_ready_shortcut_gives_short_guide_with_manual_fallback(tmp_path: Path) -> None:
+    with _client_with(tmp_path, SHORTCUT) as c:
+        register(c)
+        page = c.get("/sms", headers={"User-Agent": IPHONE}).text
+    assert f'href="{SHORTCUT}"' in page and 'data-copy="#sms-token"' in page
+    assert '<details class="sms-manual">' in page  # راه دستی بسته، زیر راه کوتاه
+    assert page.index(SHORTCUT) < page.index("sms-manual")
+
+
+def test_without_shortcut_only_manual_steps(tmp_path: Path) -> None:
+    with _client_with(tmp_path, "") as c:
+        register(c)
+        page = c.get("/sms", headers={"User-Agent": IPHONE}).text
+    assert "icloud.com" not in page and "sms-manual" not in page
+    assert "Get Contents of URL" in page
