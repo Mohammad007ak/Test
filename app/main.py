@@ -175,6 +175,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     if chat_model == "default":
         chat_model = default_chat_model(settings.llm_url, settings.llm_key, settings.llm_model)
     register_auth_routes(app, settings, otp, app.state.sms_verification)
+    app.state.chat_model = chat_model
     register_assistant_routes(app, chat_model, settings.llm_daily_limit,
                               settings.llm_mode if settings.llm_mode in MODES else "strict")
     register_persona_routes(app, chat_model)

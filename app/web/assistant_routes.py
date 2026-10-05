@@ -9,18 +9,23 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from starlette.datastructures import UploadFile as StarletteUpload
 
+from app import onboarding_service as onboarding
 from app import services
 from app.assistant import actions, images
+from app.assistant import setup as setup_chat
 from app.assistant.agent import AssistantError, ask
 from app.assistant.client import ChatModel
 from app.assistant.prompt import persona_brief
-from app.assistant.tools import run_tool
+from app.assistant.tools import TOOLS, run_tool
 from app.domain.money import to_persian_digits
+from app.domain.phone import mask_phone
 from app.domain.spending import TEHRAN
+from app.models import User
 from app.sms.text import mask_numbers
 from app.web import strings as s
-from app.web.common import Db, LoggedIn, done, page, read_form
+from app.web.common import Db, LoggedIn, done, page, read_form, site_url
 from app.web.forms import FormError
+from app.web.sms_routes import android_pair_url, ingest_token, phone_platform
 
 CONSENT_KEY = "assistant_consent"
 HISTORY_KEY = "assistant_history"
@@ -51,6 +56,17 @@ def _suggestions(db: Db, mode: str) -> list[str]:
     return [goal, *general[:4]] if goal else general
 
 
+def _setup_cards(request: Request, db: Db, cards: list[str]) -> dict[str, Any]:
+    """داده کارت‌های راه‌اندازی زیر جواب: اتصال پیامک (بسته به گوشی) و کارت شخصیت."""
+    if "sms" not in cards:
+        return {"cards": cards}
+    user = db.get(User, request.state.user_id)
+    pair = android_pair_url(ingest_token(db), mask_phone(user.phone) if user and user.phone
+                            else "", site_url(request))
+    return {"cards": cards, "android_pair": pair,
+            "platform": phone_platform(request.headers.get("user-agent", ""))}
+
+
 def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit: int,
                               mode: str = "strict") -> None:
     def chat_page(request: Request, db: Db, status: int = 200) -> Response:
@@ -61,13 +77,16 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
             "disclaimer": s.T[f"assistant_disclaimer_{mode}"],
             "pending": list(actions.pending(db).items()),
             "prefill": request.query_params.get("q", "")[:MAX_QUESTION],
+            "setup": onboarding.load_state(db).chatting,
         }, status)
 
     def turn(request: Request, question: str, answer: str, error: bool = False,
-             status: int = 200, new_actions: list[Any] | None = None) -> Response:
+             status: int = 200, new_actions: list[Any] | None = None,
+             extra: dict[str, Any] | None = None) -> Response:
         """فقط حباب جواب (و کارت‌های تأیید ثبت)؛ پرسش را صفحه همان لحظه نشان داده است."""
         return page(request, "_chat_answer.html", {
-            "answer": answer, "error": error, "actions": new_actions or []}, status)
+            "answer": answer, "error": error, "actions": new_actions or [],
+            "replies": [], "cards": [], **(extra or {})}, status)
 
     @app.get("/assistant", response_class=HTMLResponse, dependencies=[LoggedIn])
     def assistant(request: Request, db: Db) -> Response:
@@ -111,11 +130,25 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
         db.info["history_sources"] = request.app.state.history_sources
         history = _history(db)
         before = set(actions.pending(db))
+        setup = onboarding.load_state(db).chatting
+        if setup and not history:  # مدل بداند گفتگو با سلام خودش شروع شده
+            history = [{"role": "assistant", "content": s.SETUP_CHAT["opener"]}]
+        runner = partial(run_tool, db)
+        if setup:
+            def runner(name: str, arguments: str) -> str:
+                if name in setup_chat.NAMES:
+                    return setup_chat.run(db, name, arguments)
+                return run_tool(db, name, arguments)
         try:
-            answer = ask(model, partial(run_tool, db), text, history, mode,
-                         persona_brief(services.load_persona(db)), image)
+            answer = ask(model, runner, text, history, mode,
+                         persona_brief(services.load_persona(db)), image,
+                         tools=[*TOOLS, *setup_chat.SETUP_TOOLS] if setup else None,
+                         extra=setup_chat.prompt(db) if setup else "")
         except AssistantError as exc:
             return turn(request, text, str(exc), error=True, status=200)
+        ui = setup_chat.ui(db) if setup else {"suggestions": [], "cards": []}
+        if "persona" in ui["cards"]:
+            onboarding.finish(db)  # کارت شخصیت یعنی پایان راه‌اندازی
         services.set_user_setting(db, USAGE_KEY, json.dumps({"date": today, "count": used + 1}))
         shown = f"{s.T['assistant_image_mark']} {text}" if image else text
         history = [*history, {"role": "user", "content": shown},
@@ -123,7 +156,8 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
         services.set_user_setting(db, HISTORY_KEY, json.dumps(history, ensure_ascii=False))
         db.commit()
         new = [(k, v) for k, v in actions.pending(db).items() if k not in before]
-        return turn(request, text, answer.text, new_actions=new)
+        return turn(request, text, answer.text, new_actions=new, extra={
+            "replies": ui["suggestions"], **_setup_cards(request, db, ui["cards"])})
 
     @app.post("/assistant/actions-all", response_class=HTMLResponse, dependencies=[LoggedIn])
     async def confirm_all(request: Request, db: Db) -> Response:

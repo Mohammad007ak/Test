@@ -37,13 +37,25 @@ class State:
     kinds: list[str] = field(default_factory=list)
     no_income: bool = False
     done: bool = False
+    chat: bool = False  # راه‌اندازی با گفتگوی وزیر (به‌جای فرم)
+
+    @property
+    def chatting(self) -> bool:
+        return self.chat and not self.done
 
 
 def load_state(db: Session) -> State:
     raw = services.get_user_setting(db, STATE_KEY)
     data = json.loads(raw) if raw else {}
     kinds = [k for k in data.get("kinds", []) if k in ASSET_CHOICES]
-    return State(kinds, bool(data.get("no_income")), bool(data.get("done")))
+    return State(kinds, bool(data.get("no_income")), bool(data.get("done")),
+                 bool(data.get("chat")))
+
+
+def finish(db: Session) -> None:
+    state = load_state(db)
+    state.done = True
+    save_state(db, state)
 
 
 def save_state(db: Session, state: State) -> None:

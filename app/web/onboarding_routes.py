@@ -30,14 +30,19 @@ def _page(request: Request, step: str, context: dict[str, Any], status: int = 20
 
 def register_onboarding_routes(app: FastAPI) -> None:
     @app.get("/start", dependencies=[LoggedIn])
-    def start() -> Response:
-        return redirect("/start/have")
+    def start(request: Request, db: Db) -> Response:
+        """با مدل زبانی: راه‌اندازی در گفتگوی وزیر؛ بدون آن: فرم‌های سریع."""
+        if getattr(request.app.state, "chat_model", None) is None:
+            return redirect("/start/have")
+        state = onboarding.load_state(db)
+        state.chat, state.done = True, False
+        onboarding.save_state(db, state)
+        db.commit()
+        return redirect("/assistant")
 
     @app.get("/start/skip", dependencies=[LoggedIn])
-    def skip(request: Request, db: Db) -> Response:
-        state = onboarding.load_state(db)
-        state.done = True
-        onboarding.save_state(db, state)
+    def skip(db: Db) -> Response:
+        onboarding.finish(db)
         db.commit()
         return redirect("/")
 
@@ -112,10 +117,7 @@ def register_onboarding_routes(app: FastAPI) -> None:
 
     @app.get("/start/card", response_class=HTMLResponse, dependencies=[LoggedIn])
     def card(request: Request, db: Db) -> Response:
-        state = onboarding.load_state(db)
-        if not state.done:
-            state.done = True  # به قدم آخر رسید؛ داشبورد دیگر دعوت به راه‌اندازی نمی‌کند
-            onboarding.save_state(db, state)
-            db.commit()
+        onboarding.finish(db)  # به قدم آخر رسید؛ داشبورد دیگر دعوت به راه‌اندازی نمی‌کند
+        db.commit()
         return _page(request, "card", {})
 

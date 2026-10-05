@@ -29,9 +29,9 @@ MAX_PENDING = 40  # یک اسکرین‌شات پرتفوی ممکن است ده
 
 # نوع کار → (موجودیت فرم، عنوان کارت)
 _TITLES = {"add_asset": "دارایی", "add_liability": "بدهی", "add_income": "درآمد",
-           "add_bill": "هزینه ثابت", "add_transaction": "تراکنش"}
+           "add_bill": "هزینه ثابت", "add_transaction": "تراکنش", "add_account": "حساب بانکی"}
 _ENTITY_OF = {"add_asset": "assets", "add_liability": "liabilities", "add_income": "incomes",
-              "add_bill": "bills"}
+              "add_bill": "bills", "add_account": "accounts"}
 _FLOW_OF = {flow.direction: flow for flow in FLOWS}
 
 
@@ -327,6 +327,12 @@ ACTION_TOOLS: list[dict[str, Any]] = [
            "spent_on": {"type": "string", "description": "شمسی YYYY/MM/DD؛ خالی = امروز"},
            "new_group_members": {"type": "array", "items": _STR}},
           ["group", "title", "amount_toman", "payer"]),
+    _tool("add_account", "پیشنهاد ثبت حساب بانکی با موجودی فعلی. شماره کامل حساب یا کارت هرگز؛ "
+                         "account_mask فقط ۴ رقم آخر و اختیاری.",
+          {"bank": {"type": "string", "enum": list(s.BANKS)}, "balance_toman": _INT,
+           "account_mask": {"type": "string", "description": "فقط ۴ رقم آخر؛ اختیاری"},
+           "label": _STR},
+          ["bank", "balance_toman"]),
     _tool("add_bill", "پیشنهاد ثبت هزینه ثابت تکراری (اجاره، قبض، شهریه، بیمه، ...).",
           {"name": _STR, "amount_toman": _INT, "frequency": _FREQ,
            "category": {"type": "string", "enum": list(s.EXPENSE_CATEGORIES)}},

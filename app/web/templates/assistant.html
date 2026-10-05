@@ -7,13 +7,17 @@
   <header class="chat-head">
     <a href="/" class="icon-btn chat-back" aria-label="{{ T.close }}">{{ icon("chev") }}</a>
     <img class="chat-head-logo" src="{{ static('logo.svg') }}" alt="">
-    <div class="chat-head-title"><strong>{{ s.APP_NAME }}</strong><span><span class="online-dot"></span>{{ T.assistant_subtitle }}</span></div>
-    {% if history %}<form method="post" action="/assistant/clear"><button type="submit" class="icon-btn" aria-label="{{ T.assistant_clear }}">{{ icon("trash") }}</button></form>{% endif %}
+    <div class="chat-head-title"><strong>{{ s.APP_NAME }}</strong><span><span class="online-dot"></span>{{ s.SETUP_CHAT.subtitle if setup else T.assistant_subtitle }}</span></div>
+    {% if setup %}<a href="/start/skip" class="text-btn setup-skip">{{ s.SETUP_CHAT.skip }}</a>
+    {% elif history %}<form method="post" action="/assistant/clear"><button type="submit" class="icon-btn" aria-label="{{ T.assistant_clear }}">{{ icon("trash") }}</button></form>{% endif %}
   </header>
 
   <div id="chat-scroll" class="chat-scroll">
     <div id="chat-log" class="chat-log" aria-live="polite">
-      {% if not history %}
+      {% if setup and not history %}
+      <div class="chat-row vazir"><div class="chat-msg vazir">{{ s.SETUP_CHAT.opener | chat_md }}</div></div>
+      <div class="chat-chips">{% for x in s.SETUP_CHAT.chips %}<button type="button" class="chip-reply" data-ask="{{ x }}">{{ x }}</button>{% endfor %}</div>
+      {% elif not history %}
       <div class="chat-hello">
         <img src="{{ static('logo.svg') }}" alt="">
         <h2>{{ T.assistant_hello }}</h2>
@@ -55,6 +59,7 @@
     <h2>{{ T.assistant_consent_title }}</h2>
     <p class="muted">{{ T.assistant_consent_body }}</p>
     <form method="post" action="/assistant/consent"><button class="btn wide" type="submit">{{ T.assistant_consent_button }}</button></form>
+    {% if setup %}<a href="/start/have" class="text-btn setup-form-link">{{ s.SETUP_CHAT.form }}</a>{% endif %}
   </section>
 {% endif %}
 {% endblock %}

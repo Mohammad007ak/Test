@@ -2176,3 +2176,18 @@ a.lx-tick { color: inherit; text-decoration: none; }
               background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--surface); border: 1.5px solid var(--accent-soft); }
 .onb-resume-text { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .onb-resume-text small { color: var(--muted); line-height: 1.7; }
+
+/* راه‌اندازی با گفتگوی وزیر */
+.setup-skip { font-size: .85rem; margin-inline-start: auto; }
+.setup-form-link { display: block; text-align: center; margin-top: 12px; font-size: .86rem; }
+.setup-card { display: grid; gap: 10px; width: min(100%, 340px); padding: 16px; border-radius: 20px; background: var(--surface);
+              border: 1.5px solid var(--accent-soft); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.setup-card strong { display: flex; align-items: center; gap: 8px; font-size: 1rem; }
+.setup-card strong .i { width: 20px; height: 20px; color: var(--accent); }
+.setup-card p { margin: 0; line-height: 1.8; }
+.setup-card p.small { display: flex; gap: 6px; align-items: flex-start; }
+.setup-card p.small .i { flex: none; width: 15px; height: 15px; margin-top: 3px; }
+.setup-card .text-btn { justify-self: center; }
+.setup-card-avatars { display: flex; justify-content: center; margin: 4px 0; }
+.setup-card-avatars .avatar { width: 56px; height: 56px; margin: 0 -8px; }
+.setup-card-avatars .avatar:nth-child(2) { transform: translateY(-6px) scale(1.1); z-index: 1; }

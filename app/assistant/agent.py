@@ -21,17 +21,22 @@ class Answer:
 
 def ask(model: ChatModel, run_tool: Callable[[str, str], str], question: str,
         history: list[dict[str, Any]], mode: str = "strict", persona: str = "",
-        image: str | None = None) -> Answer:
-    """image: data URL عکسی که کاربر همراه سؤال فرستاده (قالب image_url سازگار با OpenAI)."""
+        image: str | None = None, tools: list[dict[str, Any]] | None = None,
+        extra: str = "") -> Answer:
+    """image: data URL عکسی که کاربر همراه سؤال فرستاده (قالب image_url سازگار با OpenAI).
+
+    tools و extra: ابزارها و دستور اضافه برای حالت‌های خاص (مثل راه‌اندازی).
+    """
     content: Any = question
     if image:
         content = [{"type": "text", "text": question},
                    {"type": "image_url", "image_url": {"url": image}}]
-    messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt(mode, persona)},
+    messages: list[dict[str, Any]] = [{"role": "system",
+                                       "content": system_prompt(mode, persona) + extra},
                                       *history, {"role": "user", "content": content}]
     used: list[str] = []
     for _ in range(MAX_ROUNDS):
-        reply = model.complete(messages, TOOLS)
+        reply = model.complete(messages, tools or TOOLS)
         calls = reply.get("tool_calls") or []
         if not calls:
             text = (reply.get("content") or "").strip()
