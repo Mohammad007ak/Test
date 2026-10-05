@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>ریلز ۱۰۰ میلیون</title>
+<!--
+  ریلز «۳ سال پیش ۱۰۰ میلیون داشتی…» (۱۰۸۰×۱۹۲۰). عددها واقعی‌اند (reel-100m.data.js).
+  render(t) هر فریم را فقط از زمان می‌سازد؛ render.js فریم‌به‌فریم ضبط می‌کند. ?play پخش زنده.
+-->
+<style>
+  @font-face { font-family: Vazir; src: url("../../app/static/fonts/Vazirmatn.woff2") format("woff2"); font-weight: 100 900; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #050b09; }
+  body { font-family: Vazir, sans-serif; color: #f3f6f9; position: relative; }
+  .abs { position: absolute; }
+  .glow { position: absolute; border-radius: 50%; filter: blur(110px); }
+  #g1 { width: 820px; height: 820px; background: #12543d; opacity: .6; }
+  #g2 { width: 700px; height: 700px; background: #3d5a0e; opacity: .45; }
+  #flash { inset: 0; background: #fff; opacity: 0; }
+  .center { left: 60px; right: 60px; text-align: center; }
+  .scene { position: absolute; inset: 0; }
+  .grad { background: linear-gradient(120deg, #3ee8a6, #b8f35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .gold { background: linear-gradient(120deg, #ffe08a, #f5b82e, #ffd36a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .badge { display: inline-block; padding: 14px 34px; border-radius: 40px; background: rgba(62,232,166,.14); color: #3ee8a6; font-size: 44px; font-weight: 800; border: 2px solid rgba(62,232,166,.35); }
+
+  /* ۱: قلاب */
+  #hook1 { top: 520px; font-size: 104px; font-weight: 900; line-height: 1.3; }
+  #hook2 { top: 860px; font-size: 92px; font-weight: 900; }
+  #hookBadge { top: 380px; }
+  .money { display: inline-block; }
+
+  /* ۲: گزینه‌ها */
+  #optTitle { top: 250px; font-size: 76px; font-weight: 900; line-height: 1.35; }
+  .opt { position: absolute; left: 90px; right: 90px; height: 210px; border-radius: 44px; background: rgba(255,255,255,.06);
+         border: 2px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 40px; padding: 0 50px; font-size: 64px; font-weight: 800; }
+  .opt .em { font-size: 96px; width: 120px; text-align: center; }
+  #guess { top: 1560px; font-size: 60px; font-weight: 800; color: #b8f35c; }
+  #count { top: 1660px; font-size: 120px; font-weight: 900; }
+
+  /* ۳: مسابقه */
+  #raceHead { top: 170px; font-size: 56px; font-weight: 800; color: #a9b8b1; }
+  #raceDate { top: 250px; font-size: 140px; font-weight: 900; letter-spacing: -2px; }
+  .lane { position: absolute; left: 70px; right: 70px; height: 220px; }
+  .lane .name { position: absolute; right: 0; top: 0; font-size: 50px; font-weight: 800; display: flex; align-items: center; gap: 18px; }
+  .lane .name .em { font-size: 64px; }
+  .lane .track { position: absolute; right: 0; left: 0; top: 84px; height: 110px; }
+  .lane .bar { position: absolute; right: 0; top: 0; height: 110px; border-radius: 22px 6px 6px 22px; min-width: 24px; }
+  .lane .val { position: absolute; top: 18px; font-size: 64px; font-weight: 900; white-space: nowrap; direction: rtl; }
+  .lane .x { font-size: 40px; font-weight: 800; color: #a9b8b1; margin-right: 14px; }
+
+  /* ۴: نتیجه */
+  #winTitle { top: 300px; font-size: 64px; font-weight: 800; color: #a9b8b1; }
+  #crown { top: 410px; font-size: 200px; }
+  #winName { top: 660px; font-size: 110px; font-weight: 900; }
+  #winVal { top: 820px; font-size: 128px; font-weight: 900; line-height: 1.2; }
+  .rank { position: absolute; left: 140px; right: 140px; height: 110px; display: flex; justify-content: space-between; align-items: center;
+          font-size: 54px; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,.08); }
+  .rank b { font-weight: 900; }
+
+  /* ۵: پیچش */
+  #twist1 { top: 250px; font-size: 84px; font-weight: 900; line-height: 1.35; }
+  .grams { position: absolute; left: 90px; right: 90px; height: 360px; border-radius: 44px; background: rgba(255,255,255,.05);
+           border: 2px solid rgba(255,255,255,.08); padding: 40px 50px; }
+  .grams .when { font-size: 46px; color: #a9b8b1; font-weight: 700; }
+  .grams .g { font-size: 120px; font-weight: 900; margin-top: 8px; }
+  .grams .g small { font-size: 56px; font-weight: 800; }
+  .ingot { position: absolute; left: 50px; bottom: 34px; height: 40px; border-radius: 12px; background: linear-gradient(120deg, #ffe08a, #f5b82e); box-shadow: 0 0 40px rgba(245,184,46,.45); }
+  #melt { top: 1470px; font-size: 96px; font-weight: 900; line-height: 1.3; }
+
+  /* ۶: دعوت */
+  #ctaQ { top: 330px; font-size: 92px; font-weight: 900; line-height: 1.35; }
+  #ctaArrow { top: 640px; font-size: 140px; }
+  #ctaLogo { top: 940px; left: 50%; width: 260px; height: 260px; margin-left: -130px; border-radius: 60px; box-shadow: 0 0 140px rgba(62,232,166,.45); }
+  #ctaName { top: 1240px; font-size: 86px; font-weight: 900; }
+  #ctaTag { top: 1360px; font-size: 50px; color: #cfe; font-weight: 700; }
+  #ctaUrl { top: 1460px; font-size: 64px; font-weight: 900; direction: ltr; color: #3ee8a6; }
+
+  #foot { bottom: 54px; left: 60px; right: 60px; text-align: center; font-size: 30px; color: rgba(255,255,255,.5); font-weight: 600; }
+  #brand { top: 64px; right: 64px; display: flex; align-items: center; gap: 16px; font-size: 40px; font-weight: 900; }
+  #brand img { width: 64px; height: 64px; border-radius: 16px; }
+</style>
+<script src="reel-100m.data.js"></script>
+</head>
+<body>
+<div class="glow" id="g1"></div><div class="glow" id="g2"></div>
+<div class="abs" id="brand"><img src="../../app/static/logo.svg" alt="">وزیر</div>
+
+<div class="scene" id="s1">
+  <div class="abs center" id="hookBadge"><span class="badge" id="hookDate"></span></div>
+  <div class="abs center" id="hook1">۱۰۰ میلیون تومن<br><span class="grad">داشتی.</span></div>
+  <div class="abs center" id="hook2">کجا می‌ذاشتیش؟ 🤔</div>
+</div>
+
+<div class="scene" id="s2">
+  <div class="abs center" id="optTitle">کدوم الان<br><span class="grad">بیشتر می‌ارزه؟</span></div>
+  <div class="opt" id="o1"><span class="em">😴</span>زیر بالش</div>
+  <div class="opt" id="o2"><span class="em">💵</span>دلار</div>
+  <div class="opt" id="o3"><span class="em">🟡</span>طلای ۱۸ عیار</div>
+  <div class="opt" id="o4"><span class="em">🪙</span>سکه امامی</div>
+  <div class="abs center" id="guess">قبل از دیدن، حدس بزن 👀</div>
+  <div class="abs center" id="count"></div>
+</div>
+
+<div class="scene" id="s3">
+  <div class="abs center" id="raceHead">ارزش همون ۱۰۰ میلیون</div>
+  <div class="abs center" id="raceDate"></div>
+  <div id="lanes"></div>
+</div>
+
+<div class="scene" id="s4">
+  <div class="abs center" id="winTitle">امروز، برنده:</div>
+  <div class="abs center" id="crown">🥇</div>
+  <div class="abs center" id="winName"></div>
+  <div class="abs center" id="winVal"></div>
+  <div id="ranks"></div>
+</div>
+
+<div class="scene" id="s5">
+  <div class="abs center" id="twist1">و اون ۱۰۰ میلیونِ<br><span class="grad">زیر بالش؟</span> 😶</div>
+  <div class="grams" id="gThen"><div class="when" id="whenThen"></div><div class="g"><span id="gramsThen"></span> <small>گرم طلا می‌خرید</small></div><div class="ingot" id="ingotThen"></div></div>
+  <div class="grams" id="gNow"><div class="when" id="whenNow"></div><div class="g"><span id="gramsNow"></span> <small>گرم طلا</small></div><div class="ingot" id="ingotNow"></div></div>
+  <div class="abs center" id="melt"></div>
+</div>
+
+<div class="scene" id="s6">
+  <div class="abs center" id="ctaQ">تو کدوم رو<br>انتخاب می‌کردی؟</div>
+  <div class="abs center" id="ctaArrow">👇</div>
+  <img class="abs" id="ctaLogo" src="../../app/static/logo.svg" alt="">
+  <div class="abs center" id="ctaName">وزیر</div>
+  <div class="abs center" id="ctaTag">ببین دارایی‌هات واقعاً چقدر می‌ارزن</div>
+  <div class="abs center" id="ctaUrl">getvazir.ir</div>
+</div>
+
+<div class="abs" id="flash"></div>
+<div class="abs" id="foot">قیمت بازار آزاد (منبع: الان‌چند) · آموزشی است، نه توصیه خرید</div>
+
+<script>
+const DURATION = 24;
+const $ = (s) => document.querySelector(s);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+const easeInOut = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const back = (x) => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const FA = "۰۱۲۳۴۵۶۷۸۹";
+const fa = (s) => String(s).replace(/\d/g, (d) => FA[d]).replace(/\./g, "٫");
+const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+const jdate = (j) => { const [y, m] = j.split("/"); return MONTHS[+m - 1] + " " + fa(y); };
+
+const F = window.REEL.frames, first = F[0], last = F[F.length - 1];
+const ASSETS = [
+  { key: "cash", name: "زیر بالش", em: "😴", color: "linear-gradient(90deg,#5b6570,#8c96a0)" },
+  { key: "usd", name: "دلار", em: "💵", color: "linear-gradient(90deg,#1f9d6b,#3ee8a6)" },
+  { key: "gold18_gram", name: "طلای ۱۸", em: "🟡", color: "linear-gradient(90deg,#d99a1e,#ffd36a)" },
+  { key: "coin_emami", name: "سکه امامی", em: "🪙", color: "linear-gradient(90deg,#b8862b,#f0c35a)" },
+];
+const value = (a, f) => a.key === "cash" ? 100 : 100 * f[a.key] / first[a.key];  // میلیون تومان
+const money = (m) => m >= 1000 ? fa((m / 1000).toFixed(2)) + " میلیارد" : fa(Math.round(m)) + " میلیون";
+const times = (m) => fa((m / 100).toFixed(1)) + " برابر";
+
+// مسیرهای مسابقه
+const lanes = $("#lanes");
+ASSETS.forEach((a) => {
+  const el = document.createElement("div");
+  el.className = "lane"; el.id = "lane-" + a.key;
+  el.innerHTML = `<div class="name"><span class="em">${a.em}</span>${a.name}</div><div class="track"><div class="bar" style="background:${a.color}"></div><div class="val"></div></div>`;
+  lanes.appendChild(el);
+});
+const finals = ASSETS.map((a) => ({ ...a, v: value(a, last) })).sort((x, y) => y.v - x.v);
+const ranks = $("#ranks");
+finals.forEach((a, i) => {
+  const el = document.createElement("div");
+  el.className = "rank"; el.id = "rank-" + i;
+  el.innerHTML = `<span>${a.em} ${a.name}</span><b>${money(a.v)} <span style="color:#a9b8b1;font-size:40px">${times(a.v)}</span></b>`;
+  ranks.appendChild(el);
+});
+const gramsThen = 1e8 / first.gold18_gram, gramsNow = 1e8 / last.gold18_gram;
+$("#hookDate").textContent = jdate(first.jalali);
+$("#whenThen").textContent = jdate(first.jalali) + "، با ۱۰۰ میلیون";
+$("#whenNow").textContent = "امروز، " + jdate(last.jalali) + "، با همون ۱۰۰ میلیون";
+$("#gramsThen").textContent = fa(gramsThen.toFixed(1));
+$("#gramsNow").textContent = fa(gramsNow.toFixed(1));
+$("#melt").innerHTML = `<span class="gold">${fa(Math.round(100 * (1 - gramsNow / gramsThen)))}٪</span> ارزشش<br>آب شد 🫠`;
+$("#winName").innerHTML = `${finals[0].em} <span class="gold">${finals[0].name}</span>`;
+$("#winVal").textContent = money(finals[0].v);
+
+const pos = {};
+const SC = { s1: [0, 2.8], s2: [2.8, 6.4], s3: [6.4, 13.6], s4: [13.6, 16.8], s5: [16.8, 20.6], s6: [20.6, 24.5] };
+function show(id, t) {
+  const [a, b] = SC[id];
+  const i = easeOut(prog(t, a - .05, a + .3)), o = prog(t, b - .25, b);
+  const el = $("#" + id);
+  el.style.display = i > 0 && o < 1 ? "block" : "none";
+  el.style.opacity = Math.min(i, 1 - o);
+  el.style.transform = `scale(${1.04 - .04 * i - .03 * o})`;
+}
+function pop(sel, t, at, dur = .45) {
+  const p = prog(t, at, at + dur);
+  const el = $(sel);
+  el.style.opacity = Math.min(1, p * 2);
+  el.style.transform = `translateY(${(1 - easeOut(p)) * 60}px) scale(${p > 0 ? back(p) : .6})`;
+}
+
+function render(t) {
+  $("#g1").style.left = (-260 + 90 * Math.sin(t / 3)) + "px"; $("#g1").style.top = (-200 + 80 * Math.cos(t / 4)) + "px";
+  $("#g2").style.left = (560 + 80 * Math.cos(t / 3.5)) + "px"; $("#g2").style.top = (1250 + 90 * Math.sin(t / 3)) + "px";
+  Object.keys(SC).forEach((id) => show(id, t));
+  $("#foot").style.opacity = t < 20.6 ? 1 : 1 - prog(t, 20.6, 21);
+
+  // ۱: قلاب
+  pop("#hookBadge", t, .05); pop("#hook1", t, .25); pop("#hook2", t, 1.2);
+  const shake = t > 1.2 && t < 2.6 ? Math.sin(t * 40) * 4 * (1 - prog(t, 1.2, 1.8)) : 0;
+  $("#hook2").style.marginLeft = shake + "px";
+
+  // ۲: گزینه‌ها و شمارش معکوس
+  pop("#optTitle", t, 2.85);
+  ["#o1", "#o2", "#o3", "#o4"].forEach((s, i) => {
+    const el = $(s); const p = easeOut(prog(t, 3.1 + i * .18, 3.55 + i * .18));
+    el.style.top = (640 + i * 235) + "px";
+    el.style.opacity = p; el.style.transform = `translateX(${(1 - p) * (i % 2 ? -400 : 400)}px)`;
+  });
+  pop("#guess", t, 4.1);
+  const left = Math.ceil(6.3 - t);
+  $("#count").textContent = t > 4.5 && left > 0 && left <= 3 ? fa(left) : "";
+  const cp = (6.3 - t) % 1; $("#count").style.transform = `scale(${1 + .4 * clamp(cp - .7, 0, .3) / .3})`;
+
+  // ۳: مسابقه با قیمت‌های واقعی هفتگی
+  const rp = easeInOut(prog(t, 7.0, 12.8));
+  const idx = rp * (F.length - 1), i0 = Math.floor(idx), i1 = Math.min(i0 + 1, F.length - 1), fr = idx - i0;
+  const cur = ASSETS.map((a) => ({ a, v: value(a, F[i0]) * (1 - fr) + value(a, F[i1]) * fr }));
+  const max = Math.max(...cur.map((c) => c.v));
+  const order = [...cur].sort((x, y) => y.v - x.v);
+  $("#raceDate").textContent = jdate(F[Math.round(idx)].jalali);
+  pop("#raceHead", t, 6.45); pop("#raceDate", t, 6.55);
+  cur.forEach((c) => {
+    const lane = $("#lane-" + c.a.key);
+    const rank = order.indexOf(c);
+    const appear = easeOut(prog(t, 6.6 + ASSETS.indexOf(c.a) * .1, 7.0 + ASSETS.indexOf(c.a) * .1));
+    // جابه‌جایی رتبه نرم، فریم‌به‌فریم (بدون transition که در ضبط فریمی قابل اعتماد نیست)
+    const target = 560 + rank * 270;
+    pos[c.a.key] = pos[c.a.key] === undefined ? target : pos[c.a.key] + (target - pos[c.a.key]) * .22;
+    lane.style.top = pos[c.a.key] + "px";
+    lane.style.opacity = appear;
+    const w = 920 * c.v / max * appear;
+    lane.querySelector(".bar").style.width = w + "px";
+    const val = lane.querySelector(".val");
+    val.innerHTML = `${money(c.v)}${c.a.key === "cash" ? "" : `<span class="x">${times(c.v)}</span>`}`;
+    const inside = w > 600;
+    val.style.right = inside ? "26px" : (w + 22) + "px";
+    val.style.color = inside ? "#06120d" : "#f3f6f9";
+    const x = val.querySelector(".x");
+    if (x) x.style.color = inside ? "rgba(6,18,13,.7)" : "#a9b8b1";
+  });
+
+  // ۴: نتیجه
+  pop("#winTitle", t, 13.65); pop("#crown", t, 13.8, .55); pop("#winName", t, 14.05); pop("#winVal", t, 14.3);
+  finals.forEach((a, i) => {
+    const el = $("#rank-" + i); const p = easeOut(prog(t, 14.9 + i * .2, 15.3 + i * .2));
+    el.style.top = (1110 + i * 120) + "px"; el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * 40}px)`;
+  });
+  $("#crown").style.rotate = (Math.sin(t * 6) * 6) + "deg";
+
+  // ۵: پیچش: قدرت خرید پول نقد به طلا
+  pop("#twist1", t, 16.85);
+  ["#gThen", "#gNow"].forEach((s, i) => {
+    const el = $(s); const p = easeOut(prog(t, 17.6 + i * .9, 18.0 + i * .9));
+    el.style.top = (640 + i * 400) + "px"; el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * 60}px)`;
+  });
+  $("#ingotThen").style.width = 300 + "px";
+  const shrink = easeInOut(prog(t, 18.6, 19.4));
+  $("#ingotNow").style.width = (300 - 300 * (1 - gramsNow / gramsThen) * shrink) + "px";
+  pop("#melt", t, 19.5, .5);
+  $("#flash").style.opacity = .35 * (1 - prog(t, 19.5, 19.8)) * (t >= 19.5 ? 1 : 0);
+
+  // ۶: دعوت به کامنت و برند
+  pop("#ctaQ", t, 20.65); pop("#ctaArrow", t, 21.0);
+  $("#ctaArrow").style.translate = `0 ${Math.abs(Math.sin(t * 5)) * 30}px`;
+  pop("#ctaLogo", t, 21.6, .55); pop("#ctaName", t, 21.9); pop("#ctaTag", t, 22.1); pop("#ctaUrl", t, 22.3);
+  $("#brand").style.opacity = t < 20.6 ? 1 : 1 - prog(t, 20.6, 21);
+}
+window.render = render;
+window.DURATION = DURATION;
+render(0);
+if (location.search.includes("play")) {
+  const start = performance.now();
+  const loop = () => { render(((performance.now() - start) / 1000) % DURATION); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>
