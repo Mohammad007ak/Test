@@ -162,6 +162,20 @@ def test_avatar_can_be_any_card(client: TestClient) -> None:
     assert client.post("/persona/avatar", data={"card": "nope"}).status_code == 400
 
 
+def test_retake_moves_avatar_to_the_new_card_unless_user_picked_one(client: TestClient) -> None:
+    answer(client)
+    first = services_card(client)
+    answer(client, age="55p", drop="sell", choice="sure", experience="none", horizon="lt1",
+           emergency="none", style="spender")
+    second = services_card(client)
+    assert second != first
+    emoji = s.PERSONA_CARDS[second]["emoji"]
+    assert f'avatar-emoji">{emoji}' in client.get("/").text  # آواتار با کارت تازه عوض شد
+    client.post("/persona/avatar", data={"card": "dragon"})
+    answer(client)  # کاربر خودش آواتار انتخاب کرده؛ دیگر عوض نمی‌شود
+    assert 'avatar-emoji">🐉' in client.get("/").text
+
+
 def test_interests_fill_untouched_watchlist_only(client: TestClient) -> None:
     answer(client, interests=("crypto",))
     page = client.get("/").text

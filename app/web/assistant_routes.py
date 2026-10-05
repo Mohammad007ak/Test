@@ -57,7 +57,7 @@ def _suggestions(db: Db, mode: str) -> list[str]:
 
 
 def _setup_cards(request: Request, db: Db, cards: list[str]) -> dict[str, Any]:
-    """داده کارت‌های راه‌اندازی زیر جواب: اتصال پیامک (بسته به گوشی) و کارت شخصیت."""
+    """داده کارت‌های راه‌اندازی زیر جواب: اتصال پیامک (بسته به گوشی) و پایان راه‌اندازی."""
     if "sms" not in cards:
         return {"cards": cards}
     user = db.get(User, request.state.user_id)
@@ -147,8 +147,8 @@ def register_assistant_routes(app: FastAPI, model: ChatModel | None, daily_limit
         except AssistantError as exc:
             return turn(request, text, str(exc), error=True, status=200)
         ui = setup_chat.ui(db) if setup else {"suggestions": [], "cards": []}
-        if "persona" in ui["cards"]:
-            onboarding.finish(db)  # کارت شخصیت یعنی پایان راه‌اندازی
+        if "done" in ui["cards"]:
+            onboarding.finish(db)  # کارت پایان یعنی راه‌اندازی تمام شد
         services.set_user_setting(db, USAGE_KEY, json.dumps({"date": today, "count": used + 1}))
         shown = f"{s.T['assistant_image_mark']} {text}" if image else text
         history = [*history, {"role": "user", "content": shown},

@@ -368,6 +368,7 @@ def save_persona(session: Session, answers: dict[str, object], note: str,
 
     اگر کاربر قیمت‌های صفحه اصلی را هنوز دستی انتخاب نکرده، از روی علاقه‌هایش چیده می‌شود.
     """
+    previous = load_persona(session)
     clean_note, clean_summary = (mask_numbers(normalize_chars(" ".join(text.split())))[:limit]
                                  for text, limit in ((note, MAX_PERSONA_NOTE),
                                                      (summary, MAX_PERSONA_SUMMARY)))
@@ -380,7 +381,9 @@ def save_persona(session: Session, answers: dict[str, object], note: str,
         keys = [k for i in interests for k in _WATCH_OF_INTEREST.get(i, ())]
         if keys:
             set_watchlist(session, keys)
-    if get_user_setting(session, AVATAR_KEY) is None:
+    # آواتار همراه کارت عوض می‌شود، مگر کاربر خودش کارت دیگری را آواتار کرده باشد
+    current = get_user_setting(session, AVATAR_KEY)
+    if current is None or (previous is not None and current == previous.card):
         set_user_setting(session, AVATAR_KEY, stored.card)
     return stored
 

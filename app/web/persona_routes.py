@@ -95,7 +95,8 @@ def register_persona_routes(app: FastAPI, model: ChatModel | None = None) -> Non
             "active": "persona", "stored": stored, "card": stored.card,
             "rarity": rarity(stored.card), "stats": stats(stored.persona),
             "current_avatar": services.avatar(db),
-            "reveal": request.query_params.get("new") == "1"})
+            "reveal": request.query_params.get("new") == "1",
+            "setup": not onboarding.load_state(db).done})
 
     @app.get("/persona/interview", response_class=HTMLResponse, dependencies=[LoggedIn])
     def redo(request: Request, db: Db) -> Response:

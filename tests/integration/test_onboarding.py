@@ -32,8 +32,21 @@ def rows(client: TestClient, model: type) -> list:  # type: ignore[type-arg]
         return list(s.scalars(select(model)))
 
 
-def test_full_setup_records_data_and_personalizes_persona(client: TestClient) -> None:
-    page = client.get("/start", follow_redirects=True).text
+def test_order_without_ai_is_quiz_then_card_then_sms_then_forms(client: TestClient) -> None:
+    assert client.get("/start", follow_redirects=False).headers["location"] == "/persona"
+    assert "data-final" in client.get("/persona").text  # بدون مدل: پرسش‌نامه سریع
+    client.post("/persona", data={
+        "age": "25_34", "job": "employee", "income": "fixed", "household": "single",
+        "housing": "renter", "goal": "home", "horizon": "3_7", "drop": "wait", "choice": "coin",
+        "experience": "safe", "style": "balanced", "emergency": "lt3", "tone": "simple"})
+    assert 'href="/start/sms"' in client.get("/persona?new=1").text
+    assert 'href="/start/money"' in client.get("/start/sms").text
+    assert client.get("/start/money", follow_redirects=False).headers["location"] == "/start/have"
+    assert client.get("/start", follow_redirects=False).headers["location"] == "/start/money"
+
+
+def test_money_forms_record_data_and_personalize_a_later_quiz(client: TestClient) -> None:
+    page = client.get("/start/have").text
     assert "چی داری" in page and 'value="gold"' in page
 
     step = client.post("/start/have", data={"kinds": ["gold", "bank", "coin"]},
@@ -55,17 +68,14 @@ def test_full_setup_records_data_and_personalizes_persona(client: TestClient) ->
 
     step = client.post("/start/monthly", data={"income": "30,000,000", "fixed_rent": "10,000,000"},
                        follow_redirects=False)
-    assert step.headers["location"] == "/start/sms"
+    assert step.headers["location"] == "/"  # آخرین قدم؛ راه‌اندازی تمام شد
     assert rows(client, IncomeStream)[0].amount_toman == 30_000_000
     rent = rows(client, ExpenseStream)[0]
     assert rent.amount_toman == 10_000_000 and rent.category == "housing"
 
-    page = client.get("/start/sms").text
-    assert "۲۰٬۰۰۰٬۰۰۰" in page  # ماهی ۲۰ میلیون می‌ماند
-    assert "/sms" in page
-
-    page = client.get("/start/card").text
-    assert 'href="/persona"' in page
+    home = client.get("/").text
+    assert "۲۰٬۰۰۰٬۰۰۰" in home  # ماهی ۲۰ میلیون می‌ماند (پیام پایان)
+    assert 'href="/start"' not in home
 
     quiz = client.get("/persona/quick").text  # جواب‌های پیش‌فرض از داده‌های ثبت‌شده
     assert 'name="housing" value="renter" checked' in quiz
@@ -97,4 +107,4 @@ def test_skip_finishes_and_dashboard_stops_pointing_to_setup(client: TestClient)
     assert 'href="/start"' in client.get("/").text  # داشبورد خالی: ادامه راه‌اندازی
     assert client.get("/start/skip", follow_redirects=False).headers["location"] == "/"
     assert 'href="/start"' not in client.get("/").text
-    assert client.get("/start", follow_redirects=False).headers["location"] == "/start/have"
+    assert client.get("/start", follow_redirects=False).headers["location"] == "/persona"

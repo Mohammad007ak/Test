@@ -1,7 +1,8 @@
 """راه‌اندازی اولیه (/start): کاربر تازه با اپ خالی تنها نمی‌ماند.
 
-چی داری ← حدوداً چقدر ← ماه به ماه ← پیامک بانک ← کارت شخصیت. هر قدم قابل رد شدن است و
-داده‌ها همان ردیف‌های معمولی اپ‌اند.
+اول آشنایی (مصاحبه و کارت شخصیت)، بعد اتصال پیامک بانک، بعد دارایی و دخل و خرج: با گفتگوی
+وزیر اگر مدل زبانی هست، وگرنه فرم سریع (چی داری ← حدوداً چقدر ← ماه به ماه). هر قدم قابل رد
+شدن است و داده‌ها همان ردیف‌های معمولی اپ‌اند.
 """
 
 from typing import Any
@@ -11,7 +12,7 @@ from fastapi.responses import HTMLResponse, Response
 
 from app import onboarding_service as onboarding
 from app import services
-from app.domain.money import to_persian_digits
+from app.domain.money import format_number, to_persian_digits
 from app.domain.onboarding import ASSET_CHOICES, monthly_left
 from app.domain.phone import mask_phone
 from app.models import User
@@ -30,12 +31,24 @@ def _page(request: Request, step: str, context: dict[str, Any], status: int = 20
 
 def register_onboarding_routes(app: FastAPI) -> None:
     @app.get("/start", dependencies=[LoggedIn])
-    def start(request: Request, db: Db) -> Response:
-        """با مدل زبانی: راه‌اندازی در گفتگوی وزیر؛ بدون آن: فرم‌های سریع."""
+    def start(db: Db) -> Response:
+        """ادامه از همان قدمی که کاربر رسیده: آشنایی ← پیامک ← دارایی و دخل و خرج."""
+        state = onboarding.load_state(db)
+        if state.done:
+            state.done = False  # خودش دوباره خواست؛ از ادامه راه
+            onboarding.save_state(db, state)
+            db.commit()
+        if services.load_persona(db) is None:
+            return redirect("/persona")
+        return redirect("/start/money" if state.sms_seen else "/start/sms")
+
+    @app.get("/start/money", dependencies=[LoggedIn])
+    def money(request: Request, db: Db) -> Response:
+        """دارایی و دخل و خرج: با گفتگوی وزیر اگر مدل هست، وگرنه فرم سریع."""
         if getattr(request.app.state, "chat_model", None) is None:
             return redirect("/start/have")
         state = onboarding.load_state(db)
-        state.chat, state.done = True, False
+        state.chat = True
         onboarding.save_state(db, state)
         db.commit()
         return redirect("/assistant")
@@ -98,14 +111,22 @@ def register_onboarding_routes(app: FastAPI) -> None:
             return _page(request, "monthly", {"fields": onboarding.monthly_fields(),
                                               "values": data, "errors": exc.errors}, 400)
         state = onboarding.load_state(db)
-        state.no_income = no_income
+        state.no_income, state.done = no_income, True  # آخرین قدم فرم‌ها
         onboarding.save_state(db, state)
         db.commit()
-        return redirect("/start/sms")
+        left = monthly_left(onboarding.snapshot(db, state))
+        request.session["toast"] = (s.ONBOARDING["finished_left"].format(
+            left=format_number(left)) if left and left > 0 else s.ONBOARDING["finished"])
+        return redirect("/")
 
     @app.get("/start/sms", response_class=HTMLResponse, dependencies=[LoggedIn])
     def sms(request: Request, db: Db) -> Response:
-        snap = onboarding.snapshot(db, onboarding.load_state(db))
+        state = onboarding.load_state(db)
+        if not state.sms_seen:
+            state.sms_seen = True
+            onboarding.save_state(db, state)
+            db.commit()
+        snap = onboarding.snapshot(db, state)
         user = db.get(User, request.state.user_id)
         token = ingest_token(db)
         return _page(request, "sms", {
@@ -114,10 +135,3 @@ def register_onboarding_routes(app: FastAPI) -> None:
             "android_pair": android_pair_url(
                 token, mask_phone(user.phone) if user and user.phone else "", site_url(request)),
         })
-
-    @app.get("/start/card", response_class=HTMLResponse, dependencies=[LoggedIn])
-    def card(request: Request, db: Db) -> Response:
-        onboarding.finish(db)  # به قدم آخر رسید؛ داشبورد دیگر دعوت به راه‌اندازی نمی‌کند
-        db.commit()
-        return _page(request, "card", {})
-

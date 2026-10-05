@@ -1,7 +1,7 @@
 <div class="chat-row vazir"><div class="chat-msg vazir {{ 'error' if error }}">{{ answer | chat_md }}</div></div>
 {% for action_id, action in actions %}<div class="chat-row vazir">{% include "_action_card.html" %}</div>{% endfor %}
 {% if actions | length > 1 %}<div class="chat-row vazir"><button type="button" class="btn confirm-all" data-confirm-all="{{ actions | map(attribute=0) | join(',') }}">{{ T.action_confirm_all.format(count=actions | length | fa) }}</button></div>{% endif %}
-{% if cards %}{% set C = s.SETUP_CHAT %}{% from "_ui.html" import icon, avatar %}
+{% if cards %}{% set C = s.SETUP_CHAT %}{% from "_ui.html" import icon %}
 {% for card in cards %}
 <div class="chat-row vazir"><div class="setup-card">
   {% if card == "sms" %}
@@ -11,10 +11,8 @@
   {% else %}<p class="muted small">{{ s.ONBOARDING.sms_desktop }}</p><a href="/sms" class="btn ghost wide">{{ s.ONBOARDING.sms_page }}</a>{% endif %}
   <p class="muted small">{{ icon("lock") }} {{ s.ONBOARDING.sms_safe }}</p>
   {% else %}
-  <div class="setup-card-avatars" aria-hidden="true">{{ avatar("owl") }}{{ avatar("eagle") }}{{ avatar("coin") }}</div>
-  <strong>{{ C.persona_title }}</strong><p>{{ C.persona_body }}</p>
-  <a href="/persona" class="btn wide">{{ icon("spark") }} {{ C.persona_go }}</a>
-  <a href="/" class="text-btn">{{ C.home }}</a>
+  <strong>{{ icon("spark") }} {{ C.done_title }}</strong><p>{{ C.done_body }}</p>
+  <a href="/" class="btn wide">{{ C.home }}</a>
   {% endif %}
 </div></div>
 {% endfor %}{% endif %}

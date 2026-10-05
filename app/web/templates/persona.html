@@ -24,6 +24,13 @@
 </article>
 </div>
 
+{% if setup %}
+<div class="setup-next">
+  <a href="/start/sms" class="btn wide">{{ s.ONBOARDING.continue_sms }}</a>
+  <p class="muted small">{{ s.ONBOARDING.continue_hint }}</p>
+</div>
+{% endif %}
+
 {% if stored.summary %}
 <section class="card persona-summary">
   <div class="persona-summary-head"><img src="{{ static('logo.svg') }}" alt=""><strong>{{ T.persona_summary }}</strong></div>

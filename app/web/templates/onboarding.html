@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import icon, avatar %}
+{% from "_ui.html" import icon %}
 {% from "_fields.html" import field with context %}
 {% block shell %}
 {% set O = s.ONBOARDING %}
@@ -86,18 +86,10 @@
       <p class="muted small">{{ icon("lock") }} {{ O.sms_safe }}</p>
     </div>
     <div class="onb-actions">
-      <a href="/start/card" class="btn {{ 'ghost' if platform in ('android', 'ios') else '' }} wide">{{ O.sms_done if platform in ('android', 'ios') else O.next }}</a>
-      {% if platform in ("android", "ios") %}<a href="/start/card" class="text-btn">{{ O.sms_later }}</a>{% endif %}
+      <a href="/start/money" class="btn {{ 'ghost' if platform in ('android', 'ios') else '' }} wide">{{ O.sms_done if platform in ('android', 'ios') else O.next }}</a>
+      {% if platform in ("android", "ios") %}<a href="/start/money" class="text-btn">{{ O.sms_later }}</a>{% endif %}
     </div>
 
-    {% elif step == "card" %}
-    <div class="onb-cards" aria-hidden="true">{{ avatar("owl") }}{{ avatar("eagle") }}{{ avatar("coin") }}</div>
-    <h1>{{ O.card_title }}</h1>
-    <p class="muted">{{ O.card_body }}</p>
-    <div class="onb-actions">
-      <a href="/persona" class="btn wide">{{ icon("spark") }} {{ O.card_go }}</a>
-      <a href="/" class="text-btn">{{ O.card_later }}</a>
-    </div>
     {% endif %}
   </main>
 </div>

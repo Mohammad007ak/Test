@@ -18,7 +18,7 @@ from app.web import strings as s
 from app.web.forms import Field
 
 STATE_KEY = "onboarding"
-STEPS = ("have", "amounts", "monthly", "sms", "card")
+STEPS = ("persona", "sms", "have", "amounts", "monthly")  # برای نوار پیشرفت
 GOLD_KARAT = 18
 COINS = ("coin_emami", "coin_half", "coin_quarter", "coin_gram")
 CURRENCIES = ("usd", "eur", "aed", "gbp", "try")
@@ -38,6 +38,7 @@ class State:
     no_income: bool = False
     done: bool = False
     chat: bool = False  # راه‌اندازی با گفتگوی وزیر (به‌جای فرم)
+    sms_seen: bool = False
 
     @property
     def chatting(self) -> bool:
@@ -49,7 +50,7 @@ def load_state(db: Session) -> State:
     data = json.loads(raw) if raw else {}
     kinds = [k for k in data.get("kinds", []) if k in ASSET_CHOICES]
     return State(kinds, bool(data.get("no_income")), bool(data.get("done")),
-                 bool(data.get("chat")))
+                 bool(data.get("chat")), bool(data.get("sms_seen")))
 
 
 def finish(db: Session) -> None:
