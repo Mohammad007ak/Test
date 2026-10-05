@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>ریلز جایزه</title>
+<!--
+  ریلز جایزه «۳ ماه وزیر ویژه رایگان» (۱۰۸۰×۱۹۲۰، ۱۹ ثانیه): قلاب، سه قدم (فالو، فرستادن پست
+  برای یک دوست، ثبت آیدی در getvazir.ir/gift)، مهلت تا ۲۵ مهر، دعوت. زبان بصری: store/social/DESIGN.md.
+  render(t) فقط تابع زمان است؛ با node store/video/render.js reel-giveaway ساخته می‌شود.
+-->
+<style>
+  @font-face { font-family: Vazir; src: url("../../app/static/fonts/Vazirmatn.woff2") format("woff2"); font-weight: 100 900; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #030c08; }
+  body { font-family: Vazir, sans-serif; color: #f2f5f1; position: relative; }
+  .abs { position: absolute; }
+  #bg { inset: 0; }
+  .grain { position: absolute; inset: 0; opacity: .14; mix-blend-mode: overlay; pointer-events: none; }
+  .em { background: linear-gradient(150deg, #8fffd2, #3ee8a6 45%, #b8f35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .gold { background: linear-gradient(160deg, #fff4c9 0%, #f5c76a 35%, #d99a2b 70%, #ffe7a3 100%); background-size: 100% 200%;
+          -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .thin { font-weight: 200; color: rgba(242,245,241,.72); }
+  .center { left: 80px; right: 80px; text-align: center; }
+  .scene { position: absolute; inset: 0; }
+  #brand { top: 80px; right: 80px; display: flex; align-items: center; gap: 16px; font-size: 40px; font-weight: 900; z-index: 20; }
+  #brand img { width: 62px; height: 62px; border-radius: 16px; }
+  #deadline { top: 92px; left: 80px; font-size: 32px; font-weight: 600; color: #f5c76a; padding: 10px 26px; border-radius: 30px;
+              border: 2px solid rgba(245,199,106,.4); z-index: 20; }
+
+  /* ۱ قلاب */
+  #kick { top: 470px; font-size: 54px; font-weight: 300; letter-spacing: 2px; color: rgba(242,245,241,.8); }
+  #big { top: 560px; font-size: 330px; font-weight: 900; line-height: 1.05; }
+  #big2 { top: 930px; font-size: 104px; font-weight: 900; }
+  #free { top: 1080px; font-size: 150px; font-weight: 900; }
+  #hookSub { top: 1420px; font-size: 46px; font-weight: 300; color: rgba(242,245,241,.75); }
+  .ray { position: absolute; left: 540px; top: 760px; width: 1400px; height: 1400px; margin: -700px 0 0 -700px; border-radius: 50%;
+         background: conic-gradient(from 0deg, transparent 0 8deg, rgba(245,199,106,.07) 10deg 14deg, transparent 16deg 40deg,
+         rgba(245,199,106,.05) 42deg 46deg, transparent 48deg 80deg, rgba(62,232,166,.05) 82deg 86deg, transparent 88deg 360deg);
+         -webkit-mask: radial-gradient(circle, #000 20%, transparent 65%); mask: radial-gradient(circle, #000 20%, transparent 65%); }
+
+  /* ۲ قدم‌ها */
+  .stepHead { top: 250px; }
+  .stepNo { font-size: 40px; font-weight: 300; color: rgba(242,245,241,.65); letter-spacing: 1px; }
+  .stepNo b { font-weight: 900; color: #f5c76a; }
+  .stepTitle { font-size: 88px; font-weight: 900; line-height: 1.25; margin-top: 18px; }
+  .mock { position: absolute; left: 120px; right: 120px; top: 640px; height: 760px; border-radius: 56px; padding: 56px 60px;
+          background: linear-gradient(170deg, #0f2219, #07120d 80%); border: 2px solid rgba(62,232,166,.18);
+          box-shadow: 0 60px 140px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.03) inset; display: flex; flex-direction: column; align-items: center; }
+  .avatar { width: 190px; height: 190px; border-radius: 50%; padding: 8px; background: conic-gradient(#f5c76a, #3ee8a6, #b8f35c, #f5c76a); }
+  .avatar img { width: 100%; height: 100%; border-radius: 50%; background: #06100b; padding: 22px; }
+  .pname { font-size: 60px; font-weight: 900; margin-top: 26px; }
+  .pdesc { font-size: 36px; font-weight: 300; color: rgba(242,245,241,.7); margin-top: 6px; }
+  .btn { margin-top: auto; width: 100%; height: 132px; border-radius: 40px; display: grid; place-items: center; font-size: 50px; font-weight: 900;
+         background: linear-gradient(135deg, #3ee8a6, #b8f35c); color: #04140d; }
+  .btn.done { background: transparent; color: #8fffd2; border: 3px solid rgba(62,232,166,.6); }
+  .post { width: 300px; height: 300px; border-radius: 30px; display: grid; place-items: center; text-align: center; font-size: 54px; font-weight: 900; line-height: 1.25;
+          background: radial-gradient(80% 70% at 50% 30%, rgba(245,199,106,.35), transparent 70%), #06100b; border: 2px solid rgba(245,199,106,.35); }
+  .post small { display: block; font-size: 30px; font-weight: 300; color: rgba(242,245,241,.8); }
+  .sendTo { font-size: 34px; font-weight: 300; color: rgba(242,245,241,.7); margin: 34px 0 22px; align-self: stretch; text-align: right; }
+  .friends { display: flex; gap: 30px; align-self: stretch; justify-content: space-between; }
+  .fr { display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 32px; font-weight: 600; }
+  .fr i { position: relative; width: 128px; height: 128px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 54px; font-weight: 900;
+          background: hsl(var(--h) 45% 22%); color: hsl(var(--h) 80% 80%); border: 4px solid transparent; }
+  .fr.on i { border-color: #3ee8a6; }
+  .fr i u { position: absolute; bottom: -4px; left: -4px; width: 48px; height: 48px; border-radius: 50%; background: #3ee8a6; color: #04140d; font-size: 32px;
+            text-decoration: none; display: grid; place-items: center; opacity: 0; }
+  .url { align-self: stretch; height: 92px; border-radius: 46px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; gap: 14px;
+         font-size: 38px; font-weight: 700; direction: ltr; color: rgba(242,245,241,.9); }
+  .url span { color: #3ee8a6; }
+  .lab { align-self: stretch; text-align: right; font-size: 38px; font-weight: 800; margin: 56px 0 18px; }
+  .inp { align-self: stretch; height: 120px; border-radius: 30px; border: 3px solid rgba(62,232,166,.45); background: rgba(0,0,0,.25); direction: ltr; text-align: left;
+         font-size: 50px; font-weight: 700; padding: 0 34px; display: flex; align-items: center; }
+  .caret { display: inline-block; width: 4px; height: 58px; background: #3ee8a6; margin-left: 4px; }
+  .ok { align-self: stretch; text-align: center; font-size: 42px; font-weight: 800; color: #8fffd2; margin-top: 26px; opacity: 0; }
+  #dots { top: 1500px; left: 0; right: 0; display: flex; justify-content: center; gap: 22px; }
+  #dots i { width: 22px; height: 22px; border-radius: 11px; background: rgba(242,245,241,.2); transition: none; }
+  #dots i.on { width: 70px; background: #f5c76a; }
+  #finger { width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; background: rgba(255,255,255,.5); border: 4px solid rgba(255,255,255,.95);
+            box-shadow: 0 10px 30px rgba(0,0,0,.35); z-index: 30; opacity: 0; }
+
+  /* ۳ مهلت */
+  #onlyTill { top: 420px; font-size: 64px; }
+  #date { top: 510px; font-size: 250px; font-weight: 900; line-height: 1.1; }
+  #strip { top: 980px; left: 0; width: 1080px; height: 220px; overflow: hidden;
+           -webkit-mask: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); mask: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); }
+  #days { position: absolute; top: 20px; right: 0; display: flex; gap: 24px; }
+  .day { width: 150px; height: 180px; border-radius: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+         background: rgba(255,255,255,.04); border: 2px solid rgba(255,255,255,.07); font-size: 76px; font-weight: 900; color: rgba(242,245,241,.45); }
+  .day small { font-size: 26px; font-weight: 300; }
+  .day.last { background: rgba(245,199,106,.12); border-color: #f5c76a; color: #f5c76a; box-shadow: 0 0 60px rgba(245,199,106,.35); }
+  #tillSub { top: 1290px; font-size: 46px; }
+
+  /* ۴ دعوت */
+  #ctaTop { top: 470px; font-size: 76px; font-weight: 900; line-height: 1.4; }
+  #ctaUrl { top: 840px; font-size: 104px; font-weight: 900; direction: ltr; }
+  #ctaBio { top: 1010px; font-size: 48px; }
+  #ctaArrow { top: 1110px; font-size: 90px; }
+  #fine { top: 1610px; font-size: 32px; font-weight: 300; line-height: 1.8; color: rgba(242,245,241,.55); }
+</style>
+</head>
+<body>
+<div class="abs" id="bg"></div>
+<div class="ray" id="ray"></div>
+<div class="abs" id="brand"><img src="../../app/static/logo.svg" alt="">وزیر</div>
+<div class="abs" id="deadline">تا ۲۵ مهر</div>
+
+<div class="scene" id="s1">
+  <div class="abs center" id="kick">جایزه پیج وزیر</div>
+  <div class="abs center gold" id="big">۳ ماه</div>
+  <div class="abs center" id="big2">وزیر ویژه</div>
+  <div class="abs center em" id="free">رایگان</div>
+  <div class="abs center" id="hookSub">فقط با سه کار ساده 👇</div>
+</div>
+
+<div class="scene" id="s2">
+  <div class="abs center stepHead" id="h1"><div class="stepNo">قدم <b>۱</b> از ۳</div><div class="stepTitle">پیج وزیر رو<br><span class="em">فالو کن</span></div></div>
+  <div class="abs center stepHead" id="h2"><div class="stepNo">قدم <b>۲</b> از ۳</div><div class="stepTitle">این پست رو برای<br><span class="em">یه دوست</span> بفرست</div></div>
+  <div class="abs center stepHead" id="h3"><div class="stepNo">قدم <b>۳</b> از ۳</div><div class="stepTitle">آیدیت رو توی<br><span class="em">سایت وزیر</span> ثبت کن</div></div>
+
+  <div class="mock" id="m1">
+    <div class="avatar"><img src="../../app/static/logo.svg" alt=""></div>
+    <div class="pname">وزیر</div>
+    <div class="pdesc">دستیار مالی هوشمند</div>
+    <div class="btn" id="follow">دنبال کردن</div>
+  </div>
+  <div class="mock" id="m2">
+    <div class="post">۳ ماه<small>وزیر ویژه رایگان</small></div>
+    <div class="sendTo">فرستادن برای…</div>
+    <div class="friends">
+      <div class="fr" id="f1" style="--h: 160"><i>س<u>✓</u></i>سارا</div>
+      <div class="fr" style="--h: 35"><i>م<u>✓</u></i>مهدی</div>
+      <div class="fr" style="--h: 280"><i>ن<u>✓</u></i>نگار</div>
+      <div class="fr" style="--h: 200"><i>ر<u>✓</u></i>رضا</div>
+    </div>
+    <div class="btn" id="send">فرستادن</div>
+  </div>
+  <div class="mock" id="m3">
+    <div class="url">🔒 getvazir.ir<span>/gift</span></div>
+    <div class="lab">آیدی اینستاگرام تو</div>
+    <div class="inp"><span id="typed"></span><span class="caret" id="caret"></span></div>
+    <div class="ok" id="ok">✓ ثبت شدی! سه ماهش مال تو</div>
+    <div class="btn" id="submit">ثبت در جایزه</div>
+  </div>
+  <div class="abs" id="dots"><i></i><i></i><i></i></div>
+</div>
+
+<div class="scene" id="s3">
+  <div class="abs center thin" id="onlyTill">فقط تا</div>
+  <div class="abs center gold" id="date">۲۵ مهر</div>
+  <div class="abs" id="strip"><div id="days"></div></div>
+  <div class="abs center thin" id="tillSub">بعدش این جایزه تمومه</div>
+</div>
+
+<div class="scene" id="s4">
+  <div class="abs center" id="ctaTop">فالو، فرستادن برای یه دوست،<br>و ثبت آیدی در</div>
+  <div class="abs center em" id="ctaUrl">getvazir.ir/gift</div>
+  <div class="abs center thin" id="ctaBio">لینکش توی بیو هم هست</div>
+  <div class="abs center" id="ctaArrow">☝️</div>
+  <div class="abs center" id="fine">وزیر ویژه هر وقت راه بیفته، سه ماهش برای تو رایگانه.<br>همه امکانات الان هم رایگانه · هر نفر یک بار</div>
+</div>
+
+<div class="abs" id="finger"></div>
+<svg class="grain" width="1080" height="1920"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
+<script>
+const DURATION = 19;
+const $ = (s) => document.querySelector(s);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+const easeInOut = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const back = (x) => { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const FA = "۰۱۲۳۴۵۶۷۸۹", fa = (s) => String(s).replace(/\d/g, (d) => FA[d]);
+
+const SC = { s1: [0, 3.3], s2: [3.3, 12.0], s3: [12.0, 15.2], s4: [15.2, 19.3] };
+const STEPS = [[3.3, 6.2], [6.2, 9.1], [9.1, 12.0]];
+
+// نوار روزها: ۱۳ تا ۲۵ مهر (راست به چپ)
+const FIRST = 13, LAST = 25;
+for (let d = FIRST; d <= LAST; d++) {
+  const el = document.createElement("div"); el.className = "day" + (d === LAST ? " last" : "");
+  el.innerHTML = `${fa(d)}<small>مهر</small>`; $("#days").appendChild(el);
+}
+
+function vis(el, a, b, t, fadeIn = .3, fadeOut = .25) {
+  const i = easeOut(prog(t, a - .05, a + fadeIn)), o = prog(t, b - fadeOut, b);
+  el.style.display = i > 0 && o < 1 ? "" : "none";
+  el.style.opacity = Math.min(i, 1 - o);
+  return [i, o];
+}
+function pop(sel, t, at, dur = .5, dy = 60) {
+  const p = prog(t, at, at + dur), el = $(sel);
+  el.style.opacity = Math.min(1, p * 2);
+  el.style.transform = `translateY(${(1 - easeOut(p)) * dy}px) scale(${p > 0 ? back(p) : .7})`;
+}
+function center(sel) { const r = $(sel).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }
+function press(t, at) { return prog(t, at - .1, at) * (1 - prog(t, at + .1, at + .25)); }
+
+function render(t) {
+  for (const id of Object.keys(SC)) vis($("#" + id), SC[id][0], SC[id][1], t);
+  // پس‌زمینه: هاله طلایی که با قلاب و مهلت قوی‌تر است
+  const warm = Math.max(1 - prog(t, 2.6, 3.6), prog(t, 11.8, 12.6) * (1 - prog(t, 15.0, 15.8)));
+  $("#bg").style.background = `radial-gradient(70% 42% at 50% 40%, rgba(245,199,106,${.10 + .22 * warm}), transparent 70%),
+    radial-gradient(70% 40% at 50% 100%, rgba(62,232,166,${.16 - .06 * warm}), transparent 70%), #030c08`;
+  $("#ray").style.opacity = warm * .9;
+  $("#ray").style.transform = `rotate(${t * 9}deg)`;
+  $("#deadline").style.opacity = prog(t, 3.3, 3.8) * (1 - prog(t, 11.8, 12.1)) + prog(t, 15.4, 15.9);
+
+  // ۱ قلاب: «۳ ماه» با برق طلا
+  pop("#kick", t, .05, .4, 30);
+  pop("#big", t, .25, .6, 90);
+  $("#big").style.backgroundPosition = `0 ${100 - 100 * easeInOut(prog(t, .3, 2.6))}%`;
+  pop("#big2", t, .75, .45);
+  pop("#free", t, 1.05, .5);
+  pop("#hookSub", t, 1.9, .45, 30);
+
+  // ۲ سه قدم
+  let fx = 540, fy = 1650, fon = 0, pr = 0;
+  STEPS.forEach(([a, b], i) => {
+    const n = i + 1;
+    vis($("#h" + n), a, b, t, .35, .3);
+    const [mi, mo] = vis($("#m" + n), a + .1, b, t, .4, .3);
+    $("#h" + n).style.transform = `translateY(${(1 - easeOut(prog(t, a, a + .45))) * 40}px)`;
+    $("#m" + n).style.transform = `translateX(${(1 - mi) * -140 + mo * 140}px) scale(${.94 + .06 * mi})`;
+  });
+  [...document.querySelectorAll("#dots i")].forEach((d, i) => d.classList.toggle("on", t >= STEPS[i][0] && t < STEPS[i][1] + (i === 2 ? 1 : 0)));
+
+  // قدم ۱: ضربه روی «دنبال کردن»
+  const followed = t > 4.95;
+  $("#follow").classList.toggle("done", followed);
+  $("#follow").textContent = followed ? "✓ دنبال می‌کنی" : "دنبال کردن";
+  $("#follow").style.transform = `scale(${1 - .06 * press(t, 4.95)})`;
+  // قدم ۲: انتخاب سارا، بعد «فرستادن»
+  const picked = t > 7.45, sent = t > 8.35;
+  $("#f1").classList.toggle("on", picked);
+  $("#f1 u").style.opacity = picked ? 1 : 0;
+  $("#f1 i").style.transform = `scale(${1 - .1 * press(t, 7.45) + .08 * prog(t, 7.45, 7.6) * (1 - prog(t, 7.6, 7.8))})`;
+  $("#send").classList.toggle("done", sent);
+  $("#send").textContent = sent ? "✓ فرستاده شد" : "فرستادن";
+  $("#send").style.transform = `scale(${1 - .06 * press(t, 8.35)})`;
+  // قدم ۳: تایپ آیدی و ثبت
+  const ID = "@your.id";
+  const typedN = Math.floor(ID.length * prog(t, 9.7, 10.6));
+  $("#typed").textContent = ID.slice(0, typedN);
+  $("#caret").style.opacity = t > 11.0 ? 0 : (Math.floor(t * 2.5) % 2 ? .2 : 1);
+  const ok = t > 11.05;
+  $("#submit").classList.toggle("done", ok);
+  $("#submit").textContent = ok ? "✓ ثبت شد" : "ثبت در جایزه";
+  $("#submit").style.transform = `scale(${1 - .06 * press(t, 11.05)})`;
+  $("#ok").style.opacity = prog(t, 11.1, 11.35);
+  $("#ok").style.transform = `translateY(${(1 - easeOut(prog(t, 11.1, 11.4))) * 20}px)`;
+
+  // انگشت: فقط وقتی کاری انجام می‌دهد
+  const path = [
+    [4.2, 5.25, "#follow", 4.95],
+    [6.9, 7.75, "#f1 i", 7.45],
+    [7.75, 8.65, "#send", 8.35],
+    [10.55, 11.35, "#submit", 11.05],
+  ];
+  let prev = [540, 1650];
+  for (const [a, b, sel, tap] of path) {
+    if (t >= a - .3 && t <= b) {
+      const [x, y] = center(sel);
+      const m = easeInOut(prog(t, a, tap - .12));
+      fx = prev[0] + (x - prev[0]) * m; fy = prev[1] + (y - prev[1]) * m;
+      fon = Math.min(prog(t, a - .3, a), 1 - prog(t, b - .25, b));
+      pr = press(t, tap);
+      if (sel === "#send" && t < a + .01) fon = 1;
+    }
+    prev = center(sel);
+  }
+  // بین سارا و دکمه فرستادن انگشت پیوسته می‌ماند
+  if (t > 7.5 && t < 7.75) { const [x, y] = center("#f1 i"); fx = x; fy = y; fon = 1; }
+  const f = $("#finger");
+  f.style.opacity = fon; f.style.left = fx + "px"; f.style.top = fy + "px";
+  f.style.transform = `scale(${1 - .2 * pr})`;
+
+  // ۳ مهلت: روزها می‌گذرند و روی ۲۵ مهر می‌ایستند
+  pop("#onlyTill", t, 12.1, .4, 30);
+  pop("#date", t, 12.3, .55, 70);
+  $("#date").style.backgroundPosition = `0 ${100 - 100 * easeInOut(prog(t, 12.3, 14.8))}%`;
+  const cell = 174, count = LAST - FIRST + 1;
+  const run = easeInOut(prog(t, 12.4, 14.2));
+  // در چینش راست‌به‌چپ، روز ۲۵ آخرین (چپ‌ترین) است؛ نوار به راست می‌رود تا ۲۵ وسط بنشیند
+  const startX = 540 - 75, endX = 540 - 75 + (count - 1) * cell;
+  $("#days").style.right = "auto";
+  $("#days").style.left = "0px";
+  $("#days").style.transform = `translateX(${(startX - (count - 1) * cell) + (endX - startX) * run}px)`;
+  document.querySelector(".day.last").style.transform = `scale(${1 + .12 * prog(t, 14.1, 14.4) * (1 - .5 * prog(t, 14.4, 14.7))})`;
+  pop("#tillSub", t, 14.0, .4, 20);
+
+  // ۴ دعوت
+  pop("#ctaTop", t, 15.3, .45, 40);
+  pop("#ctaUrl", t, 15.7, .55, 60);
+  pop("#ctaBio", t, 16.3, .4, 20);
+  pop("#ctaArrow", t, 16.6, .4, 20);
+  $("#ctaArrow").style.transform += ` translateY(${Math.sin(t * 6) * 12}px)`;
+  pop("#fine", t, 17.0, .4, 10);
+}
+window.DURATION = DURATION; window.render = render;
+render(0);
+</script>
+</body>
+</html>
