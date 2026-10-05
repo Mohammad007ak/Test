@@ -241,10 +241,27 @@ def _jsonable(value: Any) -> Any:
     return value
 
 
+def dong_groups(db: Session) -> dict[str, Any]:
+    """گروه‌های دنگ کاربر با اعضا، مانده خودش و کارت‌به‌کارت‌های لازم (تومان)."""
+    from app.split_service import all_groups
+
+    groups = []
+    for v in all_groups(db):
+        groups.append({
+            "group": v.group.name,
+            "members": [m.name + (" (خود کاربر)" if m.is_me else "") for m in v.members],
+            "expenses": len(v.expenses), "total_toman": v.total,
+            "my_balance_toman": v.my_balance,
+            "transfers": [{"from": v.names[t.debtor], "to": v.names[t.creditor],
+                           "amount_toman": t.amount} for t in v.transfers],
+        })
+    return {"groups": groups, "note": "my_balance مثبت یعنی بقیه به کاربر بدهکارند."}
+
+
 _RUNNERS: dict[str, Callable[..., dict[str, Any]]] = {
     "overview": overview, "spending": spending, "compare_months": compare_months,
     "assets": assets, "liabilities": liabilities, "prices": prices, "analyze_loan": loan,
-    "market_analysis": market,
+    "market_analysis": market, "dong_groups": dong_groups,
 }
 
 
@@ -283,6 +300,8 @@ _DIRECTION = {"type": "string", "enum": ["out", "in"],
               "description": "out = خرج و برداشت، in = واریز و درآمد واقعی"}
 
 TOOLS: list[dict[str, Any]] = [
+    _tool("dong_groups", "گروه‌های دنگ (تقسیم خرج گروهی) کاربر: اعضا، مانده او و این‌که چه کسی "
+                         "به چه کسی چقدر بدهکار است. پیش از add_split_expense صدا بزن."),
     _tool("overview", "خلاصه مالی کاربر: ثروت خالص، جمع دارایی و بدهی، درآمد و اقساط و "
                       "هزینه ثابت ماهانه، باقی‌مانده ماهانه و نسبت اقساط به درآمد."),
     _tool("spending", "خرج‌ها (یا واریزها) یک ماه شمسی به تفکیک دسته و بزرگ‌ترین تراکنش‌ها.",

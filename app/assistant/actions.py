@@ -7,12 +7,15 @@
 
 import json
 import secrets
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app import services
+from app import split_service as dong
+from app.domain import split
 from app.domain.money import format_toman, to_persian_digits
 from app.models import Transaction
 from app.web import categories, forms
@@ -105,8 +108,115 @@ def _store(db: Session, pending: dict[str, dict[str, Any]]) -> None:
     services.set_user_setting(db, PENDING_KEY, json.dumps(kept, ensure_ascii=False))
 
 
+# ---------- دنگ: خرج گروهی (گروه موجود، یا گروه تازه با همان کارت) ----------
+
+def _split_plan(db: Session, args: dict[str, Any]) -> dict[str, Any]:
+    """آرگومان‌های مدل ← برنامه دقیق خرج (اسم‌ها و سهم‌ها)؛ هیچ چیزی ذخیره نمی‌شود."""
+    ref = dong.clean(str(args.get("group") or ""), dong.MAX_GROUP_NAME)
+    groups = dong.all_groups(db)
+    view = next((v for v in groups if dong.clean(v.group.name).casefold() == ref.casefold()),
+                None)
+    new_members = [str(n) for n in args.get("new_group_members") or []]
+    if view is not None:
+        members = [m.name for m in view.members]
+        me = view.names[view.me] if view.me is not None else members[0]
+    elif new_members:
+        ref, me, others = dong.validate_group(ref, s.DONG["me"], new_members)
+        members = [me, *others]
+    else:
+        existing = "، ".join(v.group.name for v in groups) or "هیچ گروهی"
+        raise dong.SplitInputError({"group": f"گروه «{ref}» نیست (گروه‌ها: {existing}). یا اسم "
+                                             "درست را بپرس، یا new_group_members بده تا ساخته شود"})
+
+    def resolve(raw: Any) -> str:
+        wanted = dong.clean(str(raw or ""))
+        if wanted.casefold() in dong.SELF_NAMES:
+            return me
+        for member in members:
+            if member.casefold() == wanted.casefold():
+                return member
+        raise dong.SplitInputError({"member": f"«{wanted}» عضو گروه نیست؛ اعضا: "
+                                              + "، ".join(members)})
+
+    try:
+        amount = int(args.get("amount_toman") or 0)
+    except (TypeError, ValueError):
+        amount = 0
+    index = {name: i for i, name in enumerate(members)}
+    exact = args.get("exact_shares") or {}
+    try:
+        if exact:
+            by_index = split.split_exact(amount, {index[resolve(k)]: int(v)
+                                                  for k, v in dict(exact).items()})
+        else:
+            chosen = [index[resolve(n)] for n in args.get("participants") or []] or list(
+                index.values())
+            by_index = split.split_equal(amount, list(dict.fromkeys(chosen)))
+    except split.SplitError as exc:
+        raise dong.SplitInputError({"amount": str(exc)}) from exc
+    options = categories.options(db, "out")
+    label_to_key = {label: key for key, label in options.items()}
+    category = str(args.get("category") or "")
+    spent_on = None
+    if args.get("spent_on"):
+        spent_on = forms.parse_form([forms.Field("spent_on", "تاریخ", "date")],
+                                    {"spent_on": str(args["spent_on"])})["spent_on"]
+    return {
+        "group": ref, "new_members": [] if view else members[1:], "me": me,
+        "title": dong.clean(str(args.get("title") or s.DONG["title"]), dong.MAX_TITLE),
+        "amount": amount, "payer": resolve(args.get("payer") or "من"),
+        "shares": {members[i]: v for i, v in by_index.items()},
+        "category": category if category in options else label_to_key.get(category, "other"),
+        "spent_on": spent_on.isoformat() if spent_on else None,
+    }
+
+
+def _split_summary(plan: dict[str, Any]) -> list[list[str]]:
+    group = plan["group"] + (" (" + s.DONG["new_group"] + ")" if plan["new_members"] else "")
+    shares = "، ".join(f"{name} {format_toman(v)}" for name, v in plan["shares"].items())
+    rows = [[s.DONG["group_name"], group], [s.DONG["expense_title"], plan["title"]],
+            [s.DONG["amount"], format_toman(plan["amount"])], [s.DONG["payer"], plan["payer"]],
+            [s.DONG["who"], shares]]
+    mine = plan["shares"].get(plan["me"], 0)
+    if mine and plan["payer"] != plan["me"]:
+        rows.append([s.DONG["my_share"].format(amount=format_toman(mine)),
+                     s.DONG["my_share_note"]])
+    return [[label, to_persian_digits(value)] for label, value in rows]
+
+
+def _split_execute(db: Session, plan: dict[str, Any]) -> None:
+    if plan["new_members"]:
+        group = dong.create_group(db, plan["group"], plan["me"], plan["new_members"])
+    else:
+        group = next(v.group for v in dong.all_groups(db)
+                     if dong.clean(v.group.name).casefold() == plan["group"].casefold())
+    view = dong.load_group(db, group)
+    ids = {view.names[i]: i for i in view.names}
+    dong.record_expense(db, view, plan["title"], plan["amount"], ids[plan["payer"]],
+                        {ids[n]: v for n, v in plan["shares"].items()}, plan["category"],
+                        date.fromisoformat(plan["spent_on"]) if plan["spent_on"] else None)
+
+
+def _propose_split(db: Session, args: dict[str, Any]) -> dict[str, Any]:
+    try:
+        plan = _split_plan(db, args)
+    except (dong.SplitInputError, FormError) as exc:
+        return {"error": "این موارد درست نیست یا کم است؛ از کاربر بپرس: " + "، ".join(
+            exc.errors.values())}
+    action_id = secrets.token_hex(6)
+    pending = _load(db)
+    pending[action_id] = {"name": "add_split_expense", "data": args, "title": s.DONG["title"],
+                          "summary": _split_summary(plan)}
+    _store(db, pending)
+    db.commit()
+    return {"status": "pending_confirmation", "action_id": action_id, "plan": plan,
+            "note": "هنوز ثبت نشده؛ به کاربر بگو کارت تأیید زیر پیام را بزند."}
+
+
 def propose(db: Session, name: str, args: dict[str, Any]) -> dict[str, Any]:
     """اعتبارسنجی و نگه داشتن پیشنهاد؛ هیچ چیزی ذخیره نمی‌شود."""
+    if name == "add_split_expense":
+        return _propose_split(db, args)
     data = _form_data(name, args)
     try:
         _obj, entity = _build(db, name, data)
@@ -136,8 +246,15 @@ def confirm(db: Session, action_id: str) -> dict[str, Any] | None:
     action = store.pop(action_id, None)
     if action is None:
         return None
-    obj, _entity_ = _build(db, action["name"], dict(action["data"]))
-    db.add(obj)
+    if action["name"] == "add_split_expense":
+        # دوباره با داده امروز اعتبارسنجی؛ اگر گروه یا عضوی حذف شده باشد FormError می‌دهد
+        try:
+            _split_execute(db, _split_plan(db, dict(action["data"])))
+        except dong.SplitInputError as exc:
+            raise FormError(exc.errors) from exc
+    else:
+        obj, _entity_ = _build(db, action["name"], dict(action["data"]))
+        db.add(obj)
     _store(db, store)
     db.commit()
     return action
@@ -195,6 +312,21 @@ ACTION_TOOLS: list[dict[str, Any]] = [
     _tool("add_income", "پیشنهاد ثبت درآمد تکراری (حقوق، اجاره، ...).",
           {"name": _STR, "amount_toman": _INT, "frequency": _FREQ},
           ["name", "amount_toman", "frequency"]),
+    _tool("add_split_expense",
+          "پیشنهاد ثبت خرج گروهی در دنگ (شام، سفر، خرید مشترک). اول dong_groups را صدا بزن. "
+          "payer کسی است که حساب کرد («من» یعنی خود کاربر). participants خالی یعنی تقسیم "
+          "مساوی بین همه اعضا؛ برای سهم نامساوی exact_shares (اسم ← تومان) که جمعش دقیقاً "
+          "مبلغ باشد. اگر گروه وجود ندارد، new_group_members (اسم دوستان، بدون خود کاربر) "
+          "بده تا با همین کارت ساخته شود.",
+          {"group": {"type": "string", "description": "اسم گروه، مثل «سفر شمال»"},
+           "title": _STR, "amount_toman": _INT,
+           "payer": {"type": "string", "description": "اسم عضو یا «من»"},
+           "participants": {"type": "array", "items": _STR},
+           "exact_shares": {"type": "object", "additionalProperties": _INT},
+           "category": _STR,
+           "spent_on": {"type": "string", "description": "شمسی YYYY/MM/DD؛ خالی = امروز"},
+           "new_group_members": {"type": "array", "items": _STR}},
+          ["group", "title", "amount_toman", "payer"]),
     _tool("add_bill", "پیشنهاد ثبت هزینه ثابت تکراری (اجاره، قبض، شهریه، بیمه، ...).",
           {"name": _STR, "amount_toman": _INT, "frequency": _FREQ,
            "category": {"type": "string", "enum": list(s.EXPENSE_CATEGORIES)}},

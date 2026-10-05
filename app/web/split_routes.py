@@ -1,13 +1,9 @@
 """دنگ: گروه، خرج‌ها، سهم هر نفر، کمترین کارت‌به‌کارت و لینک دیدنی برای دوستان.
 
-محاسبه در app.domain.split است؛ این‌جا فقط خواندن و نوشتن و نمایش. وقتی دیگری حساب
-کرده، سهم خود کاربر به‌عنوان خرج او (Transaction) ثبت می‌شود؛ وقتی خودش حساب کرده، خرج
-کامل معمولاً از پیامک بانک یا ثبت دستی آمده و دوباره ثبت نمی‌شود.
+محاسبه در app.domain.split و خواندن/نوشتن در app.split_service است (مشترک با دستیار)؛
+این‌جا فقط فرم و نمایش.
 """
 
-import secrets
-from dataclasses import dataclass, field
-from datetime import datetime, time
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
@@ -16,80 +12,22 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain import split
-from app.domain.normalize import normalize_chars
-from app.models import (
-    SplitExpense,
-    SplitGroup,
-    SplitMember,
-    SplitSettlement,
-    SplitShare,
-    Transaction,
+from app.models import SplitExpense, SplitGroup, SplitMember, SplitSettlement, Transaction
+from app.split_service import (
+    MAX_MEMBERS,
+    GroupView,
+    SplitInputError,
+    all_groups,
+    create_group,
+    load_group,
+    parse_names,
+    record_expense,
 )
 from app.web import categories, forms
 from app.web import strings as s
 from app.web.common import Db, LoggedIn, done, page, read_form, site_url
 from app.web.forms import Field, FormError
-from app.web.render import TEHRAN, tehran_today
-
-MAX_MEMBERS = 30
-MAX_NAME = 60
-
-
-@dataclass
-class ExpenseView:
-    expense: SplitExpense
-    shares: dict[int, int]
-    my_share: int
-
-
-@dataclass
-class GroupView:
-    group: SplitGroup
-    members: list[SplitMember]
-    names: dict[int, str]
-    me: int | None
-    expenses: list[ExpenseView] = field(default_factory=list)
-    balances: dict[int, int] = field(default_factory=dict)
-    transfers: list[split.Transfer] = field(default_factory=list)
-    total: int = 0
-
-    @property
-    def my_balance(self) -> int:
-        return self.balances.get(self.me, 0) if self.me is not None else 0
-
-
-def load_group(db: Session, group: SplitGroup) -> GroupView:
-    members = list(db.scalars(select(SplitMember).where(SplitMember.group_id == group.id)
-                              .order_by(SplitMember.id)))
-    me = next((m.id for m in members if m.is_me), None)
-    view = GroupView(group, members, {m.id: m.name for m in members}, me)
-    rows = list(db.scalars(select(SplitExpense).where(SplitExpense.group_id == group.id)
-                           .order_by(SplitExpense.spent_on.desc(), SplitExpense.id.desc())))
-    shares: dict[int, dict[int, int]] = {}
-    if rows:
-        for share in db.scalars(select(SplitShare).where(
-                SplitShare.expense_id.in_([e.id for e in rows]))):
-            shares.setdefault(share.expense_id, {})[share.member_id] = share.amount_toman
-    view.expenses = [ExpenseView(e, shares.get(e.id, {}), shares.get(e.id, {}).get(me, 0))
-                     for e in rows]
-    settlements = list(db.scalars(select(SplitSettlement).where(
-        SplitSettlement.group_id == group.id)))
-    view.balances = split.balances(
-        [split.Expense(e.expense.payer_id, e.shares) for e in view.expenses],
-        [split.Settlement(x.payer_id, x.payee_id, x.amount_toman) for x in settlements],
-        [m.id for m in members])
-    view.transfers = split.settle(view.balances)
-    view.total = sum(e.expense.amount_toman for e in view.expenses)
-    return view
-
-
-def _names(raw: str) -> list[str]:
-    seen: list[str] = []
-    for line in raw.replace("،", "\n").replace(",", "\n").splitlines():
-        name = normalize_chars(line).strip()[:MAX_NAME]
-        if name and name not in seen:
-            seen.append(name)
-    return seen
+from app.web.render import tehran_today
 
 
 def _group(db: Session, group_id: int) -> SplitGroup:
@@ -122,20 +60,6 @@ def _shares(view: GroupView, data: dict[str, str], who: list[str], amount: int) 
     return split.split_equal(amount, chosen)
 
 
-def _my_share_transaction(db: Session, view: GroupView, expense: SplitExpense,
-                          shares: dict[int, int]) -> Transaction | None:
-    mine = shares.get(view.me, 0) if view.me is not None else 0
-    if not mine or expense.payer_id == view.me:
-        return None
-    moment = datetime.combine(expense.spent_on, time(12), tzinfo=TEHRAN)
-    tx = Transaction(direction="out", amount_toman=mine, occurred_at=moment,
-                     category=expense.category or "other",
-                     description=f"{s.DONG['title']} {view.group.name}: {expense.title}")
-    db.add(tx)
-    db.flush()
-    return tx
-
-
 def register_split_routes(app: FastAPI) -> None:
     def group_page(request: Request, db: Db, view: GroupView, values: dict[str, Any] | None = None,
                    errors: dict[str, str] | None = None, status: int = 200) -> Response:
@@ -147,9 +71,7 @@ def register_split_routes(app: FastAPI) -> None:
 
     def list_page(request: Request, db: Db, values: dict[str, str] | None = None,
                   errors: dict[str, str] | None = None, status: int = 200) -> Response:
-        groups = [load_group(db, g) for g in db.scalars(
-            select(SplitGroup).order_by(SplitGroup.created_at.desc()))]
-        return page(request, "dong.html", {"active": "dong", "groups": groups,
+        return page(request, "dong.html", {"active": "dong", "groups": all_groups(db),
                                            "values": values or {}, "errors": errors or {}},
                     status)
 
@@ -158,25 +80,13 @@ def register_split_routes(app: FastAPI) -> None:
         return list_page(request, db)
 
     @app.post("/dong", response_class=HTMLResponse, dependencies=[LoggedIn])
-    async def create_group(request: Request, db: Db) -> Response:
+    async def new_group(request: Request, db: Db) -> Response:
         data = await read_form(request)
-        name = normalize_chars(data.get("name", "")).strip()[:100]
-        me = normalize_chars(data.get("me", "")).strip()[:MAX_NAME] or s.DONG["me"]
-        others = [n for n in _names(data.get("members", "")) if n != me]
-        errors = {}
-        if not name:
-            errors["name"] = s.T["required"]
-        if not others:
-            errors["members"] = s.DONG["need_members"]
-        elif len(others) + 1 > MAX_MEMBERS:
-            errors["members"] = s.DONG["too_many"]
-        if errors:
-            return list_page(request, db, data, errors, status=400)
-        group = SplitGroup(name=name, share_token=secrets.token_urlsafe(16))
-        db.add(group)
-        db.flush()
-        db.add(SplitMember(group_id=group.id, name=me, is_me=True))
-        db.add_all(SplitMember(group_id=group.id, name=n) for n in others)
+        try:
+            group = create_group(db, data.get("name", ""), data.get("me", ""),
+                                 parse_names(data.get("members", "")))
+        except SplitInputError as exc:
+            return list_page(request, db, data, exc.errors, status=400)
         db.commit()
         return done(request, f"/dong/{group.id}", s.DONG["created"])
 
@@ -198,16 +108,9 @@ def register_split_routes(app: FastAPI) -> None:
             return group_page(request, db, view, data, exc.errors, status=400)
         except split.SplitError as exc:
             return group_page(request, db, view, data, {"who": str(exc)}, status=400)
-        expense = SplitExpense(group_id=view.group.id, title=values["title"][:100],
-                               amount_toman=values["amount"], payer_id=int(values["payer"]),
-                               category=values["category"],
-                               spent_on=values["spent_on"] or tehran_today())
-        db.add(expense)
-        db.flush()
-        db.add_all(SplitShare(expense_id=expense.id, member_id=m, amount_toman=v)
-                   for m, v in shares.items())
-        tx = _my_share_transaction(db, view, expense, shares)
-        expense.transaction_id = tx.id if tx else None
+        _expense, tx = record_expense(db, view, values["title"], values["amount"],
+                                      int(values["payer"]), shares, values["category"],
+                                      values["spent_on"] or tehran_today())
         db.commit()
         message = s.DONG["expense_saved"] + (" · " + s.DONG["my_share_note"] if tx else "")
         return done(request, f"/dong/{group_id}", message)
@@ -244,7 +147,7 @@ def register_split_routes(app: FastAPI) -> None:
     @app.post("/dong/{group_id}/members", dependencies=[LoggedIn])
     async def add_member(request: Request, group_id: int, db: Db) -> Response:
         view = load_group(db, _group(db, group_id))
-        names = [n for n in _names((await read_form(request)).get("name", ""))
+        names = [n for n in parse_names((await read_form(request)).get("name", ""))
                  if n not in view.names.values()]
         if names and len(view.members) + len(names) <= MAX_MEMBERS:
             db.add_all(SplitMember(group_id=view.group.id, name=n) for n in names)

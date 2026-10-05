@@ -122,3 +122,67 @@ def test_actions_are_private(app, client, model) -> None:  # type: ignore[no-unt
     with TestClient(app) as bob:
         register(bob, "09122222222")
         assert bob.post(f"/assistant/actions/{action_id(html)}/confirm").status_code == 404
+
+
+# ---------- دنگ با دستیار ----------
+
+def _dong_group(client: TestClient) -> None:
+    client.post("/dong", data={"name": "سفر شمال", "me": "من", "members": "علی\nسارا\nرضا"})
+
+
+def test_split_expense_proposed_then_saved_on_confirm(app, client, model) -> None:  # type: ignore[no-untyped-def]
+    from app.models import SplitExpense, SplitShare
+
+    _dong_group(client)
+    html = say(client, model, "add_split_expense", group="سفر شمال", title="شام",
+               amount_toman=1_200_000, payer="علی", category="خوراک و رستوران")
+    assert "سفر شمال" in html and "شام" in html
+    with db(app) as s:
+        assert s.scalars(select(SplitExpense)).first() is None  # هنوز ثبت نشده
+    assert client.post(f"/assistant/actions/{action_id(html)}/confirm").status_code == 200
+    with db(app) as s:
+        expense = s.scalars(select(SplitExpense)).one()
+        assert (expense.title, expense.amount_toman, expense.category) == ("شام", 1_200_000,
+                                                                           "food")
+        assert sorted(x.amount_toman for x in s.scalars(select(SplitShare))) == [300_000] * 4
+        tx = s.scalars(select(Transaction)).one()  # دیگری حساب کرده: سهم من خرج من
+        assert (tx.amount_toman, tx.category) == (300_000, "food")
+
+
+def test_split_expense_creates_new_group_and_supports_exact_shares(app, client, model) -> None:  # type: ignore[no-untyped-def]
+    from app.models import SplitGroup, SplitMember
+
+    html = say(client, model, "add_split_expense", group="دورهمی", title="کیک",
+               amount_toman=900_000, payer="من", new_group_members=["مریم", "نیما"],
+               exact_shares={"من": 300_000, "مریم": 400_000, "نیما": 200_000})
+    client.post(f"/assistant/actions/{action_id(html)}/confirm")
+    with db(app) as s:
+        assert s.scalars(select(SplitGroup)).one().name == "دورهمی"
+        assert {m.name for m in s.scalars(select(SplitMember))} == {"من", "مریم", "نیما"}
+        assert s.scalars(select(Transaction)).all() == []  # خودم حساب کردم: دوباره‌شماری نه
+
+
+def test_split_expense_errors_go_back_to_model(app, client) -> None:  # type: ignore[no-untyped-def]
+    _dong_group(client)
+    with db(app) as s:
+        unknown_group = json.loads(run_tool(s, "add_split_expense", json.dumps(
+            {"group": "کیش", "title": "x", "amount_toman": 1000, "payer": "من"})))
+        unknown_member = json.loads(run_tool(s, "add_split_expense", json.dumps(
+            {"group": "سفر شمال", "title": "x", "amount_toman": 1000, "payer": "حسن"})))
+        bad_exact = json.loads(run_tool(s, "add_split_expense", json.dumps(
+            {"group": "سفر شمال", "title": "x", "amount_toman": 1000, "payer": "من",
+             "exact_shares": {"من": 300, "علی": 300}})))
+    assert "سفر شمال" in unknown_group["error"]  # گروه‌های موجود را به مدل می‌گوید
+    assert "علی" in unknown_member["error"]  # اعضای درست را می‌گوید
+    assert "error" in bad_exact
+
+
+def test_dong_groups_tool_reports_balances(app, client, model) -> None:  # type: ignore[no-untyped-def]
+    _dong_group(client)
+    html = say(client, model, "add_split_expense", group="سفر شمال", title="ویلا",
+               amount_toman=4_000_000, payer="من")
+    client.post(f"/assistant/actions/{action_id(html)}/confirm")
+    with db(app) as s:
+        result = json.loads(run_tool(s, "dong_groups", "{}"))
+    group = result["groups"][0]
+    assert group["my_balance_toman"] == 3_000_000 and len(group["transfers"]) == 3
