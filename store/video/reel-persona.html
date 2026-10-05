@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>ریلز کارت شخصیت</title>
+<!--
+  ریلز «تو کدوم شخصیت مالی هستی؟» (۱۰۸۰×۱۹۲۰، ۲۵ ثانیه): قلاب، رژه کارت‌ها، دو سؤال،
+  رونمایی کارت، جواب شخصی وزیر، دعوت به کامنت. کارت‌ها همان کارت‌های اپ‌اند (strings.PERSONA_CARDS).
+  render(t) فقط تابع زمان است؛ با node store/video/render.js reel-persona ساخته می‌شود.
+-->
+<style>
+  @font-face { font-family: Vazir; src: url("../../app/static/fonts/Vazirmatn.woff2") format("woff2"); font-weight: 100 900; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #030c08; }
+  body { font-family: Vazir, sans-serif; color: #f2f5f1; position: relative; }
+  .abs { position: absolute; }
+  #bg { inset: 0; transition: none; }
+  .grain { position: absolute; inset: 0; opacity: .14; mix-blend-mode: overlay; }
+  .em { background: linear-gradient(150deg, #8fffd2, #3ee8a6 45%, #b8f35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .center { left: 70px; right: 70px; text-align: center; }
+  .scene { position: absolute; inset: 0; }
+  #brand { top: 70px; right: 70px; display: flex; align-items: center; gap: 16px; font-size: 40px; font-weight: 900; z-index: 20; }
+  #brand img { width: 62px; height: 62px; border-radius: 16px; }
+
+  /* کارت (همان طراحی صفحه کارت اپ) */
+  .card { position: absolute; width: 600px; height: 860px; left: 50%; top: 50%; margin: -430px 0 0 -300px; border-radius: 52px; overflow: hidden;
+          display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 44px; color: #f5f7fa;
+          background:
+            radial-gradient(120% 70% at 50% 0%, hsl(var(--h) 85% 55% / .6), transparent 62%),
+            radial-gradient(90% 60% at 100% 100%, hsl(calc(var(--h) + 50) 80% 50% / .38), transparent 70%),
+            radial-gradient(circle at 1px 1px, rgba(255,255,255,.07) 1px, transparent 0) 0 0 / 22px 22px,
+            linear-gradient(175deg, hsl(var(--h) 35% 15%), #07090c 85%);
+          box-shadow: 0 50px 120px hsl(var(--h) 70% 30% / .55), inset 0 0 0 3px hsl(var(--h) 80% 70% / .35); }
+  .card .top { width: 100%; display: flex; justify-content: space-between; font-size: 28px; font-weight: 700; opacity: .85; }
+  .card .rar { padding: 6px 20px; border-radius: 20px; background: rgba(255,255,255,.12); }
+  .card .art { width: 330px; height: 330px; border-radius: 50%; margin: 34px 0 18px; display: grid; place-items: center; font-size: 190px;
+               background: radial-gradient(circle, hsl(var(--h) 80% 60% / .35), transparent 70%); box-shadow: inset 0 0 0 3px hsl(var(--h) 80% 70% / .3); }
+  .card .kick { font-size: 26px; opacity: .7; font-weight: 600; }
+  .card .name { font-size: 76px; font-weight: 900; line-height: 1.2; margin-top: 4px; }
+  .card .twin { font-size: 30px; opacity: .75; margin-top: 6px; }
+  .card .tag { font-size: 30px; line-height: 1.6; margin-top: 18px; opacity: .92; font-weight: 600; }
+  .card .stats { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; margin-top: 26px; }
+  .card .st { text-align: right; font-size: 24px; font-weight: 700; }
+  .card .st div { display: flex; justify-content: space-between; }
+  .card .st i { display: block; height: 10px; border-radius: 5px; background: rgba(255,255,255,.12); margin-top: 6px; overflow: hidden; }
+  .card .st em { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, hsl(var(--h) 80% 60%), #fff); }
+  .foil { position: absolute; inset: -40%; background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.55) 50%, transparent 60%); mix-blend-mode: overlay; pointer-events: none; }
+
+  /* ۱ قلاب */
+  #h1 { top: 600px; font-size: 112px; font-weight: 900; line-height: 1.25; }
+  #h2 { top: 1150px; font-size: 52px; font-weight: 300; color: rgba(242,245,241,.75); }
+
+  /* ۲ رژه */
+  #parTitle { top: 220px; font-size: 64px; font-weight: 900; }
+  #parName { top: 1520px; font-size: 60px; font-weight: 300; color: rgba(242,245,241,.8); }
+
+  /* ۳ و ۵ گفتگو */
+  .chatTitle { top: 220px; font-size: 64px; font-weight: 900; line-height: 1.35; }
+  .bub { position: absolute; max-width: 820px; padding: 34px 40px; border-radius: 44px; font-size: 44px; line-height: 1.6; font-weight: 600; }
+  .bub.vz { right: 70px; background: #11201a; border: 2px solid rgba(62,232,166,.25); border-top-right-radius: 14px; }
+  .bub.me { left: 70px; background: linear-gradient(135deg, #3ee8a6, #b8f35c); color: #04140d; font-weight: 800; border-top-left-radius: 14px; }
+  .chips { position: absolute; right: 70px; left: 70px; display: flex; flex-wrap: wrap; gap: 18px; justify-content: flex-start; }
+  .chip { padding: 22px 34px; border-radius: 40px; font-size: 40px; font-weight: 700; border: 2px solid rgba(62,232,166,.45); color: #c9ffe6; background: rgba(62,232,166,.08); }
+  .chip.on { background: #3ee8a6; color: #04140d; border-color: #3ee8a6; }
+  .typing { display: inline-flex; gap: 12px; }
+  .typing i { width: 18px; height: 18px; border-radius: 50%; background: #3ee8a6; }
+  #finger { width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; background: rgba(255,255,255,.5); border: 4px solid rgba(255,255,255,.95);
+            box-shadow: 0 10px 30px rgba(0,0,0,.35); z-index: 30; }
+
+  /* ۴ رونمایی */
+  #revTitle { top: 200px; font-size: 64px; font-weight: 900; }
+  #final { height: 1020px; margin-top: -470px; }
+  #flash { inset: 0; background: #fff; opacity: 0; z-index: 25; }
+
+  /* ۶ دعوت */
+  #ctaQ { top: 300px; font-size: 104px; font-weight: 900; line-height: 1.3; }
+  #ctaArrow { top: 620px; font-size: 130px; }
+  #fan { top: 820px; left: 0; right: 0; height: 600px; }
+  #ctaUrl { top: 1720px; font-size: 64px; font-weight: 900; direction: ltr; }
+  #ctaSub { top: 1630px; font-size: 46px; font-weight: 600; color: rgba(242,245,241,.8); }
+</style>
+</head>
+<body>
+<div class="abs" id="bg"></div>
+<div class="abs" id="brand"><img src="../../app/static/logo.svg" alt="">وزیر</div>
+
+<div class="scene" id="s1">
+  <div class="abs center" id="h1">تو کدوم<br><span class="em">شخصیت مالی</span><br>هستی؟</div>
+  <div class="abs center" id="h2">۵۰ کارت. فقط یکیش مال توئه.</div>
+</div>
+
+<div class="scene" id="s2">
+  <div class="abs center" id="parTitle">جغد صبور؟ عقاب؟ تک‌شاخ؟</div>
+  <div id="parade"></div>
+  <div class="abs center" id="parName"></div>
+</div>
+
+<div class="scene" id="s3">
+  <div class="abs center chatTitle">به چند سؤال کوتاه<br><span class="em">جواب بده</span></div>
+  <div class="bub vz" id="q1">سرمایه‌ت یه‌ماهه ۲۰٪ افت کرده.<br>چی کار می‌کنی؟</div>
+  <div class="chips" id="c1"><span class="chip">می‌فروشم</span><span class="chip" id="c1b">صبر می‌کنم برگرده</span><span class="chip">بیشتر می‌خرم</span></div>
+  <div class="bub vz" id="q2">هدف اصلیت چیه؟</div>
+  <div class="chips" id="c2"><span class="chip" id="c2a">خرید خونه</span><span class="chip">مهاجرت</span><span class="chip">رشد سریع</span></div>
+</div>
+
+<div class="scene" id="s4">
+  <div class="abs center" id="revTitle">کارت تو:</div>
+  <div id="slot"></div>
+  <div class="card" id="final"></div>
+</div>
+
+<div class="scene" id="s5">
+  <div class="abs center chatTitle">از این به بعد وزیر<br><span class="em">مخصوص خودت</span> جواب می‌ده</div>
+  <div class="bub me" id="ask">۲۰ میلیون اضافه دارم، چی کار کنم؟</div>
+  <div class="bub vz" id="ans"></div>
+</div>
+
+<div class="scene" id="s6">
+  <div class="abs center" id="ctaQ">کارت تو<br><span class="em">چی شد؟</span></div>
+  <div class="abs center" id="ctaArrow">👇</div>
+  <div class="abs" id="fan"></div>
+  <div class="abs center" id="ctaSub">کارتت رو رایگان بگیر</div>
+  <div class="abs center em" id="ctaUrl">getvazir.ir</div>
+</div>
+
+<div class="abs" id="flash"></div>
+<div class="abs" id="finger"></div>
+<svg class="grain" width="1080" height="1920"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
+
+<script>
+const DURATION = 25;
+const $ = (s) => document.querySelector(s);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+const easeInOut = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const back = (x) => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const FA = "۰۱۲۳۴۵۶۷۸۹", fa = (s) => String(s).replace(/\d/g, (d) => FA[d]);
+
+// کارت‌های اپ (strings.PERSONA_CARDS)
+const CARDS = [
+  { e: "🦅", n: "عقاب", t: "جورج سوروس", h: 188, no: 5 },
+  { e: "🐼", n: "پاندای بی‌خیال", t: "آدم‌های «زندگی رو عشقه»", h: 83, no: 20 },
+  { e: "🦁", n: "شیر بازار", t: "کارل آیکان", h: 67, no: 12 },
+  { e: "🪶", n: "سیمرغ", t: "سیمرغ شاهنامه", h: 32, no: 17 },
+  { e: "🦄", n: "تک‌شاخ", t: "ماسایوشی سون", h: 255, no: 16 },
+  { e: "🐜", n: "مورچه کوشا", t: "مورچه قصه زنجره", h: 341, no: 14 },
+  { e: "🦊", n: "روباه زیرک", t: "پیتر لینچ", h: 153, no: 10 },
+  { e: "🚀", n: "فضانورد", t: "ایلان ماسک", h: 29, no: 38 },
+  { e: "🐬", n: "دلفین متفکر", t: "هاوارد مارکس", h: 204, no: 13 },
+  { e: "🪙", n: "نگهبان سکه", t: "مادربزرگ‌های ایرانی", h: 16, no: 9 },
+  { e: "🛡️", n: "رستم", t: "رستم دستان", h: 185, no: 26 },
+];
+const OWL = { e: "🦉", n: "جغد صبور", t: "وارن بافت", h: 0, no: 1, tag: "خوب می‌خرد، صبر می‌کند و می‌گذارد زمان کارش را بکند.",
+              stats: [["ریسک‌پذیری", 46], ["انضباط", 81], ["صبر", 92], ["دانش", 64]] };
+
+function cardHTML(c, full) {
+  const stats = full ? `<div class="stats">${c.stats.map(([l, v]) => `<div class="st"><div><span>${l}</span><b>${fa(v)}</b></div><i><em data-w="${v}" style="width:0"></em></i></div>`).join("")}</div>` : "";
+  return `<div class="top"><span class="rar">✦ ${full ? "کمیاب" : "کارت"}</span><span>#${fa(c.no)} / ۵۰</span></div>
+    <div class="art">${c.e}</div><div class="kick">کارت شخصیت مالی تو</div><div class="name">${c.n}</div>
+    <div class="twin">هم‌تیپ: ${c.t}</div>${full ? `<div class="tag">${c.tag}</div>` : ""}${stats}<div class="foil"></div>`;
+}
+function makeCard(parent, c, full) {
+  const d = document.createElement("div"); d.className = "card"; d.style.setProperty("--h", c.h); d.innerHTML = cardHTML(c, full);
+  parent.appendChild(d); return d;
+}
+const parade = CARDS.map((c) => makeCard($("#parade"), c, false));
+const slot = CARDS.map((c) => makeCard($("#slot"), c, false));
+const fin = $("#final"); fin.style.setProperty("--h", OWL.h); fin.innerHTML = cardHTML(OWL, true);
+const fan = [CARDS[0], CARDS[4], OWL, CARDS[2], CARDS[6]].map((c) => makeCard($("#fan"), c, false));
+
+const SC = { s1: [0, 2.9], s2: [2.9, 6.3], s3: [6.3, 11.0], s4: [11.0, 16.8], s5: [16.8, 21.4], s6: [21.4, 25.5] };
+function show(id, t) {
+  const [a, b] = SC[id];
+  const i = easeOut(prog(t, a - .05, a + .3)), o = prog(t, b - .25, b);
+  const el = $("#" + id);
+  el.style.display = i > 0 && o < 1 ? "block" : "none";
+  el.style.opacity = Math.min(i, 1 - o);
+}
+function pop(sel, t, at, dur = .45) {
+  const p = prog(t, at, at + dur), el = $(sel);
+  el.style.opacity = Math.min(1, p * 2);
+  el.style.transform = `translateY(${(1 - easeOut(p)) * 50}px) scale(${p > 0 ? back(p) : .7})`;
+}
+function bg(h, t) {
+  $("#bg").style.background = `radial-gradient(70% 45% at 50% 45%, hsl(${h} 70% 30% / .55), transparent 70%),
+    radial-gradient(60% 40% at 50% 100%, rgba(62,232,166,.10), transparent 70%), #030c08`;
+}
+const ANSWER = "تو جغد صبوری 🦉 و هدفت خرید خونه‌ست؛ پس عجله نکن. اول ببینیم صندوق اضطراریت چند ماهه‌ست، بعد بقیه رو برای بلندمدت بچینیم.";
+const WORDS = ANSWER.split(" ");
+
+function finger(t, x, y, on, pressed) {
+  const f = $("#finger");
+  f.style.opacity = on; f.style.left = x + "px"; f.style.top = y + "px";
+  f.style.transform = `scale(${1 - .18 * pressed})`;
+}
+function center(sel) { const r = $(sel).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }
+
+function render(t) {
+  Object.keys(SC).forEach((id) => show(id, t));
+  let hue = 150;
+
+  // ۱ قلاب
+  pop("#h1", t, .1, .55); pop("#h2", t, 1.1);
+
+  // ۲ رژه کارت‌ها: هر ۰٫۳ ثانیه یکی، با چرخش و جابه‌جایی
+  const step = .3, start = 3.0;
+  const k = Math.floor((t - start) / step);
+  parade.forEach((el, i) => {
+    const local = (t - start - i * step) / step;  // ۰ ورود، ۱ خروج
+    const vis = local > -0.05 && local < 1.6 && t < 6.3;
+    el.style.display = vis ? "flex" : "none";
+    if (!vis) return;
+    const inP = easeOut(clamp(local / .5)), outP = clamp((local - 1) / .6);
+    const dir = i % 2 ? -1 : 1;
+    el.style.opacity = Math.min(inP, 1 - outP);
+    el.style.transform = `translateX(${(1 - inP) * 700 * dir - outP * 500 * dir}px) rotate(${(1 - inP) * 18 * dir - outP * 10 * dir}deg) scale(${.82 + .1 * inP})`;
+    el.style.zIndex = i;
+  });
+  if (t >= start && t < 6.3) {
+    const c = CARDS[clamp(k, 0, CARDS.length - 1)];
+    hue = c.h; $("#parName").textContent = c.n + " · هم‌تیپ " + c.t;
+  }
+  pop("#parTitle", t, 2.95);
+
+  // ۳ دو سؤال با ضربه انگشت
+  pop("#q1", t, 6.6); $("#q1").style.top = "560px";
+  const c1 = $("#c1"); c1.style.top = "820px"; c1.style.opacity = prog(t, 7.0, 7.3);
+  pop("#q2", t, 8.9); $("#q2").style.top = "1120px";
+  const c2 = $("#c2"); c2.style.top = "1290px"; c2.style.opacity = prog(t, 9.2, 9.5);
+  $("#c1b").classList.toggle("on", t > 8.2); $("#c2a").classList.toggle("on", t > 10.3);
+  let fon = 0, fx = 540, fy = 1500, pr = 0;
+  if (t > 7.3 && t < 10.9) {
+    fon = 1;
+    const a = center("#c1b"), b = center("#c2a");
+    if (t < 8.2) { const m = easeInOut(prog(t, 7.4, 8.05)); fx = 540 + (a[0] - 540) * m; fy = 1500 + (a[1] - 1500) * m; }
+    else if (t < 9.6) { fx = a[0]; fy = a[1]; }
+    else { const m = easeInOut(prog(t, 9.6, 10.25)); fx = a[0] + (b[0] - a[0]) * m; fy = a[1] + (b[1] - a[1]) * m; }
+    pr = Math.max(prog(t, 8.1, 8.2) * (1 - prog(t, 8.3, 8.45)), prog(t, 10.2, 10.3) * (1 - prog(t, 10.4, 10.55)));
+  }
+  finger(t, fx, fy, fon * (1 - prog(t, 10.6, 10.9)), pr);
+
+  // ۴ رونمایی: چرخش سریع کارت‌ها که آهسته می‌شود و روی جغد می‌ایستد
+  pop("#revTitle", t, 11.05);
+  const sp = prog(t, 11.2, 13.6);
+  const pos = 22 * (1 - Math.pow(1 - sp, 2.4));  // کند شونده
+  slot.forEach((el, i) => {
+    const d = ((pos - i) % CARDS.length + CARDS.length) % CARDS.length;
+    const near = Math.min(d, CARDS.length - d);
+    const vis = t > 11.2 && t < 13.65 && near < 1.2;
+    el.style.display = vis ? "flex" : "none";
+    if (!vis) return;
+    const off = d > CARDS.length / 2 ? d - CARDS.length : d;
+    el.style.opacity = 1 - Math.abs(off) * .8;
+    el.style.transform = `translateY(${off * 900}px) scale(.86)`;
+    if (Math.abs(off) < .5) hue = CARDS[i].h;
+  });
+  const rv = prog(t, 13.6, 14.4);
+  fin.style.display = t > 13.6 ? "flex" : "none";
+  fin.style.opacity = Math.min(1, rv * 3);
+  fin.style.transform = `perspective(1400px) rotateY(${(1 - easeOut(rv)) * 180}deg) scale(${.9 + .1 * back(rv)}) rotate(${Math.sin(t * 1.6) * 1.2}deg)`;
+  fin.querySelector(".foil").style.transform = `translateX(${-60 + 120 * prog(t, 14.2, 15.4)}%)`;
+  fin.querySelectorAll(".st em").forEach((em, i) => { em.style.width = (+em.dataset.w * easeOut(prog(t, 14.6 + i * .15, 15.6 + i * .15))) + "%"; });
+  $("#flash").style.opacity = .55 * (1 - prog(t, 13.6, 14.0)) * (t >= 13.6 ? 1 : 0);
+  if (t > 13.6) hue = OWL.h + 10;
+
+  // ۵ جواب شخصی وزیر، کلمه‌به‌کلمه
+  pop("#ask", t, 17.1); $("#ask").style.top = "560px";
+  const ans = $("#ans"); ans.style.top = "820px";
+  const typing = t > 17.7 && t < 18.5;
+  const n = Math.ceil(clamp((t - 18.5) / 1.8) * WORDS.length);
+  ans.style.opacity = t > 17.7 ? 1 : 0;
+  ans.innerHTML = typing ? `<span class="typing"><i></i><i></i><i></i></span>` : WORDS.slice(0, Math.max(n, 0)).join(" ");
+  if (typing) ans.querySelectorAll(".typing i").forEach((d, i) => { d.style.opacity = .35 + .65 * Math.abs(Math.sin(t * 7 + i)); });
+  if (t > 16.8 && t < 21.4) hue = 150;
+
+  // ۶ دعوت: بادبزن کارت‌ها
+  pop("#ctaQ", t, 21.5); pop("#ctaArrow", t, 21.8);
+  $("#ctaArrow").style.translate = `0 ${Math.abs(Math.sin(t * 5)) * 26}px`;
+  fan.forEach((el, i) => {
+    const p = easeOut(prog(t, 22.0 + i * .08, 22.6 + i * .08)), a = (i - 2) * 13;
+    el.style.display = t > 21.9 ? "flex" : "none";
+    el.style.opacity = p;
+    el.style.transform = `translate(${(i - 2) * 150}px, ${150 + Math.abs(i - 2) * 30}px) rotate(${a * p}deg) scale(${.5 + (i === 2 ? .08 : 0)})`;
+    el.style.zIndex = 10 - Math.abs(i - 2);
+  });
+  pop("#ctaSub", t, 22.6); pop("#ctaUrl", t, 22.8);
+
+  bg(hue, t);
+}
+window.render = render;
+window.DURATION = DURATION;
+render(0);
+if (location.search.includes("play")) {
+  const s0 = performance.now();
+  const loop = () => { render(((performance.now() - s0) / 1000) % DURATION); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>
