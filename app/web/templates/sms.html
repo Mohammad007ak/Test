@@ -45,8 +45,10 @@
       <code dir="ltr" id="sms-token">{{ token }}</code>
       <button type="button" class="btn ghost small-btn" data-copy="#sms-token" data-copied="{{ T.sms_ios_copied }}">{{ T.sms_ios_copy }}</button>
     </div>
-    <a href="{{ shortcut_url }}" class="btn wide" hx-boost="false" rel="noopener">{{ T.sms_ios_get_shortcut }}</a>
+    <a href="{{ shortcut_url }}" class="btn wide" hx-boost="false" rel="noopener" data-copy-first="#sms-token">{{ T.sms_ios_get_shortcut }}</a>
+    <video class="ios-video" src="{{ static('video/ios-sms-setup.mp4') }}" poster="{{ static('video/ios-sms-setup.jpg') }}" controls playsinline muted preload="none" aria-label="{{ T.sms_ios_video }}"></video>
     <ol class="ios-steps">{% for line in T.sms_ios_quick %}<li>{{ line | ui_labels }}</li>{% endfor %}</ol>
+    <p class="muted small">{{ T.sms_ios_paste_help }}</p>
     <details class="sms-manual">
       <summary>{{ T.sms_ios_manual }}</summary>
       <div class="copy-field">

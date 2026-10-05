@@ -187,6 +187,8 @@ def test_ready_shortcut_gives_short_guide_with_manual_fallback(tmp_path: Path) -
     assert f'href="{SHORTCUT}"' in page and 'data-copy="#sms-token"' in page
     assert '<details class="sms-manual">' in page  # راه دستی بسته، زیر راه کوتاه
     assert page.index(SHORTCUT) < page.index("sms-manual")
+    assert 'data-copy-first="#sms-token"' in page  # دکمه شورتکات کلید را خودش کپی می‌کند
+    assert "video/ios-sms-setup.mp4" in page and "video/ios-sms-setup.jpg" in page
 
 
 def test_without_shortcut_only_manual_steps(tmp_path: Path) -> None:

@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>آموزش شورتکات آیفون</title>
+<!--
+  موشن‌گرافی آموزش راه‌اندازی پیامک بانک در آیفون (۱۰۸۰×۱۹۲۰).
+  هر فریم فقط تابع زمان است: render(t) را با ثانیه صدا بزن. render.js فریم‌به‌فریم عکس
+  می‌گیرد و ffmpeg ویدئو می‌سازد. با ?play در مرورگر هم پخش می‌شود.
+-->
+<style>
+  @font-face { font-family: Vazir; src: url("../../app/static/fonts/Vazirmatn.woff2") format("woff2"); font-weight: 100 900; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #070f0c; }
+  body { font-family: Vazir, sans-serif; color: #f3f6f9; position: relative; }
+  .abs { position: absolute; }
+  .glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; }
+  #g1 { width: 760px; height: 760px; background: #145c44; }
+  #g2 { width: 620px; height: 620px; background: #2a5a12; }
+  .en { direction: ltr; unicode-bidi: isolate; font-weight: 800; }
+  .chip { direction: ltr; unicode-bidi: isolate; display: inline-block; padding: 0 18px; margin: 0 6px; border-radius: 16px;
+          background: rgba(62,232,166,.16); color: #3ee8a6; font-weight: 800; }
+
+  /* سرتیتر و مرحله */
+  #caption { left: 70px; right: 70px; top: 96px; height: 330px; }
+  .cap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 18px; }
+  .badge { width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; font-size: 52px; font-weight: 900;
+           color: #06120d; background: linear-gradient(120deg, #3ee8a6, #b8f35c); box-shadow: 0 0 60px rgba(62,232,166,.45); }
+  .cap h2 { font-size: 62px; line-height: 1.35; font-weight: 900; }
+  .cap p { font-size: 40px; color: #a9b8b1; font-weight: 600; }
+
+  /* گوشی */
+  #phone { left: 220px; top: 470px; width: 640px; height: 1330px; border-radius: 96px; background: #1b1f24;
+           box-shadow: 0 0 0 4px #2c333b, 0 60px 140px rgba(0,0,0,.6), 0 0 120px rgba(62,232,166,.12); }
+  #screen { position: absolute; left: 18px; top: 18px; width: 604px; height: 1294px; border-radius: 80px; overflow: hidden; background: #000; }
+  #island { position: absolute; left: 50%; top: 22px; width: 190px; height: 56px; margin-left: -95px; border-radius: 30px; background: #000; z-index: 50; }
+  .scene { position: absolute; inset: 0; padding: 110px 34px 40px; }
+  .status { position: absolute; top: 30px; left: 56px; right: 56px; display: flex; justify-content: space-between;
+            font-size: 28px; font-weight: 700; direction: ltr; z-index: 40; }
+
+  /* صفحه وزیر (تیره) */
+  .dark { background: #0d1116; color: #f3f6f9; }
+  .light { background: #f2f2f7; color: #111; }
+  .vz-title { font-size: 44px; font-weight: 900; margin: 10px 6px 26px; }
+  .vz-card { background: #151a21; border-radius: 34px; padding: 30px 28px; border: 1px solid #222a33; }
+  .vz-card h3 { font-size: 30px; margin-bottom: 22px; }
+  .vz-label { font-size: 24px; color: #8b98a5; margin-bottom: 10px; }
+  .vz-key { display: flex; gap: 14px; align-items: center; margin-bottom: 26px; }
+  .vz-key code { flex: 1; direction: ltr; text-align: left; background: #1d242d; border-radius: 18px; padding: 18px; font: 600 24px Vazir; color: #cfd8e0; }
+  .vz-copy { padding: 16px 22px; border-radius: 18px; background: rgba(62,232,166,.13); color: #3ee8a6; font-size: 24px; font-weight: 800; }
+  .vz-btn { display: block; text-align: center; padding: 30px; border-radius: 26px; font-size: 32px; font-weight: 900; color: #06120d;
+            background: linear-gradient(120deg, #3ee8a6, #b8f35c); box-shadow: 0 18px 50px rgba(62,232,166,.35); }
+  .vz-steps { margin-top: 30px; display: grid; gap: 16px; }
+  .vz-steps i { display: block; height: 22px; border-radius: 11px; background: #1d242d; }
+  .toast { position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%); white-space: nowrap; padding: 22px 40px; border-radius: 40px;
+           background: #f3f6f9; color: #06120d; font-size: 30px; font-weight: 900; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+
+  /* صفحه‌های Shortcuts (روشن، شبیه iOS) */
+  .ios { direction: ltr; text-align: left; }
+  .ios h1 { font-size: 64px; font-weight: 900; margin: 30px 8px 24px; }
+  .sheet-top { display: flex; justify-content: space-between; align-items: center; font-size: 30px; color: #0a7aff; font-weight: 600; margin: 4px 6px 30px; }
+  .tile { width: 220px; height: 220px; border-radius: 52px; margin: 40px auto 26px; background: linear-gradient(150deg, #5b6cf0, #3a3fb8);
+          display: grid; place-items: center; box-shadow: 0 20px 50px rgba(58,63,184,.35); }
+  .tile img { width: 120px; height: 120px; border-radius: 28px; }
+  .sc-name { text-align: center; font-size: 54px; font-weight: 900; font-family: Vazir; }
+  .sc-sub { text-align: center; font-size: 28px; color: #8a8a8e; margin: 8px 0 40px; }
+  .ios-row { background: #fff; border-radius: 26px; padding: 26px 28px; font-size: 30px; display: flex; align-items: center; gap: 20px; margin-bottom: 14px; }
+  .ios-row .ic { width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center; color: #fff; font-size: 30px; font-weight: 900; }
+  .ios-btn { position: absolute; left: 34px; right: 34px; bottom: 70px; text-align: center; padding: 30px; border-radius: 26px;
+             background: #0a7aff; color: #fff; font-size: 34px; font-weight: 800; }
+  .q { font-size: 32px; line-height: 1.6; direction: rtl; text-align: right; color: #333; margin: 10px 4px 110px; font-weight: 600; }
+  .field { background: #fff; border-radius: 22px; height: 96px; padding: 0 26px; display: flex; align-items: center; font-size: 26px; color: #111;
+           border: 3px solid transparent; font-weight: 600; overflow: hidden; white-space: nowrap; }
+  .field.focus { border-color: #0a7aff; }
+  .paste { position: absolute; padding: 18px 34px; border-radius: 18px; background: #2c2c2e; color: #fff; font-size: 30px; font-weight: 700; }
+  .paste:after { content: ""; position: absolute; left: 50%; bottom: -14px; margin-left: -14px; border: 14px solid transparent; border-bottom: 0; border-top-color: #2c2c2e; }
+  .plus { position: absolute; right: 40px; top: 110px; width: 86px; height: 86px; border-radius: 50%; background: #fff; display: grid; place-items: center;
+          font-size: 56px; color: #111; box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+  .empty { text-align: center; color: #8a8a8e; font-size: 30px; margin-top: 260px; }
+  .tabbar { position: absolute; left: 70px; right: 70px; bottom: 50px; height: 110px; border-radius: 55px; background: #fff;
+            display: flex; justify-content: space-around; align-items: center; font-size: 24px; color: #555; box-shadow: 0 6px 30px rgba(0,0,0,.08); }
+  .tabbar b { color: #0a7aff; }
+  .modal { position: absolute; left: 0; right: 0; top: 150px; bottom: 0; background: #f2f2f7; border-radius: 40px 40px 0 0; padding: 30px 34px;
+           box-shadow: 0 -10px 40px rgba(0,0,0,.15); }
+  .modal h4 { text-align: center; font-size: 32px; margin-bottom: 26px; }
+  .opt { display: flex; justify-content: space-between; align-items: center; }
+  .check { color: #0a7aff; font-weight: 900; font-size: 36px; }
+  .toggle { width: 96px; height: 58px; border-radius: 29px; background: #34c759; position: relative; }
+  .toggle:after { content: ""; position: absolute; right: 4px; top: 4px; width: 50px; height: 50px; border-radius: 50%; background: #fff; }
+  .group-title { font-size: 24px; color: #8a8a8e; margin: 26px 10px 12px; text-transform: uppercase; }
+  .caret { display: inline-block; width: 3px; height: 34px; background: #0a7aff; margin-left: 2px; vertical-align: middle; }
+
+  /* پایان روی گوشی: پیامک و ثبت */
+  .lock { background: radial-gradient(circle at 30% 10%, #1f6e53, #0b2219 55%, #050b09); }
+  .clock { text-align: center; font-size: 150px; font-weight: 300; direction: ltr; margin-top: 60px; letter-spacing: -2px; }
+  .date { text-align: center; font-size: 30px; color: #cfe; margin-top: -6px; }
+  .notif { position: absolute; left: 24px; right: 24px; border-radius: 34px; padding: 24px 28px; background: rgba(245,248,247,.92); color: #111;
+           box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+  .notif .hd { display: flex; align-items: center; gap: 14px; font-size: 24px; color: #555; margin-bottom: 10px; direction: ltr; }
+  .notif .hd .ic { width: 44px; height: 44px; border-radius: 12px; background: #34c759; }
+  .notif .bd { font-size: 28px; line-height: 1.55; font-weight: 600; }
+  .row-tx { position: absolute; left: 24px; right: 24px; border-radius: 30px; padding: 26px 28px; background: #151a21; border: 1px solid #222a33;
+            display: flex; align-items: center; gap: 22px; }
+  .row-tx .bub { width: 76px; height: 76px; border-radius: 24px; background: rgba(62,232,166,.15); display: grid; place-items: center; font-size: 40px; }
+  .row-tx .mn { flex: 1; }
+  .row-tx .t1 { font-size: 30px; font-weight: 800; }
+  .row-tx .t2 { font-size: 24px; color: #8b98a5; margin-top: 4px; }
+  .row-tx .amt { font-size: 32px; font-weight: 900; color: #ff8a80; direction: ltr; }
+  .done-pill { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 20px 38px; border-radius: 40px;
+               font-size: 32px; font-weight: 900; color: #06120d; background: linear-gradient(120deg, #3ee8a6, #b8f35c); }
+
+  /* انگشت */
+  #finger { width: 92px; height: 92px; margin: -46px 0 0 -46px; border-radius: 50%; background: rgba(255,255,255,.55);
+            border: 4px solid rgba(255,255,255,.95); box-shadow: 0 10px 30px rgba(0,0,0,.35); z-index: 100; }
+  #ripple { width: 92px; height: 92px; margin: -46px 0 0 -46px; border-radius: 50%; border: 6px solid #3ee8a6; z-index: 99; }
+
+  /* شروع و پایان */
+  #intro, #outro { left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 30px; }
+  #intro img, #outro img { width: 260px; height: 260px; border-radius: 60px; box-shadow: 0 0 120px rgba(62,232,166,.35); }
+  #intro h1 { font-size: 84px; font-weight: 900; line-height: 1.3; }
+  #intro p, #outro p { font-size: 44px; color: #a9b8b1; }
+  #outro h1 { font-size: 76px; font-weight: 900; line-height: 1.35; }
+  .grad { background: linear-gradient(120deg, #3ee8a6, #b8f35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .url { direction: ltr; font-size: 56px !important; font-weight: 900; color: #3ee8a6 !important; }
+</style>
+</head>
+<body>
+<div class="glow" id="g1"></div>
+<div class="glow" id="g2"></div>
+
+<div class="abs" id="intro">
+  <img src="../../app/static/logo.svg" alt="">
+  <h1>پیامک بانک،<br><span class="grad">خودکار در وزیر</span></h1>
+  <p>راه‌اندازی در آیفون، یک دقیقه</p>
+</div>
+
+<div class="abs" id="caption">
+  <div class="cap" data-cap="1"><div class="badge">۱</div><h2>دکمه سبز را بزن</h2><p>کلیدت خودش کپی می‌شود</p></div>
+  <div class="cap" data-cap="2"><div class="badge">۲</div><h2><span class="chip">Set Up Shortcut</span> را بزن</h2><p>اپ Shortcuts خودش باز می‌شود</p></div>
+  <div class="cap" data-cap="3"><div class="badge">۳</div><h2>انگشتت را روی کادر نگه دار</h2><p><span class="chip">Paste</span> و بعد <span class="chip">Add Shortcut</span></p></div>
+  <div class="cap" data-cap="4"><div class="badge">۴</div><h2><span class="chip">Automation</span> ← <span class="chip">+</span></h2><p>بعد <span class="chip">Message</span> را انتخاب کن</p></div>
+  <div class="cap" data-cap="5"><div class="badge">۵</div><h2>بنویس «مانده»</h2><p><span class="chip">Run Immediately</span> ← <span class="chip">Next</span></p></div>
+  <div class="cap" data-cap="6"><div class="badge">۶</div><h2>«وزیر» را انتخاب کن</h2><p>همین! راه‌اندازی تمام شد</p></div>
+  <div class="cap" data-cap="7"><div class="badge">✓</div><h2>از این به بعد، خودکار</h2><p>هر پیامک بانک در وزیر ثبت می‌شود</p></div>
+</div>
+
+<div class="abs" id="phone">
+  <div id="screen">
+    <div id="island"></div>
+    <div class="status" id="status"><span>9:41</span><span>●●● ▮</span></div>
+
+    <!-- ۱: صفحه پیامک وزیر -->
+    <div class="scene dark" data-scene="1">
+      <div class="vz-title">پیامک‌های بانکی</div>
+      <div class="vz-card">
+        <h3>ثبت خودکار پیامک بانک (آیفون)</h3>
+        <div class="vz-label">کلید اختصاصی تو</div>
+        <div class="vz-key"><span class="vz-copy">کپی</span><code>q9VtR2mXk7…demo</code></div>
+        <span class="vz-btn" id="b-get">دریافت شورتکات وزیر</span>
+        <div class="vz-steps"><i style="width:92%"></i><i style="width:78%"></i><i style="width:85%"></i><i style="width:60%"></i></div>
+      </div>
+      <div class="toast" id="toast">کلید کپی شد ✓</div>
+    </div>
+
+    <!-- ۲: پیش‌نمایش شورتکات -->
+    <div class="scene light ios" data-scene="2">
+      <div class="sheet-top"><span>Cancel</span><span></span></div>
+      <div class="tile"><img src="../../app/static/logo.svg" alt=""></div>
+      <div class="sc-name">وزیر</div>
+      <div class="sc-sub">1 action</div>
+      <div class="ios-row"><span class="ic" style="background:#34c759">⇣</span>Get Contents of URL</div>
+      <span class="ios-btn" id="b-setup">Set Up Shortcut</span>
+    </div>
+
+    <!-- ۳: سؤال کلید -->
+    <div class="scene light ios" data-scene="3">
+      <div class="sheet-top"><span>Cancel</span><span style="color:#111;font-weight:800">Set Up This Shortcut</span><span style="width:80px"></span></div>
+      <div class="q">کلید اختصاصی‌ات را از صفحه پیامک وزیر بچسبان</div>
+      <div class="field" id="f-key"><span id="key-text"></span><span class="caret" id="caret1"></span></div>
+      <div class="paste" id="paste">Paste</div>
+      <span class="ios-btn" id="b-add">Add Shortcut</span>
+    </div>
+
+    <!-- ۴: اتوماسیون -->
+    <div class="scene light ios" data-scene="4">
+      <div class="plus" id="b-plus">+</div>
+      <h1 style="margin-top:110px">Automation</h1>
+      <div class="empty">No Automations</div>
+      <div class="tabbar"><span>Library</span><b>Automation</b><span>Gallery</span></div>
+      <div class="modal" id="modal">
+        <h4>New Automation</h4>
+        <div class="ios-row"><span class="ic" style="background:#ff9500">◷</span>Time of Day</div>
+        <div class="ios-row"><span class="ic" style="background:#ff9500">⏰</span>Alarm</div>
+        <div class="ios-row"><span class="ic" style="background:#0a7aff">✉</span>Email</div>
+        <div class="ios-row" id="r-msg"><span class="ic" style="background:#34c759">💬</span>Message</div>
+        <div class="ios-row"><span class="ic" style="background:#0a7aff">◉</span>Wi‑Fi</div>
+      </div>
+    </div>
+
+    <!-- ۵: تنظیم پیام -->
+    <div class="scene light ios" data-scene="5">
+      <div class="sheet-top"><span>‹ Back</span><span style="color:#111;font-weight:800">Message</span><span id="b-next">Next</span></div>
+      <div class="ios-row opt"><span>Sender</span><span style="color:#8a8a8e">Choose</span></div>
+      <div class="ios-row opt"><span>Message Contains</span><span class="field" id="f-contains" style="height:64px;min-width:200px;justify-content:flex-end;direction:rtl;font-family:Vazir;font-size:32px"><span id="word"></span></span></div>
+      <div class="group-title">When</div>
+      <div class="ios-row opt"><span>Run After Confirmation</span><span class="check" id="ck1">✓</span></div>
+      <div class="ios-row opt" id="o-run"><span>Run Immediately</span><span class="check" id="ck2">✓</span></div>
+      <div class="ios-row opt"><span>Notify When Run</span><span class="toggle"></span></div>
+    </div>
+
+    <!-- ۶: انتخاب شورتکات -->
+    <div class="scene light ios" data-scene="6">
+      <div class="sheet-top"><span>‹ Back</span><span style="color:#111;font-weight:800">When I Get a Message</span><span style="width:60px"></span></div>
+      <div class="ios-row"><span class="ic" style="background:#8e8e93">+</span>New Blank Automation</div>
+      <div class="group-title">My Shortcuts</div>
+      <div class="ios-row" id="r-vazir"><span class="ic" style="background:#5b6cf0"><img src="../../app/static/logo.svg" style="width:40px;border-radius:10px" alt=""></span><span style="font-family:Vazir;font-weight:800;flex:1;text-align:right">وزیر</span><span class="check" id="ck3">✓</span></div>
+      <div class="ios-row" style="opacity:.5"><span class="ic" style="background:#ff2d55">♪</span>Music</div>
+      <div class="ios-row" style="opacity:.5"><span class="ic" style="background:#ff9500">☀</span>Morning</div>
+    </div>
+
+    <!-- ۷: پیامک می‌رسد و ثبت می‌شود -->
+    <div class="scene lock" data-scene="7">
+      <div class="clock">12:41</div>
+      <div class="date">Monday, October 5</div>
+      <div class="notif" id="notif">
+        <div class="hd"><span class="ic"></span><b style="color:#111">Messages</b><span style="margin-left:auto">now</span></div>
+        <div class="bd">بانک سامان<br>برداشت ۲٬۵۰۰٬۰۰۰ ریال<br>مانده ۸۱٬۲۵۰٬۰۰۰</div>
+      </div>
+      <div class="row-tx" id="tx"><span class="bub">🧾</span><span class="mn"><div class="t1">سامان · برداشت</div><div class="t2">ثبت خودکار از پیامک</div></span><span class="amt">−۲۵۰٬۰۰۰ ت</span></div>
+      <div class="done-pill" id="pill">در وزیر ثبت شد ✓</div>
+    </div>
+  </div>
+</div>
+
+<div class="abs" id="ripple"></div>
+<div class="abs" id="finger"></div>
+
+<div class="abs" id="outro">
+  <img src="../../app/static/logo.svg" alt="">
+  <h1>دیگر لازم نیست<br><span class="grad">خرج‌ها را دستی بنویسی</span></h1>
+  <p class="url">getvazir.ir</p>
+</div>
+
+<script>
+const DURATION = 36;
+const $ = (s) => document.querySelector(s);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+const easeInOut = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const back = (x) => { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+
+// [شروع، پایان] هر صحنه گوشی و سرتیتر هم‌شماره‌اش
+const SCENES = { 1: [2.4, 6.6], 2: [6.6, 9.8], 3: [9.8, 16.6], 4: [16.6, 20.4], 5: [20.4, 26.0], 6: [26.0, 28.8], 7: [28.8, 33.4] };
+// ضربه‌ها: زمان، هدف، مدت نگه‌داشتن
+const TAPS = [
+  { t: 4.0, el: "#b-get" }, { t: 8.3, el: "#b-setup" },
+  { t: 11.0, el: "#f-key", hold: 0.9 }, { t: 12.9, el: "#paste" }, { t: 15.0, el: "#b-add" },
+  { t: 17.4, el: "#b-plus" }, { t: 19.4, el: "#r-msg" },
+  { t: 21.2, el: "#f-contains" }, { t: 23.6, el: "#o-run" }, { t: 25.1, el: "#b-next" },
+  { t: 27.2, el: "#r-vazir" },
+];
+const FINGER_ON = [3.1, 27.9];
+
+const seen = {};
+function center(sel) {  // صحنه پنهان اندازه ندارد؛ آخرین جای دیده‌شده می‌ماند
+  const r = $(sel).getBoundingClientRect();
+  if (r.width) seen[sel] = [r.left + r.width / 2, r.top + r.height / 2];
+  return seen[sel] || [540, 1500];
+}
+
+function scene(el, t, a, b) {
+  const i = easeOut(prog(t, a - .2, a + .3)), o = easeInOut(prog(t, b - .2, b + .25));
+  const visible = i > 0 && o < 1;
+  el.style.display = visible ? "block" : "none";
+  el.style.opacity = visible ? Math.min(i, 1 - o) : 0;
+  el.style.transform = `translateX(${(1 - i) * -120 + o * 120}px)`;
+}
+
+function caption(el, t, a, b) {
+  const i = easeOut(prog(t, a - .1, a + .45)), o = prog(t, b - .25, b + .1);
+  el.style.opacity = Math.min(i, 1 - o);
+  el.style.transform = `translateY(${(1 - i) * 50 - o * 30}px) scale(${.94 + .06 * i})`;
+  const badge = el.querySelector(".badge");
+  badge.style.transform = `scale(${back(prog(t, a, a + .5))})`;
+}
+
+function finger(t) {
+  const f = $("#finger"), r = $("#ripple");
+  const on = prog(t, FINGER_ON[0], FINGER_ON[0] + .3) * (1 - prog(t, FINGER_ON[1], FINGER_ON[1] + .3));
+  f.style.opacity = on * 0.95;
+  // مقصد فعلی: ضربه بعدی؛ حرکت در ۰٫۷ ثانیه پیش از هر ضربه
+  let pos = center(TAPS[0].el);
+  for (let k = 0; k < TAPS.length; k++) {
+    const tap = TAPS[k], end = tap.t + (tap.hold || 0) + .25;
+    const target = center(tap.el);
+    const prev = k ? center(TAPS[k - 1].el) : [target[0] + 160, target[1] + 380];
+    if (t < tap.t) {
+      const m = easeInOut(prog(t, tap.t - .7, tap.t - .05));
+      pos = [prev[0] + (target[0] - prev[0]) * m, prev[1] + (target[1] - prev[1]) * m];
+      break;
+    }
+    pos = target;
+    if (t < end) break;
+  }
+  let pressed = 0, rip = -1;
+  for (const tap of TAPS) {
+    const hold = tap.hold || 0;
+    pressed = Math.max(pressed, prog(t, tap.t - .08, tap.t) * (1 - prog(t, tap.t + hold + .05, tap.t + hold + .15)));
+    const since = t - tap.t;
+    if (since >= 0 && since < .6 + hold) rip = hold && since < hold ? since / hold * .45 : (since - hold) / .6;
+  }
+  f.style.left = pos[0] + "px"; f.style.top = pos[1] + "px";
+  f.style.transform = `scale(${1 - .18 * pressed})`;
+  r.style.left = pos[0] + "px"; r.style.top = pos[1] + "px";
+  if (rip >= 0 && on > .5) {
+    r.style.opacity = 1 - clamp(rip);
+    r.style.transform = `scale(${.8 + 1.6 * clamp(rip)})`;
+  } else r.style.opacity = 0;
+  return pressed;
+}
+
+function press(sel, t, at, hold = 0) {
+  const p = prog(t, at - .05, at + .02) * (1 - prog(t, at + hold + .1, at + hold + .3));
+  $(sel).style.transform = `scale(${1 - .05 * p})`;
+  $(sel).style.filter = `brightness(${1 - .15 * p})`;
+}
+
+function render(t) {
+  $("#g1").style.left = (-200 + 80 * Math.sin(t / 5)) + "px";
+  $("#g1").style.top = (-120 + 60 * Math.cos(t / 6)) + "px";
+  $("#g2").style.left = (620 + 70 * Math.cos(t / 4)) + "px";
+  $("#g2").style.top = (1350 + 90 * Math.sin(t / 5)) + "px";
+
+  // شروع
+  const ii = easeOut(prog(t, .1, .9)), io = prog(t, 2.0, 2.5);
+  $("#intro").style.opacity = Math.min(ii, 1 - io);
+  $("#intro").style.transform = `translateY(${(1 - ii) * 60 - io * 80}px)`;
+  $("#intro img").style.transform = `scale(${back(prog(t, .1, .8))}) rotate(${(1 - easeOut(prog(t, .1, .9))) * -12}deg)`;
+
+  // گوشی
+  const pi = easeOut(prog(t, 2.0, 2.9)), po = easeInOut(prog(t, 33.2, 34.0));
+  const phone = $("#phone");
+  phone.style.opacity = Math.min(pi, 1 - po);
+  phone.style.transform = `translateY(${(1 - pi) * 500 + po * 200}px) scale(${1 - po * .15})`;
+  $("#status").style.color = (t >= 28.8 || t < 6.6) ? "#fff" : "#111";
+  $("#status").style.opacity = t < 6.6 && t >= 6.4 ? 0 : 1;
+
+  for (const [n, [a, b]] of Object.entries(SCENES)) {
+    scene($(`[data-scene="${n}"]`), t, a, b);
+    caption($(`[data-cap="${n}"]`), t, a, b);
+  }
+
+  // ۱: دکمه و پیام کپی
+  press("#b-get", t, 4.0);
+  const ti = easeOut(prog(t, 4.15, 4.45)), to = prog(t, 5.8, 6.1);
+  $("#toast").style.opacity = Math.min(ti, 1 - to);
+  $("#toast").style.transform = `translateX(-50%) translateY(${(1 - ti) * 40}px)`;
+
+  // ۲
+  press("#b-setup", t, 8.3);
+
+  // ۳: نگه‌داشتن، Paste، کلید، Add
+  $("#f-key").classList.toggle("focus", t > 10.95);
+  const pa = back(prog(t, 11.7, 12.05)), pz = prog(t, 12.95, 13.1);
+  $("#paste").style.opacity = t > 11.7 && t < 13.1 ? 1 - pz : 0;
+  const fk = $("#f-key").getBoundingClientRect(), sc = $("#screen").getBoundingClientRect();
+  const sceneShift = new DOMMatrix(getComputedStyle($('[data-scene="3"]')).transform).m41;
+  $("#paste").style.left = (fk.left - sc.left - sceneShift + fk.width / 2 - 75) + "px";
+  $("#paste").style.top = (fk.top - sc.top - 92) + "px";
+  $("#paste").style.transform = `scale(${pa})`;
+  const keyShown = t > 13.0;
+  $("#key-text").textContent = keyShown ? "q9VtR2mXk7…demo" : "";
+  $("#key-text").style.opacity = easeOut(prog(t, 13.0, 13.3));
+  $("#caret1").style.display = t > 10.95 && !keyShown && Math.floor(t * 2.5) % 2 === 0 ? "inline-block" : "none";
+  press("#b-add", t, 15.0);
+  $("#b-add").style.background = t > 15.05 ? "#34c759" : "#0a7aff";
+  $("#b-add").textContent = t > 15.05 ? "✓ Added" : "Add Shortcut";
+
+  // ۴: + و فهرست
+  press("#b-plus", t, 17.4);
+  const mi = easeOut(prog(t, 17.55, 18.1));
+  $("#modal").style.transform = `translateY(${(1 - mi) * 1200}px)`;
+  $("#r-msg").style.background = t > 19.35 ? "#dfe9ff" : "#fff";
+
+  // ۵: تایپ «مانده»، Run Immediately، Next
+  const word = "مانده";
+  const n = Math.round(prog(t, 21.5, 22.6) * word.length);
+  $("#word").textContent = word.slice(0, n);
+  $("#f-contains").classList.toggle("focus", t > 21.15 && t < 23.4);
+  const run = t > 23.6;
+  $("#ck1").style.opacity = run ? 0 : 1;
+  $("#ck2").style.opacity = run ? 1 : 0;
+  $("#ck2").style.transform = `scale(${run ? back(prog(t, 23.6, 23.9)) : 0})`;
+  press("#o-run", t, 23.6);
+  $("#b-next").style.opacity = t > 25.05 && t < 25.3 ? .4 : 1;
+
+  // ۶
+  press("#r-vazir", t, 27.2);
+  $("#ck3").style.opacity = t > 27.25 ? 1 : 0;
+  $("#ck3").style.transform = `scale(${back(prog(t, 27.25, 27.6))})`;
+
+  // ۷: پیامک پایین می‌آید، به ردیف خرج وزیر تبدیل می‌شود
+  const ni = easeOut(prog(t, 29.4, 29.9)), nf = easeInOut(prog(t, 31.0, 31.6));
+  $("#notif").style.top = (450 + (1 - ni) * -260 + nf * 260) + "px";
+  $("#notif").style.opacity = Math.min(ni, 1 - nf);
+  $("#notif").style.transform = `scale(${1 - nf * .2})`;
+  const xi = back(prog(t, 31.3, 31.9));
+  $("#tx").style.top = "620px";
+  $("#tx").style.opacity = prog(t, 31.3, 31.6);
+  $("#tx").style.transform = `scale(${.6 + .4 * xi})`;
+  $("#pill").style.top = "800px";
+  $("#pill").style.opacity = prog(t, 31.9, 32.2);
+  $("#pill").style.transform = `translateX(-50%) scale(${back(prog(t, 31.9, 32.3))})`;
+
+  // پایان
+  const oi = easeOut(prog(t, 33.5, 34.3));
+  $("#outro").style.opacity = oi;
+  $("#outro").style.transform = `translateY(${(1 - oi) * 60}px)`;
+  $("#outro img").style.transform = `scale(${back(prog(t, 33.5, 34.2))})`;
+  $("#caption").style.opacity = 1 - prog(t, 33.2, 33.6);
+
+  finger(t);
+}
+window.render = render;
+window.DURATION = DURATION;
+render(0);
+if (location.search.includes("play")) {
+  const start = performance.now();
+  const loop = () => { render(((performance.now() - start) / 1000) % DURATION); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>

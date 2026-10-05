@@ -13,3 +13,4 @@ android/app/build/
 android/local.properties
 *.jks
 *.keystore
+store/video/*.mp4

@@ -838,6 +838,15 @@
   document.addEventListener("DOMContentLoaded", function () { initInstallNudge(document); });
   document.addEventListener("htmx:load", function (e) { initInstallNudge(e.target); });
 
+  // لینکی که پیش از رفتن چیزی را کپی می‌کند (دریافت شورتکات آیفون: کلید خودش کپی می‌شود)؛
+  // ناوبری عادی می‌ماند تا آیفون لینک iCloud را مستقیم در اپ Shortcuts باز کند
+  document.addEventListener("click", function (e) {
+    var link = e.target.closest && e.target.closest("[data-copy-first]");
+    if (!link || !navigator.clipboard) return;
+    var source = document.querySelector(link.getAttribute("data-copy-first"));
+    if (source) navigator.clipboard.writeText(source.textContent.trim()).catch(function () {});
+  });
+
   // دکمه کپی (مثلاً لینک دنگ برای دوستان)
   document.addEventListener("click", function (e) {
     var btn = e.target.closest && e.target.closest("[data-copy]");
