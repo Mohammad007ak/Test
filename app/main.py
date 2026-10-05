@@ -36,6 +36,7 @@ from app.scheduler import Activity, Pace, refresh_now, run_adaptive
 from app.sms.llm import DisabledLLM
 from app.web import auth, categories, forms
 from app.web import strings as s
+from app.web.articles import by_slug
 from app.web.assistant_routes import default_chat_model, register_assistant_routes
 from app.web.auth_routes import register_auth_routes
 from app.web.common import (
@@ -735,7 +736,8 @@ def _landing_data(db: Session) -> dict[str, Any]:
         usd_change = (usd[-1][1] - usd[0][1]) / usd[0][1]
     return {"ticker": ticker, "usd_line": usd_line, "usd_change": usd_change,
             "usd_last": usd[-1][1] if usd else None,
-            "demo_json": json.dumps(s.LANDING_DEMO, ensure_ascii=False)}
+            "demo_json": json.dumps(s.LANDING_DEMO, ensure_ascii=False),
+            "articles": [a for slug in s.LANDING_ARTICLES if (a := by_slug(slug))]}
 
 
 def _chart_points(data: list[tuple[Any, Decimal]]) -> dict[str, list[Any]]:

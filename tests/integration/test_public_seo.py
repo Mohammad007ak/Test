@@ -93,3 +93,11 @@ def test_privacy_page_is_public_and_linked(tmp_path: Path) -> None:
 
 def test_privacy_page_without_contact_hides_email_line(client: TestClient) -> None:
     assert "mailto:" not in client.get("/privacy").text
+
+
+def test_landing_links_to_seo_pages(client: TestClient) -> None:
+    page = client.get("/").text
+    for href in ('href="/price"', 'href="/tools/loan"', 'href="/learn"',
+                 'href="/price/dollar"', 'href="/learn/coin-bubble"'):
+        assert href in page, href
+    assert "ابزارهای رایگان، بدون ثبت‌نام" in page and "پول را بهتر بشناس" in page

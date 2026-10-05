@@ -9,7 +9,7 @@
 
   <header class="lx-nav">
     <a href="/" class="lx-brand"><img src="{{ static('logo.svg') }}" alt="" width="34" height="34"><strong>{{ s.APP_NAME }}</strong></a>
-    <nav><a href="/install" class="lx-link lx-hide-sm">{{ s.LANDING.install_link }}</a><a href="/login" class="lx-link">{{ s.LANDING.login }}</a><a href="/signup" class="btn small">{{ s.LANDING.cta }}</a></nav>
+    <nav><a href="/price" class="lx-link lx-hide-sm">{{ s.LANDING.nav_prices }}</a><a href="/learn" class="lx-link lx-hide-sm">{{ s.LEARN.nav }}</a><a href="/install" class="lx-link lx-hide-md">{{ s.LANDING.install_link }}</a><a href="/login" class="lx-link">{{ s.LANDING.login }}</a><a href="/signup" class="btn small">{{ s.LANDING.cta }}</a></nav>
   </header>
 
   <main>
@@ -82,6 +82,30 @@
     </section>
     {% endif %}
 
+    <!-- ---------- ابزارهای رایگان بدون ثبت‌نام ---------- -->
+    <section class="lx-section">
+      <h2 data-reveal>{{ s.LANDING.tools_title }}</h2>
+      <p class="lx-sub" data-reveal>{{ s.LANDING.tools_body }}</p>
+      <div class="lx-tools">
+        <a href="/price" class="lx-card lx-tool" data-reveal data-spot>
+          {{ bubble("chart", 4) }}<h3>{{ s.PRICE_PAGE.hub_title }}</h3>
+          <p>{{ s.LANDING.tool_prices }}</p>
+          <span class="lx-chips">{% for slug, label in s.LANDING_PRICE_LINKS %}<span>{{ label }}</span>{% endfor %}</span>
+        </a>
+        <a href="/tools/loan" class="lx-card lx-tool" data-reveal data-spot>
+          {{ bubble("calc", 7) }}<h3>{{ s.LOAN_TOOL.title }}</h3>
+          <p>{{ s.LANDING.tool_loan }}</p>
+          <span class="lx-more">{{ s.LANDING.tool_open }} {{ icon("chev", "flip") }}</span>
+        </a>
+        <a href="/signup" class="lx-card lx-tool" data-reveal data-spot>
+          {{ bubble("handshake", 2) }}<h3>{{ s.LANDING.tool_dong_title }}</h3>
+          <p>{{ s.LANDING.tool_dong }}</p>
+          <span class="lx-more">{{ s.LANDING.cta }} {{ icon("chev", "flip") }}</span>
+        </a>
+      </div>
+      <div class="lx-quick" data-reveal>{% for slug, label in s.LANDING_PRICE_LINKS %}<a href="/price/{{ slug }}">{{ s.PRICE_PAGE.title.format(name=label) }}</a>{% endfor %}</div>
+    </section>
+
     <!-- ---------- کارت شخصیت ---------- -->
     <section class="lx-section lx-persona">
       <div class="lx-fan" aria-hidden="true">
@@ -138,6 +162,23 @@
         {% endfor %}
       </div>
     </section>
+
+    <!-- ---------- آموزش ---------- -->
+    {% if articles %}
+    <section class="lx-section">
+      <h2 data-reveal>{{ s.LANDING.learn_title }}</h2>
+      <p class="lx-sub" data-reveal>{{ s.LEARN.hub_lead }}</p>
+      <div class="lx-learn">
+        {% for a in articles %}
+        <a href="/learn/{{ a.slug }}" class="lx-card lx-article" data-reveal data-spot>
+          <small>{{ s.LEARN.minutes.format(n=a.minutes | fa) }}</small>
+          <h3>{{ a.title }}</h3><p>{{ a.description }}</p>
+        </a>
+        {% endfor %}
+      </div>
+      <p class="lx-center" data-reveal><a href="/learn" class="btn ghost">{{ s.LEARN.all }} {{ icon("chev", "flip") }}</a></p>
+    </section>
+    {% endif %}
 
     <section class="lx-section lx-privacy" data-reveal>
       {{ bubble("lock", 3) }}

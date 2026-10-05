@@ -2056,3 +2056,18 @@ a.lx-tick { color: inherit; text-decoration: none; }
 .inline-form input { flex: 1; }
 .dong-public-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; }
 .dong-public-list li div { display: flex; flex-direction: column; }
+/* صفحه معرفی: ابزارها و آموزش */
+.lx-tools, .lx-learn { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.lx-tool, .lx-article { display: flex; flex-direction: column; color: inherit; text-decoration: none; }
+.lx-tool p, .lx-article p { flex: 1; }
+.lx-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.lx-chips span { padding: 3px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; background: var(--accent-soft); color: var(--accent); }
+.lx-more { display: inline-flex; align-items: center; gap: 4px; margin-top: 10px; font-weight: 800; color: var(--accent); font-size: .88rem; }
+.lx-more .i { width: 16px; height: 16px; }
+.lx-quick { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+.lx-quick a { padding: 7px 12px; border-radius: 12px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--surface) 85%, transparent);
+  color: var(--text-2); font-size: .8rem; font-weight: 700; text-decoration: none; }
+.lx-article small { color: var(--accent); font-weight: 800; font-size: .75rem; }
+.lx-article h3 { line-height: 1.7; }
+.lx-center { text-align: center; margin-top: 16px; }
+@media (max-width: 640px) { .lx-hide-md { display: none; } }

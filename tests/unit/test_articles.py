@@ -31,3 +31,10 @@ def test_every_article_file_is_valid() -> None:
     for a in articles:
         assert a.title and 50 <= len(a.description) <= 170, a.slug
         assert "<h2>" in a.html and a.minutes >= 2, a.slug
+
+
+def test_landing_articles_exist() -> None:
+    from app.web import strings as s
+    from app.web.articles import by_slug
+
+    assert all(by_slug(slug) for slug in s.LANDING_ARTICLES)
