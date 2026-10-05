@@ -20,7 +20,8 @@ class Settings(BaseSettings):
                                 "3E:E1:93:D6:9A:BF:2E:B1:CC:03:82:B1:89:CA:87:2F")
     # شورتکات آماده آیفون برای ارسال پیامک بانک (لینک iCloud، بدون کلید؛ کلید را هر کاربر
     # موقع افزودن می‌چسباند). خالی = فقط راهنمای دستی
-    ios_shortcut_url: str = "https://www.icloud.com/shortcuts/820e750167b9407d917563f481c92516"
+    # موقتاً خالی: شورتکات اشتراکی هنگام افزودن کلید را نمی‌پرسید (سؤال نصب ندارد)
+    ios_shortcut_url: str = ""
     contact_email: str = ""  # ایمیل تماس و درخواست حذف حساب در صفحه حریم خصوصی
     public_url: str = ""  # آدرس اصلی سایت برای sitemap و canonical، مثل https://getvazir.ir
     timezone: str = "Asia/Tehran"
