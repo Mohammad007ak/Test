@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, bubble %}
+{% block shell %}
+{% set G = s.GIFT %}
+<main class="install gift" id="gift">
+  <a href="/" class="install-back">{{ icon("chev", "flip") }} {{ s.APP_NAME }}</a>
+  <img class="brand-logo" src="{{ static('logo.svg') }}" alt="" width="80" height="80">
+  <h1>{{ G.title }}</h1>
+  <p class="muted">{{ G.body }}</p>
+
+  <section class="install-card">
+    <ol class="gift-steps">
+      {% for icon_name, line in G.steps %}<li>{{ bubble(icon_name, loop.index) }} <span>{{ line }}</span></li>{% endfor %}
+    </ol>
+  </section>
+
+  {% if claimed %}<p class="install-done" role="status">{{ (G.claimed if open else G.closed_claimed).format(handle="@" ~ claimed) }}</p>{% endif %}
+
+  {% if not open %}
+  <p class="alert warn">{{ icon("clock") }} {{ G.closed }}</p>
+  {% elif logged_in %}
+  <form method="post" action="/gift" class="install-card form gift-form" hx-boost="false">
+    <label for="gift-ig">{{ G.label }}</label>
+    <input id="gift-ig" name="instagram" dir="ltr" autocomplete="off" autocapitalize="none" spellcheck="false"
+           required maxlength="80" value="{{ value }}" placeholder="@" aria-describedby="gift-hint"{% if error %} aria-invalid="true"{% endif %}>
+    <p id="gift-hint" class="muted small">{{ G.hint }}</p>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <button type="submit" class="btn wide">{{ icon("gift") }} {{ G.update if claimed else G.submit }}</button>
+  </form>
+  {% if claimed %}<a href="/start" class="btn ghost wide">{{ G.next }}</a>{% endif %}
+  {% else %}
+  <a href="/gift/join" class="btn wide" hx-boost="false">{{ icon("gift") }} {{ G.join }}</a>
+  <a href="/gift/join?login=1" class="text-btn" hx-boost="false">{{ G.have_account }}</a>
+  {% endif %}
+
+  <section class="install-card">
+    <ul>{% for line in G.terms %}<li>{{ line }}</li>{% endfor %}</ul>
+  </section>
+</main>
+{% endblock %}

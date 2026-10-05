@@ -52,6 +52,7 @@ from app.web.common import (
 )
 from app.web.entities import ENTITIES, build_entity
 from app.web.forms import Field, FormError
+from app.web.giveaway_routes import register_giveaway_routes
 from app.web.learn_routes import paths as learn_paths
 from app.web.learn_routes import register_learn_routes
 from app.web.onboarding_routes import register_onboarding_routes
@@ -187,6 +188,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_learn_routes(app)
     register_split_routes(app)
     register_admin_routes(app)
+    register_giveaway_routes(app)
     register_onboarding_routes(app)
     _register_routes(app)
     return app

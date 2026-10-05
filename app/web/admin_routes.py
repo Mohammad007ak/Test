@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.orm import Session
 
-from app import admin_service
+from app import admin_service, giveaway_service
 from app.domain.normalize import normalize_digits
 from app.models import User
 from app.web import strings as s
@@ -43,12 +43,13 @@ def admin_page(request: Request, q: str = "", p: int = 1, error: str = "",
     with request.app.state.session_factory() as system:
         stats = admin_service.stats(system, tehran_today())
         rows, found = admin_service.users(system, request.app.state.owner_phone, query, p)
+        claims = giveaway_service.claims(system)
     top = max((n for _d, n in stats.signups), default=0)
     pages = (found + admin_service.PAGE_SIZE - 1) // admin_service.PAGE_SIZE
     return page(request, "admin.html", {
         "active": "admin", "stats": stats, "rows": rows, "found": found, "q": query,
         "p": max(p, 1), "pages": pages, "top": top, "peak": top or 1,
-        "error": error}, status)
+        "claims": claims, "error": error}, status)
 
 
 def register_admin_routes(app: FastAPI) -> None:

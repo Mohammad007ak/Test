@@ -24,6 +24,17 @@
   <div class="admin-axis muted small"><span>{{ stats.signups[0][0] | jalali(false) }}</span><span>{{ A.peak.format(n=top | fa) }}</span><span>{{ stats.signups[-1][0] | jalali(false) }}</span></div>
 </section>
 
+{% set G = s.GIFT %}
+<details class="card disclosure admin-gift"{% if claims %} open{% endif %}>
+  <summary><h2>{{ icon("gift") }} {{ G.admin_title }} <span class="muted small">({{ G.admin_count.format(n=claims | length | fa) }})</span></h2></summary>
+  {% if claims %}
+  <ol class="admin-gift-list">
+    {% for c in claims %}<li><a href="https://www.instagram.com/{{ c.instagram }}/" target="_blank" rel="noopener noreferrer" dir="ltr">@{{ c.instagram }}</a>
+      <span class="muted small"><bdi dir="ltr">{{ c.phone_masked }}</bdi> · {{ c.at | jalali }}</span></li>{% endfor %}
+  </ol>
+  {% else %}<p class="muted">{{ G.admin_none }}</p>{% endif %}
+</details>
+
 <h2 class="section-title">{{ A.users }} <span class="muted small">({{ A.found.format(n=found | fa) }})</span></h2>
 <form method="get" action="/admin" class="admin-search">
   <input type="search" name="q" value="{{ q }}" inputmode="numeric" placeholder="{{ A.search }}" aria-label="{{ A.search }}" dir="ltr">

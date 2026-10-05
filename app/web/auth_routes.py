@@ -18,6 +18,13 @@ from app.web import strings as s
 from app.web.common import Db, page, read_form, redirect
 
 PURPOSES = ("signup", "reset")
+AFTER_AUTH = ("/gift",)  # صفحه‌هایی که می‌توانند بعد از ورود یا ثبت‌نام برگردند (نه آدرس دلخواه)
+
+
+def after_auth(request: Request, default: str) -> str:
+    """مقصد بعد از ورود یا ثبت‌نام: صفحه‌ای که کاربر از آن آمده بود، وگرنه پیش‌فرض."""
+    target = request.session.pop("after_auth", None)
+    return target if target in AFTER_AUTH else default
 
 
 def _client_ip(request: Request) -> str:
@@ -91,7 +98,7 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService,
             return page(request, "login.html", {"error": s.T["login_disabled"], "phone": phone,
                                                 "auth_page": True}, 400)
         auth.log_in(request, user)
-        return redirect("/")
+        return redirect(after_auth(request, "/"))
 
     @app.post("/logout")
     def logout(request: Request) -> Response:
@@ -159,7 +166,7 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService,
         db.commit()
         auth.log_in(request, user)
         request.session["toast"] = s.T["welcome"]
-        return redirect("/start")
+        return redirect(after_auth(request, "/start"))
 
     @app.get("/forgot", response_class=HTMLResponse)
     def forgot_form(request: Request) -> Response:
@@ -224,4 +231,4 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService,
         db.commit()
         auth.log_in(request, user)
         request.session["toast"] = s.T["welcome" if purpose == "signup" else "password_changed"]
-        return redirect("/start" if purpose == "signup" else "/")
+        return redirect(after_auth(request, "/start" if purpose == "signup" else "/"))

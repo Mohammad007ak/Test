@@ -2192,3 +2192,16 @@ a.lx-tick { color: inherit; text-decoration: none; }
 .setup-card-avatars .avatar { width: 56px; height: 56px; margin: 0 -8px; }
 .setup-card-avatars .avatar:nth-child(2) { transform: translateY(-6px) scale(1.1); z-index: 1; }
 .setup-next { display: grid; gap: 6px; justify-items: center; margin: 4px 0 18px; text-align: center; }
+
+/* جایزه اینستاگرام (/gift) */
+.gift-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.gift-steps li { display: flex; align-items: center; gap: 12px; line-height: 1.8; }
+.gift-steps .bubble { flex: none; width: 38px; height: 38px; }
+.gift-form { display: flex; flex-direction: column; gap: 8px; }
+.gift-form label { font-weight: 800; }
+.gift-form input { text-align: left; }
+.admin-gift { margin-bottom: 16px; }
+.admin-gift summary h2 { display: inline-flex; align-items: center; gap: 8px; font-size: 1rem; }
+.admin-gift-list { margin: 12px 0 0; padding-inline-start: 22px; display: flex; flex-direction: column; gap: 8px; }
+.admin-gift-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.admin-gift-list a { font-weight: 800; }

@@ -50,7 +50,10 @@ def authenticate(session: Session, phone: str, password: str) -> User | None:
 
 
 def log_in(request: Request, user: User) -> None:
+    after = request.session.get("after_auth")  # مقصد بعد از ورود از نشست قبلی می‌ماند
     request.session.clear()
+    if after:
+        request.session["after_auth"] = after
     request.session["uid"] = user.id
     request.session["sv"] = user.session_version
 
