@@ -4,144 +4,248 @@
 <meta charset="utf-8">
 <title>کاروسل طلا یا دلار</title>
 <!--
-  کاروسل اینستاگرام ۵ اسلایدی (۱۰۸۰×۱۳۵۰) با قالب ثابت وزیر. ?s=1 تا ۵ هر اسلاید.
-  عددها واقعی‌اند (قیمت هفتگی بازار آزاد، منبع الان‌چند، مهر ۱۴۰۲ تا مهر ۱۴۰۵).
+  کاروسل ۵ اسلایدی (۱۰۸۰×۱۳۵۰) با زبان بصری «طلای شب» (DESIGN.md). ?s=1 تا ۵.
+  نمودارها از قیمت واقعی هفتگی ساخته می‌شوند (../video/reel-100m.data.js، منبع الان‌چند).
 -->
 <style>
   @font-face { font-family: Vazir; src: url("../../app/static/fonts/Vazirmatn.woff2") format("woff2"); font-weight: 100 900; }
+  :root { --m: 80px; --ink: #f2f5f1; --mute: rgba(242,245,241,.55); --faint: rgba(242,245,241,.32);
+          --em: #3ee8a6; --lime: #b8f35c; --red: #ff7a6b; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 1080px; height: 1350px; overflow: hidden; }
-  body { font-family: Vazir, sans-serif; color: #f3f6f9; position: relative;
-         background: radial-gradient(120% 80% at 80% 0%, #145c44 0%, #0b2219 45%, #050b09 100%); }
-  body::before { content: ""; position: absolute; inset: 0; opacity: .07;
-                 background-image: linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px);
-                 background-size: 54px 54px; }
-  .slide { position: absolute; inset: 0; padding: 90px 80px; display: none; }
+  body { font-family: Vazir, sans-serif; color: var(--ink); position: relative; background: #030c08; }
+  .light { position: absolute; inset: 0; background:
+           radial-gradient(60% 45% at 50% 38%, rgba(30,120,86,.55), transparent 70%),
+           radial-gradient(90% 60% at 50% 110%, rgba(184,243,92,.06), transparent 60%); }
+  .grain { position: absolute; inset: 0; opacity: .16; mix-blend-mode: overlay; pointer-events: none; }
+  .slide { position: absolute; inset: 0; display: none; }
   .slide.on { display: block; }
-  .acc { background: linear-gradient(120deg, #3ee8a6, #b8f35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .gold { background: linear-gradient(120deg, #ffe7a3, #f5b82e 55%, #ffd36a); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .usd { color: #3ee8a6; }
-  h1 { font-size: 104px; font-weight: 900; line-height: 1.3; }
-  h2 { font-size: 72px; font-weight: 900; line-height: 1.35; }
-  .sub { font-size: 44px; color: #b9c7c1; font-weight: 600; margin-top: 18px; line-height: 1.6; }
-  .brand { position: absolute; left: 70px; bottom: 60px; display: flex; align-items: center; gap: 14px; font-size: 34px; font-weight: 900; }
-  .brand img { width: 54px; height: 54px; border-radius: 14px; }
-  .page { position: absolute; right: 80px; bottom: 66px; font-size: 30px; color: rgba(255,255,255,.55); font-weight: 700; }
-  .swipe { position: absolute; right: 0; top: 50%; width: 70px; height: 140px; margin-top: -70px; border-radius: 70px 0 0 70px;
-           background: rgba(62,232,166,.18); display: grid; place-items: center; font-size: 54px; color: #3ee8a6; }
-  .src { position: absolute; left: 80px; right: 80px; bottom: 128px; font-size: 26px; color: rgba(255,255,255,.45); text-align: center; }
+  .gold { background: linear-gradient(175deg, #fff3cf 0%, #f6c75a 38%, #c58a17 70%, #ffe29a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .em { background: linear-gradient(150deg, #8fffd2, #3ee8a6 45%, #b8f35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .kicker { position: absolute; right: var(--m); top: 86px; font-size: 30px; font-weight: 300; letter-spacing: .5px; color: var(--mute); display: flex; gap: 18px; align-items: center; }
+  .kicker i { width: 56px; height: 2px; background: var(--em); display: inline-block; }
+  .foot { position: absolute; left: var(--m); right: var(--m); bottom: 62px; display: flex; justify-content: space-between; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 14px; font-size: 32px; font-weight: 800; letter-spacing: .5px; }
+  .brand img { width: 48px; height: 48px; border-radius: 13px; }
+  .meta { font-size: 24px; font-weight: 300; color: var(--faint); text-align: left; line-height: 1.6; }
 
-  /* اسلاید ۱: جلد با تصویر مرکزی (شمش طلا و دسته دلار با CSS) */
-  .hero { position: absolute; left: 0; right: 0; top: 520px; height: 640px; }
-  .halo { position: absolute; left: 50%; top: 40px; width: 620px; height: 620px; margin-left: -310px; border-radius: 50%;
-          background: radial-gradient(circle, rgba(62,232,166,.32), transparent 65%); }
-  .vs { position: absolute; left: 50%; top: 250px; width: 150px; height: 150px; margin-left: -75px; border-radius: 50%; z-index: 5;
-        background: #050b09; border: 4px solid #3ee8a6; display: grid; place-items: center; font-size: 56px; font-weight: 900; color: #3ee8a6;
-        box-shadow: 0 0 60px rgba(62,232,166,.5); direction: ltr; }
-  .ingot { position: absolute; width: 360px; height: 150px; transform: perspective(700px) rotateX(48deg) rotateZ(-14deg); }
-  .ingot .top { position: absolute; inset: 0; border-radius: 22px; clip-path: polygon(9% 0, 91% 0, 100% 100%, 0 100%);
-                background: linear-gradient(135deg, #fff4c6, #f7c64b 40%, #c98a12 75%, #ffe08a); box-shadow: inset 0 0 0 4px rgba(255,255,255,.25); }
-  .ingot .side { position: absolute; left: 0; right: 0; top: 100%; height: 52px; clip-path: polygon(0 0, 100% 0, 97% 100%, 3% 100%);
-                 background: linear-gradient(180deg, #b47a0d, #6e4705); }
-  .ingot b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 44px; font-weight: 900; color: rgba(120,78,6,.75); letter-spacing: 4px; direction: ltr; }
-  .bill { position: absolute; width: 380px; height: 176px; border-radius: 18px; transform: rotate(var(--r));
-          background: linear-gradient(135deg, #c9f7dc, #6fd3a0 60%, #3aa673); border: 6px solid #e9fff2;
-          box-shadow: 0 30px 60px rgba(0,0,0,.45); display: grid; place-items: center; font-size: 90px; font-weight: 900; color: rgba(14,80,50,.55); direction: ltr; }
-  .bill::before { content: ""; position: absolute; width: 112px; height: 112px; border-radius: 50%; border: 6px solid rgba(14,80,50,.35); }
+  /* ۱ جلد */
+  .cover-title { position: absolute; right: var(--m); left: var(--m); bottom: 250px; }
+  .cover-title .l1 { font-size: 220px; font-weight: 900; line-height: .95; letter-spacing: -4px; }
+  .cover-title .l2 { font-size: 70px; font-weight: 200; color: var(--mute); margin: 18px 0 6px; }
+  .cover-title .l3 { font-size: 220px; font-weight: 900; line-height: .95; letter-spacing: -4px; }
+  .cover-art { position: absolute; left: 10px; top: 150px; width: 720px; height: 720px; }
+  .swipe { position: absolute; left: var(--m); bottom: 270px; font-size: 28px; font-weight: 300; color: var(--mute); }
 
-  /* اسلاید ۲ و ۳: مقایسه */
-  .cmp { margin-top: 50px; display: grid; gap: 28px; }
-  .row { background: rgba(255,255,255,.05); border: 2px solid rgba(255,255,255,.08); border-radius: 36px; padding: 28px 40px; }
-  .row .lbl { font-size: 44px; font-weight: 800; display: flex; align-items: center; gap: 18px; }
-  .row .big { font-size: 112px; font-weight: 900; line-height: 1.15; margin-top: 6px; }
-  .row .big small { font-size: 48px; font-weight: 800; color: #b9c7c1; }
-  .bar { height: 26px; border-radius: 13px; margin-top: 18px; background: rgba(255,255,255,.08); overflow: hidden; }
-  .bar i { display: block; height: 100%; border-radius: 13px; }
-  .note { margin-top: 36px; font-size: 40px; line-height: 1.7; color: #dfe9e4; font-weight: 600; }
-  .note b { color: #fff; }
-  .chip { display: inline-block; padding: 10px 26px; border-radius: 30px; background: rgba(62,232,166,.15); color: #3ee8a6; font-size: 36px; font-weight: 800; }
+  /* ۲ و ۳ نمودار */
+  .head { position: absolute; right: var(--m); left: var(--m); top: 150px; }
+  .head h2 { font-size: 84px; font-weight: 900; line-height: 1.2; letter-spacing: -1px; }
+  .head p { font-size: 34px; font-weight: 300; color: var(--mute); margin-top: 18px; }
+  svg.chart { position: absolute; left: 0; top: 420px; width: 1080px; height: 720px; overflow: visible; }
 
-  /* اسلاید ۴: جدول ویژگی‌ها */
-  .table { margin-top: 44px; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 0; border-radius: 32px; overflow: hidden; border: 2px solid rgba(255,255,255,.1); }
-  .table div { padding: 22px 24px; font-size: 34px; font-weight: 700; border-bottom: 2px solid rgba(255,255,255,.07); line-height: 1.5; }
-  .table .h { background: rgba(255,255,255,.06); font-weight: 900; font-size: 40px; }
-  .table .k { color: #b9c7c1; }
+  /* ۴ هزینه پنهان */
+  .pair { position: absolute; right: var(--m); left: var(--m); top: 470px; }
+  .pair .item { padding: 46px 0; border-top: 1px solid rgba(242,245,241,.14); display: grid; grid-template-columns: 210px 1fr; gap: 30px; align-items: baseline; }
+  .pair .item:last-child { border-bottom: 1px solid rgba(242,245,241,.14); }
+  .pair .who { font-size: 64px; font-weight: 900; }
+  .pair .what { font-size: 50px; font-weight: 700; line-height: 1.45; }
+  .pair .what small { display: block; font-size: 32px; font-weight: 300; color: var(--mute); margin-top: 10px; }
 
-  /* اسلاید ۵: جمع‌بندی و دعوت */
-  .list { margin-top: 44px; display: grid; gap: 30px; }
-  .list div { font-size: 44px; line-height: 1.6; font-weight: 700; padding-right: 64px; position: relative; }
-  .list div::before { content: "✦"; position: absolute; right: 0; top: 0; color: #3ee8a6; }
-  .cta { margin-top: 56px; padding: 44px; border-radius: 40px; background: linear-gradient(135deg, rgba(62,232,166,.22), rgba(184,243,92,.12));
-         border: 2px solid rgba(62,232,166,.45); text-align: center; }
-  .cta strong { display: block; font-size: 52px; font-weight: 900; line-height: 1.5; }
-  .cta span { display: block; margin-top: 12px; font-size: 54px; font-weight: 900; color: #3ee8a6; direction: ltr; }
+  /* ۵ پایان */
+  .end { position: absolute; right: var(--m); left: var(--m); top: 300px; }
+  .end h2 { font-size: 128px; font-weight: 900; line-height: 1.1; letter-spacing: -2px; }
+  .end p { font-size: 40px; font-weight: 300; color: var(--mute); margin-top: 34px; line-height: 1.75; max-width: 860px; }
+  .end p b { color: var(--ink); font-weight: 700; }
+  .seal { position: absolute; right: var(--m); left: var(--m); bottom: 190px; display: flex; align-items: center; gap: 34px;
+          padding-top: 44px; border-top: 1px solid rgba(242,245,241,.14); }
+  .seal img { width: 132px; height: 132px; border-radius: 32px; box-shadow: 0 0 80px rgba(62,232,166,.35); }
+  .seal strong { display: block; font-size: 44px; font-weight: 800; line-height: 1.45; }
+  .seal span { display: block; font-size: 46px; font-weight: 900; direction: ltr; text-align: right; margin-top: 6px; }
 </style>
 </head>
 <body>
+<div class="light"></div>
 
+<!-- ۱ جلد -->
 <section class="slide" data-s="1">
-  <span class="chip">مقایسه با عدد واقعی</span>
-  <h1 style="margin-top:36px"><span class="gold">طلا</span> بخریم<br>یا <span class="acc">دلار</span>؟</h1>
-  <p class="sub">کدوم گزینه برای پس‌انداز بهتره؟</p>
-  <div class="hero">
-    <div class="halo"></div>
-    <div class="bill" style="left:110px;top:150px;--r:-12deg">$</div>
-    <div class="bill" style="left:140px;top:250px;--r:-4deg">$</div>
-    <div class="ingot" style="left:590px;top:150px"><div class="top"><b>999.9</b></div><div class="side"></div></div>
-    <div class="ingot" style="left:560px;top:300px"><div class="top"><b>999.9</b></div><div class="side"></div></div>
-    <div class="vs">VS</div>
+  <div class="kicker"><i></i>۳ سال، عدد واقعی</div>
+  <svg class="cover-art" viewBox="0 0 620 620">
+    <defs>
+      <linearGradient id="gTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff5d6"/><stop offset=".45" stop-color="#f7cd63"/><stop offset="1" stop-color="#d89b22"/></linearGradient>
+      <linearGradient id="gFront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3a52a"/><stop offset="1" stop-color="#8a5a08"/></linearGradient>
+      <linearGradient id="gSide" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b57b10"/><stop offset="1" stop-color="#5e3d05"/></linearGradient>
+      <linearGradient id="gShine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      <radialGradient id="gGlow"><stop offset="0" stop-color="#f6c75a" stop-opacity=".45"/><stop offset="1" stop-color="#f6c75a" stop-opacity="0"/></radialGradient>
+      <radialGradient id="gShadow"><stop offset="0" stop-color="#000" stop-opacity=".7"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+      <filter id="soft"><feGaussianBlur stdDeviation="2"/></filter>
+    </defs>
+    <circle cx="310" cy="300" r="290" fill="url(#gGlow)"/>
+    <ellipse cx="310" cy="470" rx="250" ry="40" fill="url(#gShadow)"/>
+    <!-- اسکناس سبز پشت شمش -->
+    <g transform="translate(330 120) rotate(14)" opacity=".92">
+      <rect x="0" y="0" width="250" height="120" rx="12" fill="#0f3d2c" stroke="#3ee8a6" stroke-opacity=".7" stroke-width="2.5"/>
+      <rect x="12" y="12" width="226" height="96" rx="8" fill="none" stroke="#3ee8a6" stroke-opacity=".3" stroke-width="1.5"/>
+      <circle cx="125" cy="60" r="34" fill="none" stroke="#3ee8a6" stroke-opacity=".55" stroke-width="2.5"/>
+      <text x="125" y="78" text-anchor="middle" font-family="Vazir" font-weight="900" font-size="48" fill="#3ee8a6" fill-opacity=".85">$</text>
+    </g>
+    <!-- شمش ایزومتریک: رو، جلو، کنار -->
+    <polygon points="150,300 330,210 490,290 310,380" fill="url(#gTop)"/>
+    <polygon points="150,300 310,380 310,450 170,380" fill="url(#gFront)"/>
+    <polygon points="310,380 490,290 470,360 310,450" fill="url(#gSide)"/>
+    <polyline points="150,300 330,210 490,290" fill="none" stroke="#fff8e0" stroke-opacity=".8" stroke-width="2.5"/>
+    <polyline points="150,300 310,380 490,290" fill="none" stroke="#fff2c4" stroke-opacity=".55" stroke-width="2"/>
+    <line x1="310" y1="380" x2="310" y2="450" stroke="#ffe39a" stroke-opacity=".35" stroke-width="2"/>
+    <g transform="translate(320 295) skewX(-30) scale(1 .52)" opacity=".55">
+      <rect x="-92" y="-44" width="184" height="88" rx="10" fill="none" stroke="#8a5a08" stroke-width="5"/>
+      <text x="0" y="16" text-anchor="middle" font-family="Vazir" font-weight="900" font-size="46" fill="#8a5a08" direction="ltr">999.9</text>
+    </g>
+    <polygon points="230,262 290,232 330,252 270,282" fill="url(#gShine)" opacity=".65" filter="url(#soft)"/>
+  </svg>
+  <div class="cover-title">
+    <div class="l1 gold">طلا</div>
+    <div class="l2">یا</div>
+    <div class="l3 em">دلار؟</div>
   </div>
-  <div class="swipe">‹</div>
+  <div class="swipe">ورق بزن ←</div>
 </section>
 
+<!-- ۲ رشد -->
 <section class="slide" data-s="2">
-  <h2>۳ سال اخیر<br><span class="acc">کدوم بیشتر رشد کرد؟</span></h2>
-  <div class="cmp">
-    <div class="row"><div class="lbl">🟡 طلای ۱۸ عیار</div><div class="big gold">۱۱٫۸ <small>برابر</small></div><div class="bar"><i style="width:100%;background:linear-gradient(90deg,#d99a1e,#ffd36a)"></i></div></div>
-    <div class="row"><div class="lbl">💵 دلار</div><div class="big usd">۵٫۴ <small>برابر</small></div><div class="bar"><i style="width:46%;background:linear-gradient(90deg,#1f9d6b,#3ee8a6)"></i></div></div>
-  </div>
-  <p class="note">مهر ۱۴۰۲ تا مهر ۱۴۰۵. ولی جالب اینجاست:<br>توی <b>یک سال اخیر</b> هر دو دقیقاً <b>۲٫۳ برابر</b> شدن.</p>
+  <div class="kicker"><i></i>مهر ۱۴۰۲ تا مهر ۱۴۰۵</div>
+  <div class="head"><h2>هر ۱ تومن<br>چند تومن شد؟</h2><p>ارزش هر تومانِ خریده‌شده، هفته به هفته</p></div>
+  <svg class="chart" id="growth" viewBox="0 0 1080 720"></svg>
 </section>
 
+<!-- ۳ ریزش -->
 <section class="slide" data-s="3">
-  <h2>ولی سود فقط نصف ماجراست<br><span class="acc">بیشترین ریزش چقدر بود؟</span></h2>
-  <div class="cmp">
-    <div class="row"><div class="lbl">🟡 طلا · تیر ۱۴۰۵</div><div class="big" style="color:#ff8a80">۲۹٪ <small>افت از سقف</small></div></div>
-    <div class="row"><div class="lbl">💵 دلار · اردیبهشت ۱۴۰۴</div><div class="big" style="color:#ff8a80">۲۱٪ <small>افت از سقف</small></div></div>
-  </div>
-  <p class="note">طلا بیشتر سود داد، ولی <b>تکون‌هاش هم بیشتر بود</b>.<br>اگه وسط ریزش می‌ترسیدی و می‌فروختی، اون سود رو نمی‌دیدی.</p>
+  <div class="kicker"><i></i>روی دیگر سکه</div>
+  <div class="head"><h2>ولی وسط راه<br>چقدر ریخت؟</h2><p>فاصله قیمت از بالاترین سقف قبلی</p></div>
+  <svg class="chart" id="drawdown" viewBox="0 0 1080 720"></svg>
 </section>
 
+<!-- ۴ هزینه پنهان -->
 <section class="slide" data-s="4">
-  <h2>قبل از خرید<br><span class="acc">این‌ها رو هم بدون</span></h2>
-  <div class="table">
-    <div class="h"></div><div class="h"><span class="gold">طلا</span></div><div class="h usd">دلار</div>
-    <div class="k">هزینه پنهان</div><div>اجرت و مالیات طلای زینتی</div><div>فاصله قیمت خرید و فروش</div>
-    <div class="k">نقد شدن</div><div>سریع، ولی وزن و عیار بررسی می‌شه</div><div>سریع</div>
-    <div class="k">به چی وابسته‌ست</div><div>دلار و انس جهانی طلا</div><div>تورم، تحریم و سیاست ارزی</div>
-    <div class="k">نگهداری</div><div>جای امن لازم داره</div><div>جای امن لازم داره</div>
+  <div class="kicker"><i></i>قبل از خرید</div>
+  <div class="head"><h2>هزینه‌ای که<br>روی تابلو نیست</h2></div>
+  <div class="pair">
+    <div class="item"><div class="who gold">طلا</div><div class="what">اجرت و مالیات<small>در طلای زینتی؛ آبشده و سکه اجرت ساخت ندارن</small></div></div>
+    <div class="item"><div class="who em">دلار</div><div class="what">اختلاف خرید و فروش<small>صراف گرون‌تر می‌فروشه و ارزون‌تر می‌خره</small></div></div>
   </div>
-  <p class="note">برای پس‌انداز با طلا، <b>آبشده یا سکه</b> معمولاً هزینه کمتری از طلای زینتی دارن، چون اجرت ساخت ندارن.</p>
 </section>
 
+<!-- ۵ پایان -->
 <section class="slide" data-s="5">
-  <h2>خلاصه؟<br><span class="acc">به خودت بستگی داره</span></h2>
-  <div class="list">
-    <div>تحمل ریزش داری و افقت بلنده؟ طلا تو این ۳ سال جلو بود.</div>
-    <div>ریزش‌ها اذیتت می‌کنه؟ تکون دلار کمتر بود.</div>
-    <div>خیلی‌ها هم هر دو رو نگه می‌دارن تا ریسک پخش بشه.</div>
+  <div class="end">
+    <h2>جواب درست<br><span class="em">خودِ تویی.</span></h2>
+    <p>طلا این ۳ سال <b>بیشتر رشد کرد</b>، ولی <b>تکون‌های بزرگ‌تری</b> هم داشت. انتخاب به افق زمانی و تحمل تو در ریزش‌ها بستگی داره.</p>
   </div>
-  <div class="cta"><strong>تیپ مالی‌ت رو بشناس و<br>دارایی‌هات رو با قیمت روز ببین</strong><span>getvazir.ir</span></div>
+  <div class="seal"><img src="../../app/static/logo.svg" alt=""><div><strong>تیپ مالی‌ات رو بشناس؛<br>دارایی‌هات رو با قیمت روز ببین</strong><span class="em">getvazir.ir</span></div></div>
 </section>
 
-<div class="src">قیمت هفتگی بازار آزاد، منبع: الان‌چند · آموزشی است، نه توصیه خرید</div>
-<div class="brand"><img src="../../app/static/logo.svg" alt="">وزیر</div>
-<div class="page" id="page"></div>
+<div class="foot">
+  <div class="brand"><img src="../../app/static/logo.svg" alt="">وزیر</div>
+  <div class="meta" id="meta">قیمت بازار آزاد · منبع: الان‌چند<br>آموزشی است، نه توصیه خرید</div>
+</div>
+
+<svg class="grain" width="1080" height="1350"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
+
+<script src="../video/reel-100m.data.js"></script>
 <script>
-  const n = Number(new URLSearchParams(location.search).get("s") || 1);
-  document.querySelector(`[data-s="${n}"]`).classList.add("on");
-  document.getElementById("page").textContent = "۱۲۳۴۵"[n - 1] + " / ۵";
-  if (n === 1) document.querySelector(".src").style.display = "none";
+const FA = "۰۱۲۳۴۵۶۷۸۹";
+const fa = (s) => String(s).replace(/\d/g, (d) => FA[d]).replace(/\./g, "٫");
+const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+const F = window.REEL.frames;
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; };
+
+// زمان از چپ (گذشته) به راست (امروز)، مثل همه نمودارهای قیمت
+const X0 = 80, X1 = 1000;
+const xs = (i) => X0 + (X1 - X0) * i / (F.length - 1);
+function smooth(points) {  // مسیر نرم Catmull-Rom که از همه نقطه‌های واقعی می‌گذرد
+  let d = `M${points[0][0]},${points[0][1]}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] || points[i], p1 = points[i], p2 = points[i + 1], p3 = points[i + 2] || p2;
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C${c1},${c2},${p2}`;
+  }
+  return d;
+}
+function defs(svg) {
+  el("defs", {}, svg).innerHTML = `
+    <linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#c58a17"/><stop offset="1" stop-color="#ffe29a"/></linearGradient>
+    <linearGradient id="le" x1="0" x2="1"><stop offset="0" stop-color="#1f9d6b"/><stop offset="1" stop-color="#8fffd2"/></linearGradient>
+    <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6c75a" stop-opacity=".28"/><stop offset="1" stop-color="#f6c75a" stop-opacity="0"/></linearGradient>
+    <linearGradient id="ae" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3ee8a6" stop-opacity=".2"/><stop offset="1" stop-color="#3ee8a6" stop-opacity="0"/></linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+}
+const LEFT = "end", RIGHT = "start";  // متن راست‌به‌چپ: لبه چپ = end، لبه راست = start
+function text(svg, attrs, content) {
+  const t = el("text", { "font-family": "Vazir", ...attrs }, svg); t.textContent = content; return t;
+}
+function axisLabels(svg, y) {
+  [[0, F[0]], [F.length - 1, F[F.length - 1]]].forEach(([i, f]) => {
+    const [yy, m] = f.jalali.split("/");
+    text(svg, { x: xs(i), y, "text-anchor": i ? RIGHT : LEFT, "font-size": 28, "font-weight": 300, fill: "rgba(242,245,241,.5)" }, MONTHS[+m - 1] + " " + fa(yy));
+  });
+}
+
+// ۲: هر ۱ تومان چند تومان شد (یک محور خطی)
+(function growth() {
+  const svg = document.getElementById("growth"); defs(svg);
+  const top = 40, bot = 560, max = 12.5;
+  const ys = (v) => bot - (bot - top) * v / max;
+  [1, 5, 10].forEach((v) => {
+    el("line", { x1: X0, x2: X1, y1: ys(v), y2: ys(v), stroke: "rgba(242,245,241,.09)", "stroke-width": 1.5, "stroke-dasharray": v === 1 ? "" : "4 10" }, svg);
+    text(svg, { x: X0, y: ys(v) - 12, "text-anchor": LEFT, "font-size": 26, "font-weight": 300, fill: "rgba(242,245,241,.4)" }, fa(v) + " برابر");
+  });
+  [["usd", "le", "ae", "#3ee8a6", "دلار"], ["gold18_gram", "lg", "ag", "#f6c75a", "طلا"]].forEach(([k, line, area, dot, name]) => {
+    const pts = F.map((f, i) => [xs(i), ys(f[k] / F[0][k])]);
+    el("path", { d: smooth(pts) + ` L${X1},${bot} L${X0},${bot} Z`, fill: `url(#${area})` }, svg);
+    el("path", { d: smooth(pts), fill: "none", stroke: `url(#${line})`, "stroke-width": 7, "stroke-linecap": "round", filter: "url(#glow)" }, svg);
+    const [lx, ly] = pts[pts.length - 1];
+    el("circle", { cx: lx, cy: ly, r: 13, fill: "#030c08", stroke: dot, "stroke-width": 6 }, svg);
+    const v = F[F.length - 1][k] / F[0][k];
+    const label = text(svg, { x: lx - 34, y: ly + 30, "text-anchor": RIGHT, "font-weight": 900, "font-size": 92, fill: dot }, "");
+    el("tspan", { "font-weight": 300, "font-size": 40, fill: "rgba(242,245,241,.75)" }, label).textContent = name + " ";
+    el("tspan", {}, label).textContent = fa(v.toFixed(1)) + " برابر";
+  });
+  axisLabels(svg, bot + 52);
+})();
+
+// ۳: فاصله از سقف قبلی (زیر صفر)
+(function drawdown() {
+  const svg = document.getElementById("drawdown"); defs(svg);
+  const top = 80, bot = 470, min = -0.34;
+  const ys = (v) => top + (bot - top) * (v / min);
+  [0, -0.1, -0.2, -0.3].forEach((v) => {
+    el("line", { x1: X0, x2: X1, y1: ys(v), y2: ys(v), stroke: "rgba(242,245,241,.09)", "stroke-width": 1.5, "stroke-dasharray": v === 0 ? "" : "4 10" }, svg);
+    text(svg, { x: X0, y: ys(v) - 12, "text-anchor": LEFT, "font-size": 26, "font-weight": 300, fill: "rgba(242,245,241,.4)" }, v === 0 ? "سقف" : fa(Math.round(-v * 100)) + "٪ زیر سقف");
+  });
+  const notes = [];
+  [["usd", "#3ee8a6", "دلار"], ["gold18_gram", "#f6c75a", "طلا"]].forEach(([k, color, name]) => {
+    let peak = 0, worst = 0, wi = 0;
+    const dd = F.map((f, i) => { peak = Math.max(peak, f[k]); const d = f[k] / peak - 1; if (d < worst) { worst = d; wi = i; } return d; });
+    const pts = dd.map((d, i) => [xs(i), ys(d)]);
+    el("path", { d: smooth(pts) + ` L${X1},${ys(0)} L${X0},${ys(0)} Z`, fill: color, "fill-opacity": .1 }, svg);
+    el("path", { d: smooth(pts), fill: "none", stroke: color, "stroke-width": 6, "stroke-linejoin": "round", filter: "url(#glow)" }, svg);
+    notes.push({ x: xs(wi), y: ys(worst), worst, color, name, i: wi });
+  });
+  // برچسب کمترین نقطه هر کدام، در یک ردیف زیر نمودار تا روی هم نیفتند
+  notes.sort((a, b) => a.x - b.x).forEach((n, j) => {
+    el("circle", { cx: n.x, cy: n.y, r: 12, fill: "#030c08", stroke: n.color, "stroke-width": 5 }, svg);
+    const [yy, m] = F[n.i].jalali.split("/");
+    const tx = j === 0 ? X0 + 40 : X1 - 40, anchor = j === 0 ? LEFT : RIGHT;
+    el("line", { x1: n.x, y1: n.y + 14, x2: n.x, y2: 540, stroke: n.color, "stroke-opacity": .45, "stroke-width": 2, "stroke-dasharray": "2 6" }, svg);
+    el("line", { x1: n.x, y1: 540, x2: tx, y2: 540, stroke: n.color, "stroke-opacity": .45, "stroke-width": 2, "stroke-dasharray": "2 6" }, svg);
+    text(svg, { x: tx, y: 625, "text-anchor": anchor, "font-weight": 900, "font-size": 84, fill: "#ff7a6b" }, fa(Math.round(-n.worst * 100)) + "٪ افت");
+    text(svg, { x: tx, y: 672, "text-anchor": anchor, "font-weight": 300, "font-size": 30, fill: n.color }, n.name + " · " + MONTHS[+m - 1] + " " + fa(yy));
+  });
+})();
+
+const n = Number(new URLSearchParams(location.search).get("s") || 1);
+document.querySelector(`[data-s="${n}"]`).classList.add("on");
+if (n === 1) document.getElementById("meta").textContent = "۱ / ۵";
 </script>
 </body>
 </html>
