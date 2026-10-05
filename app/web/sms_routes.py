@@ -109,7 +109,8 @@ ANDROID_UNPAIR = f"intent://unpair#Intent;scheme=vazir;package={ANDROID_PACKAGE}
 def android_pair_url(token: str, account: str, site: str) -> str:
     """لینک اتصال اپ اندروید (PairActivity)؛ بدون اپ، Chrome به صفحه نصب می‌رود."""
     query = urlencode({"token": token, "account": account})
-    fallback = quote(f"{site}/install", safe="")
+    # Chrome به این آدرس می‌رود اگر اپ نیست یا قدیمی است (صفحه اتصال از ۱.۱.۰ آمده)
+    fallback = quote(f"{site}/install?update=sms", safe="")
     return (f"intent://pair?{query}#Intent;scheme=vazir;package={ANDROID_PACKAGE};"
             f"S.browser_fallback_url={fallback};end")
 

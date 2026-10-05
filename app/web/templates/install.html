@@ -7,6 +7,7 @@
   <h1>{{ T.install_title }}</h1>
   <p class="muted">{{ T.install_body }}</p>
   <p class="install-done" data-installed hidden>{{ T.install_done }}</p>
+  {% if update_sms %}<div class="alert warn install-update">{{ icon("alert") }} <span><strong>{{ T.install_update_title }}</strong> {{ T.install_update_body }}</span></div>{% endif %}
 
   <section class="install-card" data-platform="android">
     <h2>{{ icon("download") }} {{ T.install_android }}</h2>

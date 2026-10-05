@@ -21,5 +21,14 @@ def test_sms_page_has_android_pair_link_with_users_token(tmp_path: Path) -> None
         link = page.split('href="intent://pair?')[1].split('"')[0].replace("&amp;", "&")
         assert f"token={token}" in link and "package=ir.getvazir.app" in link
         assert unquote(link.split("account=")[1].split("#")[0]) == f"{PHONE[:4]}***{PHONE[-4:]}"
-        assert "S.browser_fallback_url=https%3A%2F%2Fgetvazir.ir%2Finstall" in link
+        assert "S.browser_fallback_url=https%3A%2F%2Fgetvazir.ir%2Finstall%3Fupdate%3Dsms" in link
         assert 'href="intent://unpair#Intent;scheme=vazir;package=ir.getvazir.app;end"' in page
+
+
+
+def test_install_page_tells_old_app_users_to_update(tmp_path: Path) -> None:
+    settings = Settings(database_url=f"sqlite:///{tmp_path / 'u.db'}", secret_key="t")
+    with TestClient(create_app(settings, price_sources=[], schedule=False,
+                               otp_sender=FakeSender())) as c:
+        assert "نسخه اپ وزیر روی این گوشی قدیمی است" in c.get("/install?update=sms").text
+        assert "نسخه اپ وزیر روی این گوشی قدیمی است" not in c.get("/install").text

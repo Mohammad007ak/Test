@@ -274,8 +274,9 @@ def _register_routes(app: FastAPI) -> None:
 
     @app.get("/install", response_class=HTMLResponse)
     def install(request: Request) -> Response:
-        return page(request, "install.html", {"active": "install", "indexable": True,
-                                              "apk_url": request.app.state.android_apk_url})
+        return page(request, "install.html", {
+            "active": "install", "indexable": True, "apk_url": request.app.state.android_apk_url,
+            "update_sms": request.query_params.get("update") == "sms"})
 
     @app.get("/privacy", response_class=HTMLResponse)
     def privacy(request: Request) -> Response:
