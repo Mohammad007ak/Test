@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, bubble %}
+{% block content %}
+{% set A = s.ADMIN %}
+<p class="muted small admin-note">{{ icon("lock") }} {{ A.privacy_note }}</p>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+<div class="admin-stats">
+  {% for key, value in [("total", stats.total), ("new_today", stats.new_today), ("new_7d", stats.new_7d),
+                        ("new_30d", stats.new_30d), ("active_1d", stats.active_1d), ("active_7d", stats.active_7d),
+                        ("sms_7d", stats.sms_7d), ("disabled", stats.disabled)] %}
+  <div class="admin-stat{% if key == 'total' %} lead-stat{% endif %}"><span class="admin-stat-n">{{ value | fa }}</span><span class="admin-stat-l">{{ A[key] }}</span></div>
+  {% endfor %}
+</div>
+
+<section class="card admin-chart">
+  <h2>{{ A.chart_title }}</h2>
+  <div class="admin-bars" role="img" aria-label="{{ A.chart_title }}">
+    {% for day, n in stats.signups %}
+    {% set tip = A.chart_tip.format(day=day | jalali(false), n=n | fa) %}
+    <span class="admin-bar" tabindex="0" title="{{ tip }}" aria-label="{{ tip }}"><i style="height: {{ (n / peak * 100) | round(1) }}%"></i></span>
+    {% endfor %}
+  </div>
+  <div class="admin-axis muted small"><span>{{ stats.signups[0][0] | jalali(false) }}</span><span>{{ A.peak.format(n=top | fa) }}</span><span>{{ stats.signups[-1][0] | jalali(false) }}</span></div>
+</section>
+
+<h2 class="section-title">{{ A.users }} <span class="muted small">({{ A.found.format(n=found | fa) }})</span></h2>
+<form method="get" action="/admin" class="admin-search">
+  <input type="search" name="q" value="{{ q }}" inputmode="numeric" placeholder="{{ A.search }}" aria-label="{{ A.search }}" dir="ltr">
+  <button type="submit" class="btn small-btn">{{ A.search_btn }}</button>
+</form>
+
+{% if rows %}
+<div class="list">
+  {% for u in rows %}
+  <div class="row tall static admin-row{% if u.disabled %} dim{% endif %}">
+    {{ bubble("lock" if u.disabled else "face", 4 if u.disabled else 1) }}
+    <span class="row-main">
+      <span class="row-title"><bdi dir="ltr">{{ u.phone_masked }}</bdi>
+        {% if u.is_owner %}<span class="pill">{{ A.you }}</span>{% endif %}
+        {% if u.disabled %}<span class="pill warn">{{ A.badge_disabled }}</span>{% endif %}
+        {% if u.passkey %}<span class="pill">{{ A.passkey }}</span>{% endif %}</span>
+      <span class="row-sub">{{ A.joined.format(date=u.created_at | jalali(false)) }} · {{ A.seen.format(date=u.last_seen_at | jalali) if u.last_seen_at else A.never_seen }}</span>
+      <span class="row-sub">{{ A.counts.format(assets=u.assets | fa, accounts=u.accounts | fa, tx=u.transactions | fa, sms=u.sms | fa) }}</span>
+      {% if not u.is_owner %}
+      <span class="admin-actions">
+        {% if u.disabled %}
+        <form method="post" action="/admin/users/{{ u.id }}/enable"><button type="submit" class="btn ghost small-btn">{{ A.enable }}</button></form>
+        {% else %}
+        <form method="post" action="/admin/users/{{ u.id }}/disable"><button type="submit" class="btn ghost small-btn">{{ A.disable }}</button></form>
+        {% endif %}
+        <details class="admin-delete">
+          <summary class="btn danger-ghost small-btn">{{ A.delete }}</summary>
+          <form method="post" action="/admin/users/{{ u.id }}/delete" class="form">
+            <p class="muted small">{{ A.delete_hint }}</p>
+            <input name="confirm" inputmode="numeric" dir="ltr" required placeholder="09…" aria-label="{{ A.delete_confirm }}">
+            <button type="submit" class="btn danger-ghost small-btn">{{ A.delete_btn }}</button>
+          </form>
+        </details>
+      </span>
+      {% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% if pages > 1 %}
+<nav class="admin-pages">
+  {% if p > 1 %}<a class="btn ghost small-btn" href="/admin?p={{ p - 1 }}&q={{ q }}">{{ A.prev }}</a>{% endif %}
+  <span class="muted small">{{ p | fa }} / {{ pages | fa }}</span>
+  {% if p < pages %}<a class="btn ghost small-btn" href="/admin?p={{ p + 1 }}&q={{ q }}">{{ A.next }}</a>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<p class="lead">{{ A.none }}</p>
+{% endif %}
+{% endblock %}

@@ -7,6 +7,7 @@
 import secrets
 import time
 from collections.abc import Callable
+from datetime import timedelta
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
@@ -14,7 +15,7 @@ from fastapi import Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import User
+from app.models import User, utcnow
 from app.services import get_setting, set_setting
 
 SECRET_KEY = "session_secret"
@@ -59,10 +60,23 @@ def session_user_id(request: Request, session: Session) -> int | None:
     if not isinstance(uid, int):
         return None
     user = session.get(User, uid)
-    if user is None or user.phone is None or user.session_version != request.session.get("sv"):
+    if (user is None or user.phone is None or user.disabled_at is not None
+            or user.session_version != request.session.get("sv")):
         request.session.pop("uid", None)
         return None
     return uid
+
+
+SEEN_EVERY = timedelta(minutes=5)
+
+
+def touch(session: Session, user_id: int) -> None:
+    """آخرین بازدید برای پنل مدیریت؛ حداکثر هر چند دقیقه یک نوشتن."""
+    user = session.get(User, user_id)
+    now = utcnow()
+    if user is not None and (user.last_seen_at is None or now - user.last_seen_at > SEEN_EVERY):
+        user.last_seen_at = now
+        session.commit()
 
 
 def session_secret(session: Session, configured: str) -> str:

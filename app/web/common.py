@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.db import user_session
+from app.models import User
 from app.web import auth
 from app.web import strings as s
 from app.web.render import templates
@@ -22,6 +23,12 @@ def get_db(request: Request) -> Iterator[Session]:
     with request.app.state.session_factory() as session:
         user_id = auth.session_user_id(request, session)
         request.state.user_id = user_id
+        request.state.is_owner = False
+        if user_id is not None:
+            auth.touch(session, user_id)
+            owner = getattr(request.app.state, "owner_phone", "")
+            user = session.get(User, user_id)
+            request.state.is_owner = bool(owner) and user is not None and user.phone == owner
         yield user_session(session, user_id)
 
 

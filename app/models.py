@@ -68,6 +68,9 @@ class User(Base):
     # با تغییر رمز بالا می‌رود تا نشست‌های قبلی همه دستگاه‌ها باطل شوند
     session_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    # آخرین بازدید (با فاصله حداقل چند دقیقه به‌روز می‌شود) و غیرفعال‌شده از پنل مدیریت
+    last_seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    disabled_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
 
 class UserOwned:

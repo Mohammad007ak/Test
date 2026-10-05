@@ -36,6 +36,7 @@ from app.scheduler import Activity, Pace, refresh_now, run_adaptive
 from app.sms.llm import DisabledLLM
 from app.web import auth, categories, forms
 from app.web import strings as s
+from app.web.admin_routes import register_admin_routes
 from app.web.articles import by_slug
 from app.web.assistant_routes import default_chat_model, register_assistant_routes
 from app.web.auth_routes import register_auth_routes
@@ -141,6 +142,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     app.state.contact_email = settings.contact_email
     app.state.android_apk_url = settings.android_apk_url
     app.state.ios_shortcut_url = settings.ios_shortcut_url
+    app.state.owner_phone = normalize_phone(settings.owner_phone) if settings.owner_phone else ""
     app.state.android_package = settings.android_package
     app.state.android_cert_sha256 = settings.android_cert_sha256
     app.state.poll_seconds = settings.price_refresh_seconds if sources else 0
@@ -181,6 +183,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_price_pages(app)
     register_learn_routes(app)
     register_split_routes(app)
+    register_admin_routes(app)
     _register_routes(app)
     return app
 

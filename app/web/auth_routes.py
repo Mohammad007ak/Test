@@ -87,6 +87,9 @@ def register_auth_routes(app: FastAPI, settings: Settings, otp: OtpService,
                                                 "auth_page": True}, 401)
         for key in keys:
             throttle.succeeded(key)
+        if user.disabled_at is not None:
+            return page(request, "login.html", {"error": s.T["login_disabled"], "phone": phone,
+                                                "auth_page": True}, 400)
         auth.log_in(request, user)
         return redirect("/")
 
