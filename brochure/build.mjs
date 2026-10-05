@@ -127,7 +127,7 @@ function divider(n, { title, en, desc, kicker, big, image, related }) {
       <div style="position:relative">
         <div class="title-block">${kicker ? `<div class="kicker">${kicker}</div>` : ""}<h2>${title}</h2><div class="ghost">${en.join("<br>")}</div>${desc ? `<p class="desc">${desc}</p>` : ""}</div>
       </div>
-      <div style="background:url(${img(image)}) center/cover"></div>
+      <div style="position:relative;overflow:hidden"><img src="${img(image)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt=""></div>
       ${footer(n, "")}</section>`;
   }
   return `<section class="page navy divider">
@@ -184,7 +184,7 @@ function networkPage(n) {
       <p class="lead" style="font-size:10pt">بیش از ۲۰ هزار پذیرنده آنلاین و حضوری در سراسر کشور؛ از دیجی‌کالا تا فروشگاه‌های تخصصی در هر شهر. مشتریان دیجی‌پی در همه این پذیرندگان از کیف پول و اعتبار خود استفاده می‌کنند.</p>
       <ul class="feat" style="margin-top:9mm;gap:4.5mm">${pts.map((x) => `<li style="font-size:10pt">${icon(x.icon)}<span>${x.t}</span></li>`).join("")}</ul>
     </div>
-    <div style="position:relative;background:url(${img("map.jpg")}) center/cover">
+    <div style="position:relative;overflow:hidden"><img src="${img("map.jpg")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="">
       <div class="statbox" style="top:auto;bottom:26mm"><div class="big">20K</div><div class="lbl">پذیرنده آنلاین و حضوری در شبکه دیجی‌پی</div></div>
     </div>
     ${footer(n, "half")}</section>`;
@@ -241,7 +241,7 @@ function welfarePage(n, key) {
       </div>
       <div class="trio">${p.trio
         .map(
-          (c) => `<div class="card"><div class="img" style="background-image:url(${img(c.img)});background-position:${c.pos}"></div>
+          (c) => `<div class="card"><img class="img" src="${img(c.img)}" style="object-position:${c.pos}" alt="">
           <div class="txt"><h4>${c.t}</h4><ul>${c.items.map((i) => `<li>${icon("circle-check")}<span>${i}</span></li>`).join("")}</ul></div></div>`
         )
         .join("")}</div>
@@ -444,7 +444,7 @@ function contactPage(n) {
         <div class="r">${icon("globe")}<span class="k">وب‌سایت</span><span class="v">${C.contact.web}</span></div>
       </div>
     </div>
-    <div style="background:url(${img("storefront.jpg")}) center/cover"></div>
+    <div style="position:relative;overflow:hidden"><img src="${img("storefront.jpg")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt=""></div>
     ${footer(n, "half")}</section>`;
 }
 
@@ -600,7 +600,8 @@ function flywheelPage(n) {
     <div style="position:relative;padding:20mm 18mm 20mm 4mm">
       <div class="h-title">چرخه ارزش دیجی‌پی در گروه</div>
       <p class="lead" style="font-size:10pt">هر خرید با اعتبار دیجی‌پی، داده و منابع بیشتری برای اعتبار بیشتر می‌سازد؛ و اعتبار بیشتر، خرید بیشتر در پلتفرم‌های گروه و شبکه پذیرندگان.</p>
-      <div class="pill primary" style="margin-top:8mm;background:#fff;color:var(--navy)">${icon("refresh-cw")}<span>موجودی نقد دیجی‌کارت و وجوه حق بیمه، منابع کم‌هزینه برای توسعه BNPL و C-Credit فراهم می‌کنند.</span></div>
+      <div class="pill primary" style="margin-top:6mm;background:#fff;color:var(--navy)">${icon("refresh-cw")}<span>موجودی نقد دیجی‌کارت و وجوه حق بیمه، منابع کم‌هزینه برای توسعه BNPL و C-Credit فراهم می‌کنند.</span></div>
+      ${C.summary ? `<div class="fsum"><div class="k">جمع‌بندی</div>${C.summary.map((v) => `<div class="r">${icon(v.icon)}<div><b>${v.t}</b><span>${v.d}</span></div></div>`).join("")}</div>` : ""}
     </div>
     <div class="hub fly">
       <svg viewBox="0 0 160 150" style="position:absolute;inset:0;width:160mm;height:150mm"><circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width=".5"/>${arrows}</svg>
@@ -621,26 +622,27 @@ function summaryPage(n) {
 }
 
 
-function multiProductPage(n, keys, eyebrow) {
+function multiProductPage(n, keys, eyebrow, { tall = false } = {}) {
   const cards = keys.map((k) => {
     const p = products[k];
     const feats = (p.features || (p.groups || []).map((g) => ({ icon: g.icon, t: `${g.t}؛ ${g.d}` }))).slice(0, 4);
     const pill = (p.pills || []).find((x) => x.primary);
     const cos = (p.cos || []).map((id) => C.group.find((g) => g.id === id)).filter(Boolean);
     return `<div class="mcard">
-      <div class="mimg" style="background-image:url(${img(p.photo)});background-position:${p.bandPos || "center 55%"}"></div>
+      <img class="mimg" src="${img(p.photo)}" style="object-position:${p.bandPos || "center 55%"}" alt="">
       <div class="mbody">
         <div class="mhead"><span class="num-badge">${faDigits(p.no)}</span><div><div class="mt">${p.title}${p.status ? `<span class="status">${p.status}</span>` : ""}</div><div class="en">${p.en}</div></div></div>
         <p class="mlead">${p.lead}</p>
         ${segChips(p.seg, { onlyActive: true })}
         <ul class="feat">${feats.map((f) => `<li>${icon(f.icon)}<span>${f.t}</span></li>`).join("")}</ul>
+        ${p.offers && !p.val ? `<div class="moffers">${p.offers.map((o) => `<span><i>${o.tag}</i><div>${o.amt}</div><em>${o.term}</em></span>`).join("")}</div>` : ""}
         ${pill ? `<div class="pill primary">${icon(pill.icon)}<span>${pill.t}</span></div>` : ""}
         ${p.val ? `<div class="mval"><div class="k">${icon("sparkles")}ارزش برای دیجی‌پی و گروه</div><ul>${p.val.group.map((x) => `<li>${x}</li>`).join("")}</ul></div>` : ""}
         ${cos.length ? `<div class="cochips"><span class="k">هم‌افزایی با گروه</span>${cos.map((g) => `<span class="co">${icon(g.icon)}${g.fa}</span>`).join("")}</div>` : ""}
       </div>
     </div>`;
   });
-  return `<section class="page pale multi">
+  return `<section class="page pale multi${tall ? " tall" : ""}">
     <div class="content" style="inset:11mm 13mm 18mm 13mm">
       <div class="eyebrow">${eyebrow}</div>
       <div class="mcols c${keys.length}">${cards.join("")}</div>
@@ -679,40 +681,53 @@ function addSections({ deep }) {
 }
 
 add(() => cover());
-add((n) => toc(n));
+if (!BOARD) add((n) => toc(n));
 if (BOARD) {
-  // compact board deck: no section dividers; B2O in depth, other products 2-3 per page
+  // board deck (max 25 pages): section dividers kept, B2O in depth, other products 2-3 per page
   const S = Object.fromEntries(sections.map((x) => [x.id, x]));
-  const numberAll = () => sections.forEach((sec) => sec.products.forEach((k) => (products[k].no = ++productNo)));
-  numberAll();
-  add((n) => glancePage(n), { label: "دیجی‌پی در یک نگاه", level: "sec" });
-  add((n) => merchantsPage(n), { label: "برخی از پذیرندگان طرف قرارداد", level: "sub" });
-  add((n) => matrixPage(n), { label: "نقشه محصولات به تفکیک مشتری", level: "sec" });
-  add((n) => b2oOverviewPage(n), [{ label: S.org.title, level: "sec" }, { label: "چرا راهکارهای سازمانی (B2O)؟", level: "sub" }]);
-  add((n) => clientsPage(n), { label: "سازمان‌های همکار", level: "sub" });
-  S.org.products.forEach((k) => {
-    const p = products[k];
-    productPage[k] = pages.length + 1;
-    add((n) => (k === "welfare" ? welfarePage(n, k) : productPageHtml(n, k)), { label: p.title, level: "sub" });
-    if (p.deep && k !== "procredit") add((n) => deepDivePage(n, k));
-  });
-  const groups = [
-    ["biz", [["merchantbnpl", "workingcapital"], ["earlysettlement", "adservice"]]],
-    ["retail", [["bnpl", "ccredit"], ["digicard", "wealth", "insurance"], ["daily", "crypto"]]],
-  ];
-  groups.forEach(([sid, pagesOf]) => {
-    pagesOf.forEach((keys, i) => {
-      keys.forEach((k) => (productPage[k] = pages.length + 1));
-      const toc = keys.map((k) => ({ label: products[k].title, level: "sub" }));
-      if (i === 0) toc.unshift({ label: S[sid].title, level: "sec" });
-      add((n) => multiProductPage(n, keys, S[sid].title), toc);
+  sections.forEach((sec) => sec.products.forEach((k) => (products[k].no = ++productNo)));
+  const secDivider = (sid, si) => (n) =>
+    divider(n, {
+      title: S[sid].title, en: S[sid].en, desc: S[sid].desc, kicker: `بخش ${faDigits(si)}`, big: `0${si}`,
+      related: sections
+        .filter((o) => o.id !== sid)
+        .flatMap((o) => o.products)
+        .filter((k) => products[k].seg[sid] === "full")
+        .map((k) => ({ title: products[k].title, pg: productPage[k] })),
     });
+  const multi = (keys, sid, opts = {}) => {
+    keys.forEach((k) => (productPage[k] = pages.length + 1));
+    add((n) => multiProductPage(n, keys, S[sid].title, opts));
+  };
+  add((n) => divider(n, { title: "دیجی‌پی در یک نگاه", en: ["Digipay", "at a glance"] }));
+  add((n) => glancePage(n));
+  add((n) => merchantsPage(n));
+  add((n) => matrixPage(n));
+  // 1. B2O
+  add(secDivider("org", 1));
+  add((n) => b2oOverviewPage(n));
+  add((n) => clientsPage(n));
+  ["welfare", "orgbnpl"].forEach((k) => {
+    productPage[k] = pages.length + 1;
+    add((n) => (k === "welfare" ? welfarePage(n, k) : productPageHtml(n, k)));
+    add((n) => deepDivePage(n, k));
   });
-  add((n) => ecosystemPage(n), [{ label: "هم‌افزایی در گروه دیجی‌کالا", level: "sec" }, { label: "دیجی‌پی در اکوسیستم گروه", level: "sub" }]);
-  add((n) => synergyIdeasPage(n), { label: "فرصت‌های کلیدی هم‌افزایی", level: "sub" });
-  add((n) => flywheelPage(n), { label: "چرخه ارزش دیجی‌پی در گروه", level: "sub" });
-  add((n) => summaryPage(n), { label: "جمع‌بندی", level: "sec" });
-  add(() => backPage());
+  multi(["orgloan", "procredit"], "org", { tall: true });
+  add((n) => deepDivePage(n, "orgloan"));
+  // 2. businesses
+  add(secDivider("biz", 2));
+  multi(["merchantbnpl", "workingcapital"], "biz");
+  multi(["earlysettlement", "adservice"], "biz");
+  // 3. individuals
+  add(secDivider("retail", 3));
+  multi(["bnpl", "ccredit"], "retail");
+  multi(["digicard", "wealth", "insurance"], "retail");
+  multi(["daily", "crypto"], "retail");
+  // 4. synergy
+  add((n) => divider(n, { title: "هم‌افزایی در گروه دیجی‌کالا", en: ["Digikala Group", "Synergy"], desc: "جایگاه دیجی‌پی در اکوسیستم گروه، فرصت‌های کلیدی هم‌افزایی و چرخه ارزش.", kicker: `بخش ${faDigits(4)}`, big: "04" }));
+  add((n) => ecosystemPage(n));
+  add((n) => synergyIdeasPage(n));
+  add((n) => flywheelPage(n));
 } else {
   add((n) => introPage(n), { label: "درباره این سند", level: "" });
   add((n) => divider(n, { title: "دیجی‌پی در یک نگاه", en: ["Digipay", "at a glance"] }), { label: "دیجی‌پی در یک نگاه", level: "sec" });

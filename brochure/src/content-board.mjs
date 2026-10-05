@@ -232,6 +232,7 @@ const extra = {
 
 // focal point of each photo inside the short image band on multi-product pages
 const bandPos = {
+  orgloan: "62% 70%", procredit: "center 35%",
   merchantbnpl: "center 45%", workingcapital: "center 60%", earlysettlement: "55% 62%", adservice: "center 50%",
   bnpl: "center 48%", ccredit: "center 60%", digicard: "center 45%", wealth: "35% 72%", insurance: "center 35%",
   daily: "center 45%", crypto: "center 50%",

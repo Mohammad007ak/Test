@@ -475,3 +475,21 @@ table.matrix th, table.matrix td { padding-top: 1.15mm; padding-bottom: 1.15mm; 
 .mval li { font-size: 7.9pt; line-height: 1.6; position: relative; padding-right: 3mm; }
 .mval li::before { content: ""; position: absolute; right: 0; top: 1.9mm; width: 1.2mm; height: 1.2mm; border-radius: 50%; background: var(--sky); }
 .mbody .cochips { margin-top: 0; }
+
+/* ---------- images as <img> (crisper in PDF than CSS backgrounds) ---------- */
+.trio .card img.img { display: block; width: 100%; height: 44mm; object-fit: cover; }
+img.mimg { display: block; width: 100%; object-fit: cover; }
+.cgrid { grid-template-columns: repeat(7, 1fr) !important; gap: 8mm 4mm !important; padding: 0 4mm 0 10mm !important; }
+.cgrid .c { height: 20mm; }
+.cgrid .c img { max-height: 18mm; }
+.moffers { display: flex; flex-wrap: wrap; gap: 2mm; }
+.moffers span { flex: 1; min-width: 40mm; background: var(--pale); border-radius: 2.5mm; padding: 2mm 3mm; font-size: 10pt; color: var(--ink); display: flex; flex-direction: column; gap: .3mm; }
+.moffers i { font-style: normal; font-size: 7pt; color: var(--ink-3); }
+.moffers em { font-style: normal; font-size: 7.6pt; color: var(--ink-2); }
+.fsum { margin-top: 7mm; display: grid; gap: 3mm; }
+.fsum .k { font-size: 11pt; font-weight: 800; }
+.fsum .r { display: flex; gap: 3mm; align-items: flex-start; background: rgba(255,255,255,.08); border: .3mm solid rgba(255,255,255,.18); border-radius: 3mm; padding: 2.6mm 3.5mm; }
+.fsum .r .ic { width: 6mm; height: 6mm; flex: none; }
+.fsum .r b { display: block; font-size: 9pt; }
+.fsum .r span { font-size: 7.8pt; opacity: .85; line-height: 1.6; }
+.tall .mimg { height: 84mm; }
