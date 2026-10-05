@@ -1336,3 +1336,14 @@ LANDING_PRICE_LINKS: tuple[tuple[str, str], ...] = (
 )
 # مقاله‌های صفحه معرفی: پیام اصلی وزیر (تورم) و دو موضوع پرجستجو
 LANDING_ARTICLES: tuple[str, ...] = ("real-return-inflation", "coin-bubble", "loan-real-interest")
+
+# صفحه معرفی: یک کار اصلی («شروع رایگان»)؛ ورود فقط یک خط کوچک
+LANDING.update({"have_account": "حساب داری؟", "login_link": "وارد شو"})
+# پیشنهاد نصب بعد از ثبت‌نام (داشبورد)، بسته به گوشی
+T.update({
+    "nudge_android": "اپ اندروید وزیر را نصب کن",
+    "nudge_ios": "وزیر را به صفحه اصلی آیفون اضافه کن",
+    "nudge_desktop": "وزیر را روی کامپیوتر نصب کن",
+    "nudge_body": "تمام‌صفحه، سریع‌تر و با ورود با چهره؛ کمتر از یک دقیقه.",
+    "nudge_later": "بعداً",
+})

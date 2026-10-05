@@ -14,6 +14,14 @@
 </a>
 {% endif %}
 
+{# پیشنهاد نصب فقط بعد از ثبت‌نام؛ جاوااسکریپت نسخه گوشی را انتخاب می‌کند و اگر اپ نصب است یا
+   کاربر «بعداً» زده، پنهان می‌ماند #}
+<div class="install-nudge" data-install-nudge hidden>
+  {{ bubble("download", 1) }}
+  <a href="/install" class="install-nudge-text"><strong data-for="android">{{ T.nudge_android }}</strong><strong data-for="ios">{{ T.nudge_ios }}</strong><strong data-for="desktop">{{ T.nudge_desktop }}</strong><small>{{ T.nudge_body }}</small></a>
+  <button type="button" class="text-btn" data-nudge-dismiss>{{ T.nudge_later }}</button>
+</div>
+
 {% if empty %}
 {% include "_watchlist.html" %}
 {% if not has_persona %}

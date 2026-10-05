@@ -818,6 +818,26 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
 
+  // پیشنهاد نصب در داشبورد: فقط اگر اپ نصب نیست و کاربر «بعداً» نزده (تنظیم همین دستگاه)
+  function initInstallNudge(root) {
+    var box = root.querySelector && root.querySelector("[data-install-nudge]");
+    if (!box) return;
+    var standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+    var dismissed = false;
+    try { dismissed = localStorage.getItem("install_nudge_dismissed") === "1"; } catch (e) {}
+    if (standalone || dismissed) return;
+    var ua = navigator.userAgent;
+    var platform = /iPhone|iPad|iPod/.test(ua) ? "ios" : /Android/.test(ua) ? "android" : "desktop";
+    box.querySelectorAll("[data-for]").forEach(function (el) { el.hidden = el.getAttribute("data-for") !== platform; });
+    box.hidden = false;
+    box.querySelector("[data-nudge-dismiss]").addEventListener("click", function () {
+      box.hidden = true;
+      try { localStorage.setItem("install_nudge_dismissed", "1"); } catch (e) {}
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () { initInstallNudge(document); });
+  document.addEventListener("htmx:load", function (e) { initInstallNudge(e.target); });
+
   // دکمه کپی (مثلاً لینک دنگ برای دوستان)
   document.addEventListener("click", function (e) {
     var btn = e.target.closest && e.target.closest("[data-copy]");
