@@ -26,8 +26,8 @@ def main() -> None:
     start = date(end.year - YEARS, end.month, end.day)
 
     def row(day: date) -> dict[str, object]:
-        out: dict[str, object] = {"day": day.isoformat(),
-                                  "jalali": jdatetime.date.fromgregorian(date=day).strftime("%Y/%m")}
+        jalali = jdatetime.date.fromgregorian(date=day).strftime("%Y/%m")
+        out: dict[str, object] = {"day": day.isoformat(), "jalali": jalali}
         for key, (days, prices) in series.items():
             out[key] = prices[max(bisect.bisect_right(days, day) - 1, 0)]
         return out
