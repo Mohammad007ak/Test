@@ -1,6 +1,6 @@
 import pytest
 
-from app.sms.text import content_hash, mask_numbers, prepare
+from app.sms.text import content_hash, is_secret, mask_numbers, prepare
 
 
 @pytest.mark.parametrize(
@@ -43,3 +43,22 @@ def test_prepare_normalises_digits_and_letters() -> None:
 def test_hash_ignores_whitespace_differences() -> None:
     assert content_hash("برداشت  25,000\n") == content_hash("برداشت 25,000")
     assert content_hash("برداشت 25,000") != content_hash("برداشت 26,000")
+
+
+@pytest.mark.parametrize("text", [
+    "بانک ملت\nرمز پویا: 482913",
+    "کد تأیید ورود شما: 5521",
+    "كد تاييد شما ۱۲۳۴",           # «ك/ي» عربی و ارقام فارسی
+    "Your OTP is 9911",
+    "رمز دوم یکبار مصرف 771122",
+])
+def test_secret_messages_are_detected(text: str) -> None:
+    assert is_secret(text)
+
+
+@pytest.mark.parametrize("text", [
+    "بانک سامان\nبرداشت 1,200,000\nمانده 5,000,000",
+    "واریز 500,000 ریال به حساب 814**1234\nکد پیگیری 3321",
+])
+def test_transaction_messages_are_not_secret(text: str) -> None:
+    assert not is_secret(text)

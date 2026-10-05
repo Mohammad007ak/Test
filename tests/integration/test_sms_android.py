@@ -17,7 +17,7 @@ def test_sms_page_has_android_pair_link_with_users_token(tmp_path: Path) -> None
                                otp_sender=FakeSender())) as c:
         register(c)
         page = c.get("/sms").text
-        token = page.split('class="token">')[1].split("<")[0]
+        token = page.split('id="sms-token">')[1].split("<")[0]
         link = page.split('href="intent://pair?')[1].split('"')[0].replace("&amp;", "&")
         assert f"token={token}" in link and "package=ir.getvazir.app" in link
         assert unquote(link.split("account=")[1].split("#")[0]) == f"{PHONE[:4]}***{PHONE[-4:]}"

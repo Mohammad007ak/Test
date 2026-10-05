@@ -23,6 +23,7 @@
 {% endif %}
 <p class="lead small">{{ T.sms_parsers_note }}</p>
 
+{% if platform != 'ios' %}
 <section class="card sms-android">
   <h2>{{ bubble("android", 3) }} {{ T.sms_android_title }}</h2>
   <p class="muted small">{{ T.sms_android_body }}</p>
@@ -30,6 +31,33 @@
   <a href="{{ android_pair }}" class="btn wide" hx-boost="false">{{ T.sms_android_connect }}</a>
   <p class="muted small">{{ T.sms_android_hint }} · <a href="{{ android_unpair }}" hx-boost="false">{{ T.sms_android_disconnect }}</a></p>
 </section>
+{% endif %}
+
+{% if platform != 'android' %}
+<details class="card disclosure sms-ios"{% if platform == 'ios' %} open{% endif %}>
+  <summary>{{ bubble("phone", 3) }} {{ T.sms_ios_title }}</summary>
+  <div class="setup">
+    <p class="muted small">{{ T.sms_ios_body | ui_labels }}</p>
+    <h3>{{ T.sms_ios_copy_title }}</h3>
+    <div class="copy-field">
+      <span class="label">{{ T.sms_ios_endpoint }}</span>
+      <code dir="ltr" id="sms-endpoint">{{ endpoint }}</code>
+      <button type="button" class="btn ghost small-btn" data-copy="#sms-endpoint" data-copied="{{ T.sms_ios_copied }}">{{ T.sms_ios_copy }}</button>
+    </div>
+    <div class="copy-field">
+      <span class="label">{{ T.sms_token_label }}</span>
+      <code dir="ltr" id="sms-token">{{ token }}</code>
+      <button type="button" class="btn ghost small-btn" data-copy="#sms-token" data-copied="{{ T.sms_ios_copied }}">{{ T.sms_ios_copy }}</button>
+    </div>
+    <h3>{{ T.sms_ios_steps_title }}</h3>
+    <ol class="ios-steps">{% for line in T.sms_ios_steps %}<li>{{ line | ui_labels }}</li>{% endfor %}</ol>
+    <p class="muted small">{{ T.sms_ios_more }}</p>
+    <p class="ios-test small">{{ T.sms_ios_test }}</p>
+    <ul class="muted small">{% for line in T.sms_ios_safety %}<li>{{ line }}</li>{% endfor %}</ul>
+    <form method="post" action="/sms/token"><button class="btn ghost small-btn" type="submit">{{ T.sms_rotate }}</button></form>
+  </div>
+</details>
+{% endif %}
 
 <section class="card">
   <h2>{{ T.sms_upload }}</h2>
@@ -39,28 +67,6 @@
     <button type="submit" class="btn">{{ icon("download") }} {{ T.sms_upload }}</button>
   </form>
 </section>
-
-<details class="card disclosure">
-  <summary>{{ T.sms_setup }}</summary>
-  <div class="setup">
-    <ol>
-      <li>برنامه را روی مک با این دستور روشن کن (تا ترمینال باز است پیامک‌ها می‌رسند):
-        <pre dir="ltr">uv run uvicorn app.asgi:app --host 0.0.0.0</pre></li>
-      <li>در اپ Shortcuts آیفون: <b>Automation ← + ← Message</b>؛ «Message Contains» را روی «مانده» بگذار و <b>Run Immediately</b> را روشن کن. (برای «موجودی» هم یکی دیگر بساز.)</li>
-      <li>اکشن <b>Get Contents of URL</b> با این تنظیمات:
-        <ul>
-          <li>URL: <code dir="ltr">{{ endpoint }}</code></li>
-          <li>Method: <b>POST</b></li>
-          <li>Headers: <code dir="ltr">X-Ingest-Token</code> = توکن پایین</li>
-          <li>Request Body: <b>JSON</b>، فیلد Text با نام <code dir="ltr">text</code> و مقدار <b>Shortcut Input ← Content</b></li>
-        </ul></li>
-      <li>گوشی باید روی همان وای‌فای مک باشد.</li>
-    </ol>
-    <label class="label">{{ T.sms_token_label }}</label>
-    <div class="token-row"><code dir="ltr" class="token">{{ token }}</code></div>
-    <form method="post" action="/sms/token"><button class="btn ghost small-btn" type="submit">{{ T.sms_rotate }}</button></form>
-  </div>
-</details>
 
 <h2 class="section-title">{{ T.sms_recent }}</h2>
 {% if recent %}

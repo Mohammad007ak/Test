@@ -2086,3 +2086,12 @@ a.lx-tick { color: inherit; text-decoration: none; }
 .welcome-app { gap: 12px; }
 .welcome-points { list-style: none; padding: 0; margin: 8px 0 14px; display: flex; flex-direction: column; gap: 10px; text-align: right; }
 .welcome-points li { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: .92rem; }
+
+/* راهنمای Shortcuts آیفون در صفحه پیامک */
+.sms-ios summary { display: flex; align-items: center; gap: 8px; }
+.copy-field { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; margin-bottom: 10px; }
+.copy-field .label { grid-column: 1 / -1; margin: 0; }
+.copy-field code { min-width: 0; word-break: break-all; text-align: left; padding: 8px; background: var(--surface-2); border-radius: 8px; font-size: .8rem; }
+.ios-steps li { line-height: 1.9; }
+.ios-label { direction: ltr; unicode-bidi: isolate; font-weight: 700; color: var(--text); background: var(--surface-2); border-radius: 5px; padding: 0 5px; white-space: nowrap; }
+.ios-test { padding: 8px 10px; border-radius: 8px; background: var(--surface-2); color: var(--text); }

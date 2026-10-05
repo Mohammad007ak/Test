@@ -148,12 +148,12 @@ class TestIsolation:
             register(alice, PHONE)
             register(bob, OTHER)
             import re
-            token = re.search(r'class="token">([^<]+)<', alice.get("/sms").text).group(1)
+            token = re.search(r'id="sms-token">([^<]+)<', alice.get("/sms").text).group(1)
             assert token not in bob.get("/sms").text
-            sms = "بانک ملت\nبرداشت 2,500,000 ریال"
+            sms = "بانک ملت\nبرداشت 2,500,000 ریال\nZZMARK"
             ok = bob.post("/api/sms", json={"text": sms}, headers={"X-Ingest-Token": token})
             assert ok.status_code == 200
-            assert "برداشت" in alice.get("/sms").text and "برداشت" not in bob.get("/sms").text
+            assert "ZZMARK" in alice.get("/sms").text and "ZZMARK" not in bob.get("/sms").text
 
 
 class TestOwnerClaim:

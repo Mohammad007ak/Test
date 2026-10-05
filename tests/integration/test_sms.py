@@ -63,6 +63,13 @@ class TestApi:
         assert client.post("/api/sms", json={"text": ""}, headers=h).status_code == 400
         assert client.post("/api/sms", json={"text": "x" * 3000}, headers=h).status_code == 400
 
+    def test_secret_messages_are_dropped_unstored(self, client: TestClient) -> None:
+        h = {"X-Ingest-Token": TOKEN}
+        response = client.post("/api/sms", json={"text": "بانک ملت\nرمز پویا: 482913"}, headers=h)
+        assert response.status_code == 200 and response.json() == {"status": "ignored"}
+        with db(client) as s:
+            assert s.scalars(select(SmsInbox)).first() is None
+
     def test_rate_limit(self, client: TestClient) -> None:
         h = {"X-Ingest-Token": TOKEN}
         codes = [client.post("/api/sms", json={"text": f"پیام {i}"}, headers=h).status_code
@@ -119,15 +126,45 @@ def test_sms_pages_need_login(client: TestClient) -> None:
     assert client.get("/sms", follow_redirects=False).status_code == 303
 
 
-def test_phone_endpoint_uses_mac_name_for_local_hosts() -> None:
-    from app.web.sms_routes import phone_endpoint
+def test_sms_endpoint_prefers_public_url() -> None:
+    from app.web.sms_routes import sms_endpoint
 
-    assert phone_endpoint("127.0.0.1", 8000, "MY-MAC.local") == "http://MY-MAC.local:8000/api/sms"
-    assert phone_endpoint("0.0.0.0", 8000, "MY-MAC") == "http://MY-MAC.local:8000/api/sms"
-    assert phone_endpoint("192.168.1.5", 8000, "x") == "http://192.168.1.5:8000/api/sms"
+    assert sms_endpoint("https://getvazir.ir/", "http", "internal", 8000) == \
+        "https://getvazir.ir/api/sms"
+    assert sms_endpoint("", "https", "example.ir", None) == "https://example.ir/api/sms"
+
+
+IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15"
+ANDROID = "Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 Chrome/129 Mobile"
+
+
+def test_iphone_sees_open_shortcuts_guide_with_copy_buttons(client: TestClient) -> None:
+    page = client.get("/sms", headers={"User-Agent": IPHONE}).text
+    assert '<details class="card disclosure sms-ios" open' in page
+    assert 'data-copy="#sms-endpoint"' in page and 'data-copy="#sms-token"' in page
+    assert TOKEN in page and '<bdi class="ios-label">Get Contents of URL</bdi>' in page
+    assert "&lt;bdi" not in page
+    assert "sms-android" not in page and "uvicorn" not in page and "وای‌فای" not in page
+
+
+def test_android_sees_android_card_only(client: TestClient) -> None:
+    page = client.get("/sms", headers={"User-Agent": ANDROID}).text
+    assert "sms-android" in page and "sms-ios" not in page
+
+
+def test_desktop_sees_both_guides_closed(client: TestClient) -> None:
+    page = client.get("/sms").text
+    assert "sms-android" in page and '<details class="card disclosure sms-ios">' in page
 
 
 def test_sms_page_shows_https_endpoint_behind_proxy(client: TestClient) -> None:
     page = client.get("/sms", headers={"X-Forwarded-Proto": "https",
                                        "Host": "finassist.example.ir"}).text
     assert "https://finassist.example.ir/api/sms" in page
+
+
+def test_ui_labels_escapes_text() -> None:
+    from app.web.render import ui_labels
+
+    assert str(ui_labels("<b>x</b> [[Run]]")) == \
+        '&lt;b&gt;x&lt;/b&gt; <bdi class="ios-label">Run</bdi>'

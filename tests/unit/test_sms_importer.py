@@ -40,5 +40,15 @@ def session() -> Iterator[Session]:
 
 def test_import_text_counts(session: Session) -> None:
     counts = import_text(session, FILE)
-    assert counts == {"parsed": 0, "failed": 2, "duplicate": 0}
+    assert counts == {"parsed": 0, "failed": 2, "duplicate": 0, "ignored": 0}
     assert import_text(session, FILE)["duplicate"] == 2
+
+
+def test_import_skips_secret_messages_without_storing(session: Session) -> None:
+    from sqlalchemy import select
+
+    from app.models import SmsInbox
+
+    counts = import_text(session, "--- 2026-10-03 09:00\nرمز پویا شما 482913\n")
+    assert counts["ignored"] == 1
+    assert session.scalars(select(SmsInbox)).first() is None

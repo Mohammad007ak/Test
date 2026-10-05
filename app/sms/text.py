@@ -51,5 +51,16 @@ def mask_numbers(text: str) -> str:
     return _NUMBER_RUN.sub(_mask, text)
 
 
+# پیامک رمز و کد (رمز پویا، کد تأیید) حتی از طرف بانک هرگز ذخیره یا پردازش نمی‌شود؛
+# همان فهرست اپ اندروید (SmsText.SECRETS)، برای Shortcuts آیفون و فایل که فیلتر گوشی ندارند
+SECRETS = ("رمز", "پویا", "کد تایید", "کد تأیید", "کد ورود", "کد امنیتی", "کد یکبار", "کد یک‌بار",
+           "کد فعال", "otp", "password", "verification", "cvv")
+
+
+def is_secret(raw: str) -> bool:
+    text = normalize_chars(raw).casefold()
+    return any(word in text for word in SECRETS)
+
+
 def content_hash(text: str) -> str:
     return hashlib.sha256(" ".join(text.split()).encode("utf-8")).hexdigest()

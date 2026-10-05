@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.domain.normalize import normalize_digits
 from app.models import utcnow
 from app.sms.pipeline import ingest
+from app.sms.text import is_secret
 
 MARKER = "---"
 TEHRAN = ZoneInfo("Asia/Tehran")
@@ -67,7 +68,10 @@ def split_messages(content: str) -> list[RawMessage]:
 
 
 def import_text(session: Session, content: str) -> dict[str, int]:
-    counts = {"parsed": 0, "failed": 0, "duplicate": 0}
+    counts = {"parsed": 0, "failed": 0, "duplicate": 0, "ignored": 0}
     for message in split_messages(content):
+        if is_secret(message.text):  # رمز و کد: نه ذخیره، نه پردازش
+            counts["ignored"] += 1
+            continue
         counts[ingest(session, message.text, message.received_at).status] += 1
     return counts

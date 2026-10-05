@@ -190,6 +190,15 @@ templates.env.filters.update(
     jalali_long=jalali_long,
     chat_md=chat_markdown,
 )
+_UI_LABEL = re.compile(r"\[\[(.+?)\]\]")
+
+
+def ui_labels(text: str) -> Markup:
+    """«[[Label]]» در راهنما ← اسم دکمه آیفون، چپ‌به‌راست و پررنگ؛ بقیه متن escape می‌شود."""
+    return Markup(_UI_LABEL.sub(r'<bdi class="ios-label">\1</bdi>', str(escape(text))))
+
+
+templates.env.filters["ui_labels"] = ui_labels
 templates.env.filters["by_value"] = lambda lines: sorted(
     lines, key=lambda line: -(line.value_toman if line.value_toman is not None else -1))
 templates.env.filters["faq_item"] = lambda qa: {

@@ -1,7 +1,6 @@
 """مسیرهای پیامک بانکی: اندپوینت Shortcuts، واردکردن فایل و صف بررسی (SPEC: F6)."""
 
 import secrets
-import socket
 import time
 from collections import deque
 from collections.abc import Callable
@@ -21,6 +20,7 @@ from app.models import SmsInbox, User, UserSetting, utcnow
 from app.sms.importer import import_text, parse_time
 from app.sms.parsers import ParsedSms
 from app.sms.pipeline import complete_manually, ignore, ingest
+from app.sms.text import is_secret
 from app.web import forms
 from app.web import strings as s
 from app.web.common import Db, LoggedIn, done, page, read_form, site_url, wants_fragment
@@ -61,16 +61,19 @@ def token_owner(factory: Callable[[], Session], token: str) -> int | None:
         return row.user_id if row is not None else None
 
 
-_LOCAL_HOSTS = {"127.0.0.1", "localhost", "0.0.0.0", "::1"}
-
-
-def phone_endpoint(host: str, port: int | None, machine: str | None = None,
-                   scheme: str = "http") -> str:
-    """آدرسی که آیفون باید بزند؛ 127.0.0.1 از گوشی کار نمی‌کند، پس اسم ثابت مک (.local)."""
-    if host in _LOCAL_HOSTS:
-        name = (machine or socket.gethostname()).split(".")[0]
-        host = f"{name}.local"
+def sms_endpoint(public_url: str, scheme: str, host: str, port: int | None) -> str:
+    """آدرسی که Shortcuts آیفون می‌زند؛ آدرس عمومی سایت اگر تنظیم شده."""
+    if public_url:
+        return public_url.rstrip("/") + "/api/sms"
     return f"{scheme}://{host}{f':{port}' if port else ''}/api/sms"
+
+
+def phone_platform(user_agent: str) -> str | None:
+    """«ios»، «android» یا None (رایانه و ناشناخته: هر دو راهنما)."""
+    agent = user_agent.lower()
+    if "iphone" in agent or "ipad" in agent:
+        return "ios"
+    return "android" if "android" in agent else None
 
 
 def _public_scheme(request: Request) -> str:
@@ -131,6 +134,8 @@ def register_sms_routes(app: FastAPI) -> None:
             return JSONResponse({"error": "expected JSON with text"}, status_code=400)
         if not text or len(text) > MAX_TEXT:
             return JSONResponse({"error": "empty or too long"}, status_code=400)
+        if is_secret(text):  # رمز پویا و کد تأیید: بدون ذخیره دور ریخته می‌شود
+            return JSONResponse({"status": "ignored"})
         received = _received_at(body.get("received_at"))
         result = ingest(db, text, received, llm=request.app.state.llm)
         return JSONResponse({"status": result.status, "id": result.sms.id})
@@ -148,8 +153,10 @@ def register_sms_routes(app: FastAPI) -> None:
             "android_pair": android_pair_url(token, mask_phone(user.phone) if user and user.phone
                                              else "", site_url(request)),
             "android_unpair": ANDROID_UNPAIR,
-            "endpoint": phone_endpoint(request.url.hostname or "", request.url.port,
-                                       scheme=_public_scheme(request)),
+            "platform": phone_platform(request.headers.get("user-agent", "")),
+            "endpoint": sms_endpoint(getattr(request.app.state, "public_url", ""),
+                                     _public_scheme(request), request.url.hostname or "",
+                                     request.url.port),
         })
 
     @app.post("/sms/upload", dependencies=[LoggedIn])
