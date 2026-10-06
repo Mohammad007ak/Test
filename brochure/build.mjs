@@ -174,18 +174,18 @@ function glancePage(n) {
 function networkPage(n) {
   const pts = [
     { icon: "store", t: "خرید آنلاین و حضوری از پذیرندگان در سراسر کشور" },
-    { icon: "calendar-clock", t: "پذیرش اعتبار BNPL و خرید اقساطی C-Credit" },
-    { icon: "qr-code", t: "پرداخت حضوری با دیجی‌کارت، QR Code و سولوشن Cashier" },
+    { icon: "calendar-clock", t: "پذیرش اعتبار BNPL و خرید اقساطی با وام بانکی" },
+    { icon: "qr-code", t: "پرداخت حضوری با دیجی‌کارت، QR Code و صندوق فروشگاهی" },
     { icon: "layers", t: "۱۵ میلیون تنوع کالا و خدمت در ۱۲ گروه اصلی" },
   ];
   return `<section class="page navy" style="display:grid;grid-template-columns:1fr 1fr">
     <div style="position:relative;padding:20mm 18mm 20mm 14mm">
       <div class="h-title">شبکه پذیرندگان دیجی‌پی</div>
-      <p class="lead" style="font-size:10pt">بیش از ۲۰ هزار پذیرنده آنلاین و حضوری در سراسر کشور؛ از دیجی‌کالا تا فروشگاه‌های تخصصی در هر شهر. مشتریان دیجی‌پی در همه این پذیرندگان از کیف پول و اعتبار خود استفاده می‌کنند.</p>
+      <p class="lead" style="font-size:10pt">حدود ۴۰ هزار نقطه فروش آنلاین و حضوری در سراسر کشور؛ از دیجی‌کالا تا فروشگاه‌های تخصصی در هر شهر. مشتریان دیجی‌پی در همه این پذیرندگان از کیف پول و اعتبار خود استفاده می‌کنند.</p>
       <ul class="feat" style="margin-top:9mm;gap:4.5mm">${pts.map((x) => `<li style="font-size:10pt">${icon(x.icon)}<span>${x.t}</span></li>`).join("")}</ul>
     </div>
     <div style="position:relative;overflow:hidden"><img src="${img("map.jpg")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="">
-      <div class="statbox" style="top:auto;bottom:26mm"><div class="big">20K</div><div class="lbl">پذیرنده آنلاین و حضوری در شبکه دیجی‌پی</div></div>
+      <div class="statbox" style="top:auto;bottom:26mm"><div class="big">40K</div><div class="lbl">نقطه فروش آنلاین و حضوری در شبکه دیجی‌پی</div></div>
     </div>
     ${footer(n, "half")}</section>`;
 }
@@ -245,7 +245,7 @@ function welfarePage(n, key) {
           <div class="txt"><h4>${c.t}</h4><ul>${c.items.map((i) => `<li>${icon("circle-check")}<span>${i}</span></li>`).join("")}</ul></div></div>`
         )
         .join("")}</div>
-      <div class="pill primary" style="margin-top:4mm">${icon("store")}بیش از ۲۰ هزار پذیرنده آنلاین و حضوری طرف قرارداد دیجی‌پی برای خرید کارکنان</div>
+      <div class="pill primary" style="margin-top:4mm">${icon("store")}حدود ۴۰ هزار نقطه فروش آنلاین و حضوری طرف قرارداد دیجی‌پی برای خرید کارکنان</div>
     </div>${footer(n)}</section>`;
 }
 
@@ -470,7 +470,7 @@ function introBoardPage(n) {
       <div class="statrow" style="margin-top:12mm">${[
         { n: "12+", t: "میلیون کاربر" },
         { n: "50+", t: "همت اعتبار اعطاشده در سال ۱۴۰۴" },
-        { n: "20K", t: "پذیرنده آنلاین و حضوری" },
+        { n: "40K", t: "نقطه فروش آنلاین و حضوری" },
         { n: "15", t: "محصول در سه گروه مشتری" },
       ].map((x) => `<div><span class="n">${x.n}</span><span class="t">${x.t}</span></div>`).join("")}</div>
     </div>${footer(n)}</section>`;
@@ -493,7 +493,7 @@ function b2oOverviewPage(n) {
     { n: "1&4", t: "اعتبار یک و چهار قسطه کارکنان" },
     { n: "300", t: "میلیون تومان سقف اعتبار سازمانی" },
     { n: "400", t: "میلیون تومان وام بانکی ۱۲ و ۲۴ ماهه" },
-    { n: "20K", t: "پذیرنده برای خرید کارکنان" },
+    { n: "40K", t: "نقطه فروش برای خرید کارکنان" },
   ];
   return `<section class="page pale">
     <div class="content">
@@ -536,8 +536,8 @@ function ecosystemPage(n) {
   const lines = pos.map((q) => `<line x1="${cx}" y1="${cy}" x2="${q.x}" y2="${q.y}" stroke="#879fcf" stroke-width=".35" stroke-dasharray="1.2 1.2"/>`).join("");
   const nodes = pos.map((q) => `<div class="node" style="left:${q.x}mm;top:${q.y}mm">${icon(q.icon)}<b>${q.fa}</b><span>${q.role}</span></div>`).join("");
   const roles = [
-    { icon: "credit-card", t: "زیرساخت پرداخت و اعتبار", d: "کیف پول، BNPL و C-Credit در چک‌اوت پلتفرم‌های گروه" },
-    { icon: "store", t: "تأمین مالی فروشندگان", d: "سرمایه در گردش و تسویه زودهنگام برای فروشندگان مارکت‌پلیس" },
+    { icon: "credit-card", t: "زیرساخت پرداخت و اعتبار", d: "کیف پول، BNPL و خرید اقساطی با وام بانکی در چک‌اوت پلتفرم‌های گروه" },
+    { icon: "store", t: "تأمین مالی فروشندگان", d: "سرمایه در گردش و تسویه زودهنگام برای فروشندگان بازارگاه" },
     { icon: "building-2", t: "کانال سازمانی", d: "B2O؛ ورود کارکنان سازمان‌ها به خرید مستمر در گروه" },
     { icon: "database", t: "داده مالی مشترک", d: "رفتار خرید و بازپرداخت برای اعتبارسنجی دقیق‌تر" },
   ];
@@ -600,7 +600,7 @@ function flywheelPage(n) {
     <div style="position:relative;padding:20mm 18mm 20mm 4mm">
       <div class="h-title">چرخه ارزش دیجی‌پی در گروه</div>
       <p class="lead" style="font-size:10pt">هر خرید با اعتبار دیجی‌پی، داده و منابع بیشتری برای اعتبار بیشتر می‌سازد؛ و اعتبار بیشتر، خرید بیشتر در پلتفرم‌های گروه و شبکه پذیرندگان.</p>
-      <div class="pill primary" style="margin-top:6mm;background:#fff;color:var(--navy)">${icon("refresh-cw")}<span>موجودی نقد دیجی‌کارت و وجوه حق بیمه، منابع کم‌هزینه برای توسعه BNPL و C-Credit فراهم می‌کنند.</span></div>
+      <div class="pill primary" style="margin-top:6mm;background:#fff;color:var(--navy)">${icon("refresh-cw")}<span>موجودی نقد دیجی‌کارت و وجوه حق بیمه، منابع کم‌هزینه برای توسعه BNPL و خرید اقساطی با وام بانکی فراهم می‌کنند.</span></div>
       ${C.summary ? `<div class="fsum"><div class="k">جمع‌بندی</div>${C.summary.map((v) => `<div class="r">${icon(v.icon)}<div><b>${v.t}</b><span>${v.d}</span></div></div>`).join("")}</div>` : ""}
     </div>
     <div class="hub fly">
