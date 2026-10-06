@@ -1,0 +1,202 @@
+<title>وزیر پیر</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;600;900&display=swap">
+<style>
+/* لایه‌بندی: یک صحنه بزرگ برای شخصیت و دکمه‌های حالت، زیرش ردیف حالت‌ها روی پس‌زمینه تیره اپ. */
+:root {
+  --bg: #030c08; --surface: #0d1c15; --line: rgba(62,232,166,.16);
+  --fg: #f2f5f1; --fg-2: rgba(242,245,241,.68); --accent: #3ee8a6; --gold: #f5c76a;
+  --stage: #fbf7ee;
+  --font: "Vazirmatn", Tahoma, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); direction: rtl; padding-inline: 16px; }
+main { max-width: 760px; margin: 0 auto; padding-block: 28px 40px; display: flex; flex-direction: column; gap: 18px; }
+h1 { margin: 0; font-size: 1.6rem; font-weight: 900; }
+.lead { margin: -8px 0 0; color: var(--fg-2); line-height: 1.9; }
+.card { background: var(--surface); border-radius: 28px; padding: 16px; display: flex; flex-direction: column; gap: 14px; box-shadow: inset 0 0 0 1px var(--line); }
+.stage { position: relative; background: radial-gradient(70% 60% at 50% 40%, #fff, var(--stage)); border-radius: 20px; aspect-ratio: 1 / 1; max-width: 100%; max-height: 72vh; margin: 0 auto; width: 100%; }
+.stage svg { position: absolute; left: 4%; top: 4%; width: 92%; height: 92%; overflow: visible; }
+.moods { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.moods button { font: inherit; font-weight: 600; font-size: .92rem; color: var(--fg); background: #132a20; border: 0; border-radius: 12px; padding: 9px 15px; cursor: pointer; box-shadow: 0 3px 0 #07120d; }
+.moods button[aria-pressed="true"] { background: var(--accent); color: #04140d; box-shadow: 0 3px 0 #179b68; }
+.moods button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; background: #0b1f17; border-radius: 20px; padding: 12px 8px; }
+.strip figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.strip svg { width: 100%; height: auto; overflow: visible; }
+.strip figcaption { font-size: .75rem; color: var(--fg-2); }
+
+/* حرکت‌ها */
+.rig { transform-box: view-box; transform-origin: 120px 310px; }
+.idle .rig { animation: idle 2.8s ease-in-out infinite; }
+@keyframes idle { 50% { transform: translateY(-3px) scaleY(1.012); } }
+.happy .rig { animation: hop .5s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+.party .rig { animation: hop .38s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+@keyframes hop { from { transform: translateY(0) scaleY(.975); } to { transform: translateY(-14px) scaleY(1.02); } }
+.think .rig { animation: tilt 3.2s ease-in-out infinite; }
+@keyframes tilt { 50% { transform: rotate(-2deg); } }
+.sad .rig { animation: sag 3s ease-in-out infinite; }
+@keyframes sag { 50% { transform: translateY(3px) scaleY(.985); } }
+.shadow { transform-box: fill-box; transform-origin: center; }
+.happy .shadow { animation: shrink .5s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+.party .shadow { animation: shrink .38s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+@keyframes shrink { to { transform: scaleX(.78); opacity: .55; } }
+.blink { transform-box: fill-box; transform-origin: center; animation: blink 4.4s infinite; }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.08); } }
+.feather { transform-box: fill-box; transform-origin: 10% 100%; animation: feather 2.8s ease-in-out infinite; }
+@keyframes feather { 50% { transform: rotate(7deg); } }
+.party .feather, .happy .feather { animation-duration: .5s; }
+.finger { transform-box: fill-box; transform-origin: 50% 100%; animation: wag 1.4s ease-in-out infinite; }
+@keyframes wag { 50% { transform: rotate(-10deg); } }
+.spark { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.party .spark, .happy .spark { animation: spark .9s ease-out infinite; }
+.spark.s2 { animation-delay: .3s !important; } .spark.s3 { animation-delay: .6s !important; }
+@keyframes spark { 0% { opacity: 0; transform: scale(.3); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.15) translateY(-8px); } }
+.dots circle { animation: dot 1.4s ease-in-out infinite; }
+.dots circle:nth-child(2) { animation-delay: .2s; } .dots circle:nth-child(3) { animation-delay: .4s; }
+@keyframes dot { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+
+<main>
+  <h1>وزیر</h1>
+  <p class="lead">شخصیت اصلی، کشیده‌شده از روی طرح چت‌جی‌پی‌تی با کد، تا در اپ پلک بزند، بپرد و حالتش با جواب کاربر عوض شود. روی دکمه‌ها بزن.</p>
+  <section class="card">
+    <div class="stage" id="stage"></div>
+    <div class="moods" role="group" aria-label="حالت وزیر" id="moods"></div>
+  </section>
+  <section class="card">
+    <div class="strip" id="strip"></div>
+  </section>
+</main>
+
+<script>
+const MOODS = [["idle", "توضیح"], ["think", "فکر"], ["happy", "جواب درست"], ["sad", "جواب غلط"], ["party", "پایان درس"]];
+const C = {
+  skin: "#f7cba8", skinShade: "#e9a985", cheek: "#f59a8f", nose: "#eba182",
+  hair: "#ffffff", hairShade: "#d9dee2", ink: "#2a1a12", iris: "#3b2416",
+  robe: "#157a58", robeDark: "#0d5a40", robeLight: "#22a477", inner: "#2fc28b",
+  turban: "#13775a", turbanDark: "#0b5640", turbanLight: "#1f9a72",
+  gold: "#f5c76a", goldDark: "#c9952f", gem: "#1fb382", feather: "#5fc4b0", featherDark: "#3a9c8b",
+  shoe: "#4a2c1d", belt: "#2e2a24",
+};
+let uid = 0;
+
+/* بازو: آستین پهن با سرآستین طلایی و دست. from = شانه، to = مچ */
+function arm([x1, y1], [x2, y2], hand = "open") {
+  const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+  const cx = x2 - ux * 6, cy = y2 - uy * 6;
+  const fist = hand === "fist"
+    ? `<circle cx="${x2 + ux * 6}" cy="${y2 + uy * 6}" r="11" fill="${C.skin}"/><path d="M${x2 + ux * 6 - 7} ${y2 + uy * 6 - 3} h14" stroke="${C.skinShade}" stroke-width="2.5" stroke-linecap="round"/>`
+    : hand === "point"
+    ? `<circle cx="${x2 + ux * 6}" cy="${y2 + uy * 6}" r="10" fill="${C.skin}"/><rect class="finger" x="${x2 + ux * 6 - 4}" y="${y2 + uy * 6 - 30}" width="8" height="26" rx="4" fill="${C.skin}"/>`
+    : `<ellipse cx="${x2 + ux * 7}" cy="${y2 + uy * 7}" rx="11" ry="10" fill="${C.skin}"/>`;
+  return `<path d="M${x1} ${y1} L${cx} ${cy}" stroke="${C.robeDark}" stroke-width="30" stroke-linecap="round"/>
+    <path d="M${x1} ${y1} L${cx} ${cy}" stroke="${C.robe}" stroke-width="24" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="14" fill="${C.gold}"/><circle cx="${cx}" cy="${cy}" r="10" fill="${C.robeDark}"/>${fist}`;
+}
+
+function book(x, y, rot = 0) {
+  return `<g transform="rotate(${rot} ${x + 20} ${y + 26})"><rect x="${x}" y="${y}" width="42" height="54" rx="5" fill="${C.robeDark}"/>
+    <rect x="${x + 4}" y="${y}" width="38" height="54" rx="5" fill="#1a8a64"/><rect x="${x + 4}" y="${y + 2}" width="4" height="50" fill="${C.gold}"/>
+    <path d="M${x + 25} ${y + 18} l7 9 l-7 9 l-7 -9z" fill="${C.gold}"/></g>`;
+}
+
+function vazir(m) {
+  const id = ++uid;
+  const look = { think: [3, -5], sad: [0, 3] }[m] || [0, 0];
+  const closed = m === "happy" || m === "party";
+  const eyes = closed
+    ? `<path d="M93 129 q11 -12 22 0" stroke="${C.ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M125 129 q11 -12 22 0" stroke="${C.ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`
+    : `<g class="blink"><ellipse cx="104" cy="129" rx="11" ry="13" fill="#fff"/><ellipse cx="136" cy="129" rx="11" ry="13" fill="#fff"/>
+       <circle cx="${105 + look[0]}" cy="${131 + look[1]}" r="8" fill="${C.iris}"/><circle cx="${137 + look[0]}" cy="${131 + look[1]}" r="8" fill="${C.iris}"/>
+       <circle cx="${105 + look[0]}" cy="${131 + look[1]}" r="4.5" fill="#120a06"/><circle cx="${137 + look[0]}" cy="${131 + look[1]}" r="4.5" fill="#120a06"/>
+       <circle cx="${108 + look[0]}" cy="${127 + look[1]}" r="2.8" fill="#fff"/><circle cx="${140 + look[0]}" cy="${127 + look[1]}" r="2.8" fill="#fff"/></g>`;
+  // ابروهای پرپشت سفید
+  const brow = {
+    idle: [[90, 112, 116, 110, 0], [124, 110, 150, 112, 0]],
+    think: [[90, 114, 116, 113, 0], [124, 106, 150, 104, -1]],
+    happy: [[90, 110, 116, 108, 0], [124, 108, 150, 110, 0]],
+    sad: [[90, 108, 116, 114, 0], [124, 114, 150, 108, 0]],
+    party: [[90, 108, 116, 106, 0], [124, 106, 150, 108, 0]],
+  }[m];
+  const brows = brow.map(([x1, y1, x2, y2]) => `<path d="M${x1} ${y1 + 2} Q${(x1 + x2) / 2} ${Math.min(y1, y2) - 8} ${x2} ${y2 + 2} Q${(x1 + x2) / 2} ${Math.min(y1, y2) - 1} ${x1} ${y1 + 2}Z" fill="#f3f5f6" stroke="#b9c1c6" stroke-width="2.2"/>`).join("");
+  const mouth = {
+    idle: `<path d="M110 166 q10 9 20 0 q-10 4 -20 0z" fill="${C.ink}"/>`,
+    think: `<path d="M113 168 q7 -2 14 0" stroke="${C.ink}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`,
+    happy: `<path d="M106 163 h28 q-3 16 -14 16 q-11 0 -14 -16z" fill="${C.ink}"/><path d="M112 173 q8 -5 16 0 q-3 6 -8 6 q-5 0 -8 -6z" fill="#e8677a"/>`,
+    sad: `<path d="M111 172 q9 -7 18 0" stroke="${C.ink}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`,
+    party: `<path d="M104 162 h32 q-3 20 -16 20 q-13 0 -16 -20z" fill="${C.ink}"/><path d="M111 174 q9 -6 18 0 q-3 8 -9 8 q-6 0 -9 -8z" fill="#e8677a"/>`,
+  }[m];
+  const arms = {
+    idle: arm([86, 192], [96, 214], "open") + book(78, 186, -8) + arm([156, 190], [180, 150], "point"),
+    think: arm([86, 194], [74, 236], "open") + book(54, 222, 6) + arm([156, 192], [134, 182], "fist"),
+    happy: arm([86, 192], [64, 154], "fist") + arm([154, 192], [176, 154], "fist"),
+    sad: arm([86, 194], [52, 220], "open") + arm([154, 194], [188, 220], "open"),
+    party: arm([86, 190], [46, 140], "open") + arm([154, 190], [194, 140], "open"),
+  }[m];
+  const armsFront = m === "think" || m === "idle";  // دستی که روی ریش است جلوی ریش کشیده شود
+  const sparks = `<path class="spark" d="M34 96 l4 -11 l4 11 l11 4 l-11 4 l-4 11 l-4 -11 l-11 -4z" fill="${C.gold}"/>
+    <path class="spark s2" d="M202 84 l3 -9 l3 9 l9 3 l-9 3 l-3 9 l-3 -9 l-9 -3z" fill="#2fd393"/>
+    <path class="spark s3" d="M206 196 l3 -8 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3z" fill="${C.gold}"/>`;
+  const extra = m === "think" ? `<g class="dots"><circle cx="176" cy="98" r="5" fill="#2fd393"/><circle cx="190" cy="84" r="7" fill="#2fd393"/><circle cx="206" cy="66" r="9" fill="#2fd393"/></g>`
+    : m === "sad" ? `<path d="M160 122 q6 11 0 17 q-6 -6 0 -17z" fill="#5ac8fa"/>` : (m === "happy" || m === "party") ? sparks : "";
+  return `<svg viewBox="22 14 196 304" role="img" aria-label="وزیر">
+    <defs>
+      <linearGradient id="robe${id}" x1="0" x2="1"><stop offset="0" stop-color="${C.robeLight}"/><stop offset=".55" stop-color="${C.robe}"/><stop offset="1" stop-color="${C.robeDark}"/></linearGradient>
+      <radialGradient id="face${id}" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#fbdcc2"/><stop offset=".7" stop-color="${C.skin}"/><stop offset="1" stop-color="${C.skinShade}"/></radialGradient>
+      <linearGradient id="tur${id}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="${C.turbanLight}"/><stop offset=".6" stop-color="${C.turban}"/><stop offset="1" stop-color="${C.turbanDark}"/></linearGradient>
+      <radialGradient id="beard${id}" cx=".45" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".75" stop-color="#f4f6f7"/><stop offset="1" stop-color="${C.hairShade}"/></radialGradient>
+    </defs>
+    <ellipse class="shadow" cx="120" cy="310" rx="64" ry="8" fill="#000" opacity=".14"/>
+    <g class="rig">
+      <ellipse cx="102" cy="300" rx="16" ry="8" fill="${C.shoe}"/><ellipse cx="140" cy="300" rx="16" ry="8" fill="${C.shoe}"/>
+      <!-- ردا -->
+      <path d="M84 176 Q120 164 156 176 Q182 232 188 296 Q120 310 52 296 Q58 232 84 176Z" fill="url(#robe${id})"/>
+      <path d="M106 180 L134 180 L146 300 Q120 304 94 300 Z" fill="${C.inner}"/>
+      <path d="M106 180 L94 300" stroke="${C.gold}" stroke-width="5" stroke-linecap="round"/><path d="M134 180 L146 300" stroke="${C.gold}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M54 292 Q120 306 186 292" stroke="${C.gold}" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <rect x="92" y="236" width="56" height="12" rx="4" fill="${C.belt}"/>
+      <circle cx="120" cy="242" r="10" fill="${C.gold}"/><circle cx="120" cy="242" r="6" fill="${C.goldDark}"/>
+      ${armsFront ? "" : arms}
+      <!-- موی کناری -->
+      <ellipse cx="80" cy="150" rx="12" ry="20" fill="${C.hair}"/><ellipse cx="160" cy="150" rx="12" ry="20" fill="${C.hair}"/>
+      <!-- گوش و صورت -->
+      <ellipse cx="78" cy="133" rx="9" ry="12" fill="${C.skinShade}"/><ellipse cx="162" cy="133" rx="9" ry="12" fill="${C.skinShade}"/>
+      <ellipse cx="120" cy="132" rx="43" ry="44" fill="url(#face${id})"/>
+      <!-- ریش -->
+      <path d="M80 140 Q78 176 92 200 Q100 214 110 220 Q116 236 124 230 Q132 238 136 222 Q150 214 156 196 Q166 172 160 140 Q150 160 120 160 Q90 160 80 140Z" fill="url(#beard${id})"/>
+      <path d="M100 196 q4 10 10 14 M120 202 q0 12 2 18 M138 196 q-3 10 -8 14" stroke="${C.hairShade}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      ${mouth}
+      <!-- سبیل -->
+      <path d="M120 152 Q108 146 96 152 Q86 158 88 166 Q100 162 108 164 Q116 166 120 160 Q124 166 132 164 Q140 162 152 166 Q154 158 144 152 Q132 146 120 152Z" fill="#fff" stroke="${C.hairShade}" stroke-width="1.5"/>
+      <ellipse cx="120" cy="146" rx="10" ry="8.5" fill="${C.nose}"/><ellipse cx="117" cy="143" rx="3.5" ry="2.5" fill="#f8c3a6"/>
+      <ellipse cx="94" cy="148" rx="7" ry="4.5" fill="${C.cheek}" opacity=".55"/><ellipse cx="146" cy="148" rx="7" ry="4.5" fill="${C.cheek}" opacity=".55"/>
+      ${eyes}${brows}
+      <!-- عمامه -->
+      <path d="M68 116 Q54 70 88 50 Q120 32 152 50 Q186 70 172 116 Q152 100 120 100 Q88 100 68 116Z" fill="url(#tur${id})"/>
+      <path d="M70 104 Q92 76 134 80 Q160 84 172 100" stroke="${C.turbanDark}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".55"/>
+      <path d="M72 86 Q104 56 150 62 Q168 66 176 80" stroke="${C.turbanDark}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/>
+      <path d="M80 70 Q104 48 140 50" stroke="${C.turbanLight}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".9"/>
+      <path d="M68 116 Q86 96 120 96 Q154 96 172 116 Q152 108 120 108 Q88 108 68 116Z" fill="${C.turbanDark}"/>
+      <g class="feather"><path d="M126 68 Q130 34 152 14 Q154 42 134 68Z" fill="${C.feather}"/><path d="M128 68 Q136 40 152 16" stroke="${C.featherDark}" stroke-width="2" fill="none"/></g>
+      <circle cx="122" cy="80" r="13" fill="${C.gold}"/><circle cx="122" cy="80" r="13" fill="none" stroke="${C.goldDark}" stroke-width="2.5"/>
+      <ellipse cx="122" cy="80" rx="7" ry="8" fill="${C.gem}"/><ellipse cx="120" cy="77" rx="2" ry="2.6" fill="#bdf5df"/>
+      ${armsFront ? arms : ""}
+    </g>${extra}</svg>`;
+}
+
+const stage = document.getElementById("stage"), moods = document.getElementById("moods");
+function set(m) {
+  stage.className = "stage " + m; stage.innerHTML = vazir(m);
+  moods.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
+}
+MOODS.forEach(([m, label]) => {
+  const b = document.createElement("button"); b.type = "button"; b.dataset.m = m; b.textContent = label;
+  b.onclick = () => set(m); moods.appendChild(b);
+});
+document.getElementById("strip").innerHTML = MOODS.map(([m, label]) => `<figure class="${m}">${vazir(m)}<figcaption>${label}</figcaption></figure>`).join("");
+set("idle");
+</script>
