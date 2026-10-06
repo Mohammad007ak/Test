@@ -1,0 +1,154 @@
+<title>پرنده وزیر</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;600;900&display=swap">
+<style>
+/* لایه‌بندی: یک صحنه بزرگ برای شخصیت و دکمه‌های حالت، زیرش ردیف حالت‌ها روی پس‌زمینه تیره اپ. */
+:root {
+  --bg: #030c08; --surface: #0d1c15; --line: rgba(62,232,166,.16);
+  --fg: #f2f5f1; --fg-2: rgba(242,245,241,.68); --accent: #3ee8a6; --gold: #f5c76a;
+  --stage: #fbf7ee;
+  --font: "Vazirmatn", Tahoma, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); direction: rtl; padding-inline: 16px; }
+main { max-width: 760px; margin: 0 auto; padding-block: 28px 40px; display: flex; flex-direction: column; gap: 18px; }
+h1 { margin: 0; font-size: 1.6rem; font-weight: 900; }
+.lead { margin: -8px 0 0; color: var(--fg-2); line-height: 1.9; }
+.card { background: var(--surface); border-radius: 28px; padding: 16px; display: flex; flex-direction: column; gap: 14px; box-shadow: inset 0 0 0 1px var(--line); }
+.stage { position: relative; background: radial-gradient(70% 60% at 50% 40%, #fff, var(--stage)); border-radius: 20px; aspect-ratio: 1 / 1; max-width: 100%; max-height: 72vh; margin: 0 auto; width: 100%; }
+.stage svg { position: absolute; left: 4%; top: 4%; width: 92%; height: 92%; overflow: visible; }
+.moods { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.moods button { font: inherit; font-weight: 600; font-size: .92rem; color: var(--fg); background: #132a20; border: 0; border-radius: 12px; padding: 9px 15px; cursor: pointer; box-shadow: 0 3px 0 #07120d; }
+.moods button[aria-pressed="true"] { background: var(--accent); color: #04140d; box-shadow: 0 3px 0 #179b68; }
+.moods button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; background: #0b1f17; border-radius: 20px; padding: 12px 8px; }
+.strip figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.strip svg { width: 100%; height: auto; overflow: visible; }
+.strip figcaption { font-size: .75rem; color: var(--fg-2); }
+
+/* حرکت‌ها */
+.rig { transform-box: view-box; transform-origin: 120px 290px; }
+.idle .rig { animation: idle 2.8s ease-in-out infinite; }
+@keyframes idle { 50% { transform: translateY(-3px) scaleY(1.012); } }
+.happy .rig { animation: hop .5s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+.party .rig { animation: hop .38s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+@keyframes hop { from { transform: translateY(0) scaleY(.975); } to { transform: translateY(-14px) scaleY(1.02); } }
+.think .rig { animation: tilt 3.2s ease-in-out infinite; }
+@keyframes tilt { 50% { transform: rotate(-2deg); } }
+.sad .rig { animation: sag 3s ease-in-out infinite; }
+@keyframes sag { 50% { transform: translateY(3px) scaleY(.985); } }
+.shadow { transform-box: fill-box; transform-origin: center; }
+.happy .shadow { animation: shrink .5s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+.party .shadow { animation: shrink .38s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+@keyframes shrink { to { transform: scaleX(.78); opacity: .55; } }
+.blink { transform-box: fill-box; transform-origin: center; animation: blink 4.4s infinite; }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.08); } }
+.feather { transform-box: fill-box; transform-origin: 50% 100%; animation: feather 2.8s ease-in-out infinite; }
+@keyframes feather { 50% { transform: rotate(7deg); } }
+.party .feather, .happy .feather { animation-duration: .5s; }
+.finger { transform-box: fill-box; transform-origin: 50% 100%; animation: wag 1.4s ease-in-out infinite; }
+@keyframes wag { 50% { transform: rotate(-10deg); } }
+.spark { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.party .spark, .happy .spark { animation: spark .9s ease-out infinite; }
+.spark.s2 { animation-delay: .3s !important; } .spark.s3 { animation-delay: .6s !important; }
+@keyframes spark { 0% { opacity: 0; transform: scale(.3); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.15) translateY(-8px); } }
+.dots circle { animation: dot 1.4s ease-in-out infinite; }
+.dots circle:nth-child(2) { animation-delay: .2s; } .dots circle:nth-child(3) { animation-delay: .4s; }
+@keyframes dot { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+.wave { transform-box: fill-box; transform-origin: 30% 95%; animation: wave .8s ease-in-out infinite alternate; }
+@keyframes wave { to { transform: rotate(-14deg); } }
+.wing { transform-box: fill-box; }
+.wing.l { transform-origin: 85% 15%; } .wing.r { transform-origin: 15% 15%; }
+.party .wing.l { animation: flapL .22s ease-in-out infinite alternate; }
+.party .wing.r { animation: flapR .22s ease-in-out infinite alternate; }
+@keyframes flapL { to { transform: rotate(-16deg); } }
+@keyframes flapR { to { transform: rotate(16deg); } }
+.q { animation: dot 1.4s ease-in-out infinite; }
+</style>
+
+<main>
+  <h1>پرنده وزیر</h1>
+  <p class="lead">همان پرنده سبزِ طرح چت‌جی‌پی‌تی، ساده و تخت، با کد کشیده شده تا در اپ پلک بزند، بپرد و حالتش با جواب کاربر عوض شود. روی دکمه‌ها بزن.</p>
+  <section class="card">
+    <div class="stage" id="stage"></div>
+    <div class="moods" role="group" aria-label="حالت پرنده" id="moods"></div>
+  </section>
+  <section class="card">
+    <div class="strip" id="strip"></div>
+  </section>
+</main>
+
+<script>
+const MOODS = [["idle", "سلام"], ["think", "فکر"], ["happy", "جواب درست"], ["sad", "جواب غلط"], ["party", "پایان درس"]];
+const C = { body: "#2bb37a", shade: "#1f9a66", wing: "#1c8f5e", mint: "#bdf0d6", deep: "#0e4d37",
+            scarf: "#0f5a40", beak: "#f7c548", beakDark: "#e3a52a", mouth: "#e8677a", gold: "#f5c76a", feet: "#f5bb3a" };
+
+// بال: شکل قطره‌ای که از شانه آویزان است؛ angle = چرخش دور شانه
+function wing(side, angle, cls = "") {
+  const x = side === "l" ? 64 : 176, flip = side === "l" ? 1 : -1;
+  return `<g class="wing ${side} ${cls}"><path transform="rotate(${angle * flip} ${x} 186)"
+    d="M${x} 176 q${-26 * flip} 8 ${-28 * flip} 40 q0 22 ${18 * flip} 24 q${16 * flip} -4 ${18 * flip} -28 q2 -22 ${-8 * flip} -36z" fill="${C.wing}"/></g>`;
+}
+function eye(cx, state, look) {
+  if (state === "closed") return `<circle cx="${cx}" cy="108" r="30" fill="${C.mint}"/><path d="M${cx - 14} 112 q14 -16 28 0" stroke="${C.deep}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  return `<circle cx="${cx}" cy="108" r="30" fill="${C.mint}"/><g class="blink"><circle cx="${cx}" cy="108" r="22" fill="#fff"/>
+    <circle cx="${cx + look[0]}" cy="${110 + look[1]}" r="14" fill="${C.deep}"/><circle cx="${cx + 5 + look[0]}" cy="${104 + look[1]}" r="5" fill="#fff"/></g>`;
+}
+function bird(m) {
+  const look = { think: [4, -6], sad: [0, 5], idle: [2, 0] }[m] || [0, 0];
+  const eyes = m === "party" ? eye(94, "closed") + eye(146, "closed")
+    : m === "happy" ? eye(94, "open", look) + eye(146, "closed") : eye(94, "open", look) + eye(146, "open", look);
+  const brows = m === "sad" ? `<path d="M76 70 L106 78" stroke="${C.deep}" stroke-width="6" stroke-linecap="round"/><path d="M164 70 L134 78" stroke="${C.deep}" stroke-width="6" stroke-linecap="round"/>`
+    : m === "think" ? `<path d="M80 74 q14 -4 26 0" stroke="${C.deep}" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M132 66 q14 -8 28 0" stroke="${C.deep}" stroke-width="6" fill="none" stroke-linecap="round"/>`
+    : `<path d="M80 70 q14 -8 26 0" stroke="${C.deep}" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M134 70 q14 -8 26 0" stroke="${C.deep}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  const open = m === "happy" || m === "party" || m === "idle";
+  const beak = open
+    ? `<path d="M107 130 Q120 122 133 130 Q128 138 120 138 Q112 138 107 130Z" fill="${C.beak}"/><path d="M110 138 Q120 ${m === "party" ? 160 : 152} 130 138 Q120 142 110 138Z" fill="${C.mouth}"/>`
+    : m === "sad" ? `<path d="M108 134 Q120 126 132 134 Q126 146 120 148 Q114 146 108 134Z" fill="${C.beakDark}"/>`
+    : `<path d="M108 130 Q120 122 132 130 Q126 144 120 146 Q114 144 108 130Z" fill="${C.beak}"/><path d="M108 130 Q120 136 132 130" stroke="${C.beakDark}" stroke-width="2" fill="none"/>`;
+  // [پشت بدن, جلوی سر]: بال بالا رفته یا رو به صورت جلو کشیده می‌شود
+  const [wings, front] = {
+    idle: [wing("l", 0), `<g class="wave">${wing("r", 118)}</g>`],
+    think: [wing("l", 0), wing("r", -70)],
+    happy: [wing("l", 0), wing("r", 112)],
+    sad: [wing("l", -8) + wing("r", -8), ""],
+    party: ["", wing("l", 120) + wing("r", 120)],
+  }[m];
+  const extra = m === "think" ? `<text class="q" x="196" y="72" font-family="Vazirmatn, sans-serif" font-weight="900" font-size="40" fill="${C.body}">؟</text>`
+    : m === "sad" ? `<path d="M176 92 q6 11 0 17 q-6 -6 0 -17z" fill="#5ac8fa"/>`
+    : (m === "happy" || m === "party") ? `<g fill="${C.body}"><rect class="spark" x="196" y="70" width="6" height="18" rx="3" transform="rotate(30 199 79)"/>
+        <rect class="spark s2" x="206" y="98" width="6" height="18" rx="3" transform="rotate(70 209 107)"/>
+        <rect class="spark s3" x="30" y="84" width="6" height="18" rx="3" transform="rotate(-30 33 93)"/></g>` : "";
+  return `<svg viewBox="20 14 200 284" role="img" aria-label="پرنده وزیر">
+    <ellipse class="shadow" cx="120" cy="286" rx="58" ry="7" fill="#000" opacity=".12"/>
+    <g class="rig">
+      <ellipse cx="98" cy="272" rx="20" ry="9" fill="${C.feet}"/><ellipse cx="142" cy="272" rx="20" ry="9" fill="${C.feet}"/>
+      <rect x="66" y="150" width="108" height="124" rx="46" fill="${C.body}"/>
+      <path d="M150 156 q24 18 24 64 q0 40 -30 52 q20 -24 18 -60 q-2 -36 -12 -56z" fill="${C.shade}"/>
+      <ellipse cx="120" cy="226" rx="36" ry="40" fill="${C.mint}"/>
+      ${wings}
+      <g class="feather"><path d="M112 46 q-4 -18 8 -26 q-2 14 6 22z" fill="${C.shade}"/><path d="M122 44 q4 -20 20 -22 q-8 12 -8 24z" fill="${C.body}"/></g>
+      <rect x="44" y="40" width="152" height="138" rx="64" fill="${C.body}"/>
+      <path d="M170 52 q26 24 26 66 q0 46 -40 58 q26 -26 26 -62 q0 -38 -12 -62z" fill="${C.shade}"/>
+      ${brows}${eyes}${beak}
+      <path d="M82 172 Q120 180 158 172 L120 210 Z" fill="${C.scarf}"/>
+      <path d="M120 180 l7 8 l-7 8 l-7 -8z" fill="${C.gold}"/>
+      ${front}
+    </g>${extra}</svg>`;
+}
+
+const stage = document.getElementById("stage"), moods = document.getElementById("moods");
+function set(m) {
+  stage.className = "stage " + m; stage.innerHTML = bird(m);
+  moods.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
+}
+MOODS.forEach(([m, label]) => {
+  const b = document.createElement("button"); b.type = "button"; b.dataset.m = m; b.textContent = label;
+  b.onclick = () => set(m); moods.appendChild(b);
+});
+document.getElementById("strip").innerHTML = MOODS.map(([m, label]) => `<figure class="${m}">${bird(m)}<figcaption>${label}</figcaption></figure>`).join("");
+set("idle");
+</script>
