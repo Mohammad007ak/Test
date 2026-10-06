@@ -1,0 +1,230 @@
+<title>شخصیت وزیر</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;600;900&display=swap">
+<style>
+/* لایه‌بندی: دو صحنه روشن کنار هم (روی گوشی زیر هم)، زیر هر کدام دکمه‌های حالت. شب زمردی وزیر دور صحنه‌ها. */
+:root {
+  --bg: #030c08; --surface: #0d1c15; --line: rgba(62,232,166,.16);
+  --fg: #f2f5f1; --fg-2: rgba(242,245,241,.68); --accent: #3ee8a6; --gold: #f5c76a;
+  --stage: #fbf7ee; --stage-ink: #1d2a24;
+  --font: "Vazirmatn", Tahoma, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); direction: rtl; padding-inline: 16px; }
+main { max-width: 980px; margin: 0 auto; padding-block: 28px 40px; display: flex; flex-direction: column; gap: 22px; }
+h1 { margin: 0; font-size: 1.6rem; font-weight: 900; }
+.lead { margin: -10px 0 0; color: var(--fg-2); line-height: 1.9; max-width: 62ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.cand { background: var(--surface); border-radius: 28px; padding: 16px; display: flex; flex-direction: column; gap: 14px; box-shadow: inset 0 0 0 1px var(--line); min-width: 0; }
+.stage { background: var(--stage); border-radius: 20px; aspect-ratio: 1 / 1; max-width: 100%; display: grid; place-items: center; overflow: hidden; }
+.stage { position: relative; }
+.stage:not(.dark) svg { position: absolute; left: 5%; top: 5%; width: 90%; height: 90%; overflow: visible; }
+.stage.dark div svg { height: auto; width: 100%; }
+.who { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.who b { font-size: 1.25rem; font-weight: 900; }
+.who span { color: var(--fg-2); font-size: .9rem; }
+.moods { display: flex; flex-wrap: wrap; gap: 8px; }
+.moods button { font: inherit; font-weight: 600; font-size: .9rem; color: var(--fg); background: #132a20; border: 0; border-radius: 12px; padding: 8px 14px; cursor: pointer; box-shadow: 0 3px 0 #07120d; }
+.moods button[aria-pressed="true"] { background: var(--accent); color: #04140d; box-shadow: 0 3px 0 #179b68; }
+.moods button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.dark { background: #0b1f17; }
+
+/* حرکت‌ها */
+.rig { transform-box: view-box; transform-origin: 100px 290px; }
+.idle .rig { animation: idle 2.6s ease-in-out infinite; }
+@keyframes idle { 50% { transform: translateY(-3px) scaleY(1.015); } }
+.happy .rig, .party .rig { animation: hop .55s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+@keyframes hop { from { transform: translateY(0) scaleY(.97); } to { transform: translateY(-16px) scaleY(1.03); } }
+.party .rig { animation-duration: .4s; }
+.sad .rig { animation: sag 3s ease-in-out infinite; }
+@keyframes sag { 50% { transform: translateY(3px) scaleY(.985); } }
+.think .rig { animation: tilt 3s ease-in-out infinite; }
+@keyframes tilt { 50% { transform: rotate(-2.5deg); } }
+.blink { transform-box: fill-box; transform-origin: center; animation: blink 4s infinite; }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+.shadow { transform-box: fill-box; transform-origin: center; }
+.happy .shadow, .party .shadow { animation: shrink .55s cubic-bezier(.34,1.56,.64,1) infinite alternate; }
+.party .shadow { animation-duration: .4s; }
+@keyframes shrink { to { transform: scaleX(.75); opacity: .6; } }
+.twirl { transform-box: fill-box; transform-origin: 0% 50%; animation: twirl 2.6s ease-in-out infinite; }
+@keyframes twirl { 50% { transform: rotate(-8deg); } }
+.crest { transform-box: fill-box; transform-origin: 50% 100%; animation: crest 2.6s ease-in-out infinite; }
+@keyframes crest { 50% { transform: rotate(4deg) scaleY(1.04); } }
+.party .crest { animation: crestUp .4s ease-in-out infinite alternate; }
+@keyframes crestUp { to { transform: scaleY(1.15) rotate(-3deg); } }
+.wingL, .wingR { transform-box: fill-box; }
+.wingL { transform-origin: 90% 10%; } .wingR { transform-origin: 10% 10%; }
+.party .wingL { animation: flapL .2s ease-in-out infinite alternate; }
+.party .wingR { animation: flapR .2s ease-in-out infinite alternate; }
+@keyframes flapL { to { transform: rotate(28deg); } }
+@keyframes flapR { to { transform: rotate(-28deg); } }
+.spark { opacity: 0; }
+.party .spark { animation: spark .8s ease-out infinite; }
+.party .spark.s2 { animation-delay: .25s; } .party .spark.s3 { animation-delay: .5s; }
+@keyframes spark { 0% { opacity: 0; transform: scale(.3); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.2) translateY(-10px); } }
+.spark { transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+
+<main>
+  <h1>شخصیت اصلی وزیر</h1>
+  <p class="lead">دو کاندید در سبک شکل‌های هندسی درشت و تخت. روی دکمه‌ها بزن تا حالت و حرکتشان را ببینی. پایین هر کارت، همان شخصیت روی پس‌زمینه تیره اپ هم هست.</p>
+  <div class="grid">
+    <section class="cand" data-char="vazir">
+      <div class="who"><b>وزیر</b><span>زیرک، خونسرد، کمی تیکه‌انداز</span></div>
+      <div class="stage"></div>
+      <div class="moods" role="group" aria-label="حالت وزیر"></div>
+      <div class="stage dark" style="aspect-ratio: 2 / 1"></div>
+    </section>
+    <section class="cand" data-char="hodhod">
+      <div class="who"><b>هدهد</b><span>راهنمای کنجکاو و پرانرژی</span></div>
+      <div class="stage"></div>
+      <div class="moods" role="group" aria-label="حالت هدهد"></div>
+      <div class="stage dark" style="aspect-ratio: 2 / 1"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const MOODS = [["idle", "عادی"], ["happy", "جواب درست"], ["think", "فکر"], ["sad", "جواب غلط"], ["party", "جشن"]];
+const INK = "#1d1410";
+
+/* ---------- وزیر: کلاه بلند، سر بی‌گردن روی ردای ذوزنقه‌ای، سبیل پیچ‌دار ---------- */
+function vazir(m) {
+  const brows = {
+    idle: [[72, 128, 90, 124], [110, 120, 128, 115]],
+    happy: [[72, 124, 90, 120], [110, 120, 128, 116]],
+    think: [[72, 130, 90, 128], [110, 116, 128, 110]],
+    sad: [[72, 122, 90, 127], [110, 127, 128, 122]],
+    party: [[72, 122, 90, 118], [110, 118, 128, 122]],
+  }[m];
+  const look = m === "think" ? [3, -3] : m === "sad" ? [0, 2] : [0, 0];
+  const eyes = m === "party" || m === "happy"
+    ? `<path d="M76 140 q7 -9 14 0" stroke="${INK}" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M110 140 q7 -9 14 0" stroke="${INK}" stroke-width="5" fill="none" stroke-linecap="round"/>`
+    : `<g class="blink"><ellipse cx="83" cy="140" rx="8" ry="9" fill="#fff"/><ellipse cx="117" cy="140" rx="8" ry="9" fill="#fff"/>
+       <circle cx="${84 + look[0]}" cy="${141 + look[1]}" r="4.6" fill="${INK}"/><circle cx="${118 + look[0]}" cy="${141 + look[1]}" r="4.6" fill="${INK}"/></g>`;
+  const mouth = {
+    idle: `<path d="M92 176 q8 5 16 0" stroke="${INK}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+    happy: `<path d="M88 172 h24 q-2 14 -12 14 q-10 0 -12 -14z" fill="${INK}"/><path d="M93 181 q7 -4 14 0 q-2 5 -7 5 q-5 0 -7 -5z" fill="#ff6b8b"/>`,
+    think: `<path d="M94 177 h12" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`,
+    sad: `<path d="M91 181 q9 -7 18 0" stroke="${INK}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+    party: `<path d="M86 171 h28 q-2 18 -14 18 q-12 0 -14 -18z" fill="${INK}"/><path d="M92 182 q8 -5 16 0 q-2 7 -8 7 q-6 0 -8 -7z" fill="#ff6b8b"/>`,
+  }[m];
+  // سبیل: در حالت ناراحت آویزان، در جشن بالا
+  const tip = m === "sad" ? 14 : m === "party" ? -10 : m === "happy" ? -6 : 0;
+  const stache = `<path d="M100 160 C 88 156, 74 160, 66 ${168 + tip} C 60 ${172 + tip}, 56 ${164 + tip}, 62 ${160 + tip} C 66 ${157 + tip}, 70 ${161 + tip}, 67 ${164 + tip} C 76 ${166 + tip * .5}, 88 172, 100 168 Z" fill="${INK}"/>
+    <g class="${m === "idle" ? "twirl" : ""}"><path d="M100 160 C 112 156, 126 160, 134 ${168 + tip} C 140 ${172 + tip}, 144 ${164 + tip}, 138 ${160 + tip} C 134 ${157 + tip}, 130 ${161 + tip}, 133 ${164 + tip} C 124 ${166 + tip * .5}, 112 172, 100 168 Z" fill="${INK}"/></g>`;
+  // دست‌ها
+  const arms = {
+    idle: `<path d="M66 196 L50 236" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="49" cy="240" r="8" fill="#e0a87e"/>
+           <path d="M134 196 L146 176" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="140" cy="166" r="8" fill="#e0a87e"/>`,
+    happy: `<path d="M66 196 L44 172" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="40" cy="166" r="8" fill="#e0a87e"/>
+            <path d="M134 196 L150 228" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="152" cy="233" r="8" fill="#e0a87e"/>`,
+    think: `<path d="M66 196 L52 236" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="51" cy="240" r="8" fill="#e0a87e"/>
+            <path d="M134 200 L124 190" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="116" cy="186" r="8" fill="#e0a87e"/>`,
+    sad: `<path d="M68 200 L60 246" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="59" cy="250" r="8" fill="#e0a87e"/>
+          <path d="M132 200 L140 246" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="141" cy="250" r="8" fill="#e0a87e"/>`,
+    party: `<path d="M66 196 L42 160" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="39" cy="154" r="8" fill="#e0a87e"/>
+            <path d="M134 196 L158 160" stroke="#2fd393" stroke-width="13" stroke-linecap="round"/><circle cx="161" cy="154" r="8" fill="#e0a87e"/>`,
+  }[m];
+  const ledger = m === "party" ? `<g transform="rotate(-18 160 128)"><rect x="146" y="112" width="28" height="34" rx="4" fill="#f5c76a"/><rect x="146" y="112" width="6" height="34" rx="3" fill="#d8962f"/></g>`
+    : m === "happy" ? "" : `<rect x="36" y="226" width="26" height="32" rx="4" fill="#f5c76a"/><rect x="36" y="226" width="6" height="32" rx="3" fill="#d8962f"/>`;
+  const sparks = `<path class="spark" d="M30 110 l4 -10 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4z" fill="#f5c76a"/>
+    <path class="spark s2" d="M168 96 l3 -8 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3z" fill="#2fd393"/>
+    <path class="spark s3" d="M176 196 l3 -7 l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3z" fill="#ff6b8b"/>`;
+  return `<svg viewBox="0 0 200 300" role="img" aria-label="وزیر">
+    <ellipse class="shadow" cx="100" cy="290" rx="52" ry="7" fill="#000" opacity=".14"/>
+    <g class="rig">
+      <rect x="84" y="258" width="10" height="24" rx="4" fill="#3d2a1e"/><rect x="106" y="258" width="10" height="24" rx="4" fill="#3d2a1e"/>
+      <path d="M70 284 h26 v6 h-22 q-10 0 -12 -8 q4 2 8 2z" fill="#f5c76a"/><path d="M130 284 h-26 v6 h22 q10 0 12 -8 q-4 2 -8 2z" fill="#f5c76a"/>
+      <path d="M72 190 Q100 182 128 190 L150 262 Q100 270 50 262 Z" fill="#2fd393"/>
+      <path d="M108 186 Q120 187 128 190 L150 262 Q132 266 116 267 Z" fill="#22b97c"/>
+      <rect x="96" y="190" width="8" height="74" fill="#f5c76a"/>
+      <path d="M50 262 Q100 270 150 262 L152 270 Q100 278 48 270 Z" fill="#f5c76a"/>
+      ${arms}
+      <rect x="63" y="108" width="74" height="86" rx="32" fill="#e0a87e"/>
+      <path d="M114 108 q23 0 23 30 v26 q0 30 -23 30 q14 -14 14 -43 q0 -29 -14 -43z" fill="#c98e66"/>
+      <path d="M74 112 L80 30 Q100 18 120 30 L126 112 Z" fill="#179b68"/>
+      <path d="M108 24 Q116 26 120 30 L126 112 L112 112 Z" fill="#0f6b47"/>
+      <rect x="70" y="100" width="60" height="15" rx="7" fill="#f5c76a"/>
+      <path d="M100 96 l9 11 l-9 11 l-9 -11z" fill="#ff6b8b"/><path d="M100 96 l4.5 5.5 l-4.5 5.5 l-4.5 -5.5z" fill="#ffb3c2"/>
+      ${brows.map(([x1, y1, x2, y2]) => `<path d="M${x1} ${y1} L${x2} ${y2}" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>`).join("")}
+      ${eyes}
+      <rect x="92" y="138" width="16" height="26" rx="8" fill="#c98e66"/>
+      ${mouth}${stache}${ledger}
+    </g>${m === "party" ? sparks : ""}${m === "think" ? '<circle cx="152" cy="92" r="5" fill="#5ac8fa"/><circle cx="164" cy="74" r="8" fill="#5ac8fa"/>' : ""}
+    ${m === "sad" ? '<path d="M128 140 q5 10 0 15 q-5 -5 0 -15z" fill="#5ac8fa"/>' : ""}</svg>`;
+}
+
+/* ---------- هدهد: بدن گرد بی‌گردن، تاج بادبزنی، چشم‌های بزرگ، نوک بلند خمیده ---------- */
+function hodhod(m) {
+  const look = m === "think" ? [4, -4] : m === "sad" ? [0, 3] : [0, 0];
+  const eyes = m === "party" || m === "happy"
+    ? `<path d="M68 150 q12 -14 24 0" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M108 150 q12 -14 24 0" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>`
+    : `<g class="blink"><circle cx="80" cy="148" r="20" fill="#fff"/><circle cx="120" cy="148" r="20" fill="#fff"/>
+       <circle cx="${83 + look[0]}" cy="${150 + look[1]}" r="11" fill="${INK}"/><circle cx="${117 + look[0]}" cy="${150 + look[1]}" r="11" fill="${INK}"/>
+       <circle cx="${87 + look[0]}" cy="${145 + look[1]}" r="3.5" fill="#fff"/><circle cx="${121 + look[0]}" cy="${145 + look[1]}" r="3.5" fill="#fff"/></g>`;
+  const brows = m === "sad" ? `<path d="M64 124 L90 132" stroke="#1d1410" stroke-width="8" stroke-linecap="round"/><path d="M136 124 L110 132" stroke="#1d1410" stroke-width="8" stroke-linecap="round"/>`
+    : m === "think" ? `<path d="M108 120 Q122 112 136 120" stroke="#1d1410" stroke-width="8" fill="none" stroke-linecap="round"/>` : "";
+  // نوک: باز در جشن و شادی
+  const beak = m === "party" || m === "happy"
+    ? `<path d="M92 166 Q100 160 108 166 L104 174 Q100 176 96 174 Z" fill="#3d2a1e"/><path d="M96 176 Q100 196 112 204 Q102 202 94 182 Z" fill="#3d2a1e"/>`
+    : m === "sad" ? `<path d="M92 166 Q100 160 108 166 L102 182 Q98 200 88 206 Q94 196 96 178 Z" fill="#3d2a1e"/>`
+    : `<path d="M90 166 Q100 158 110 166 L106 182 Q108 198 120 208 Q100 206 94 184 Z" fill="#3d2a1e"/>`;
+  const wing = (side) => {
+    const flip = side === "L" ? "" : "translate(200 0) scale(-1 1)";
+    const rot = m === "party" ? "" : m === "happy" ? "rotate(-30 46 186)" : m === "sad" ? "rotate(10 46 186)" : "";
+    return `<g transform="${flip}"><g class="wing${side}" transform="${rot}">
+      <path d="M48 176 Q18 194 22 236 Q36 248 50 232 Z" fill="#179b68"/>
+      <path d="M24 206 Q34 202 46 206 L47 214 Q34 210 23 214 Z" fill="#fff4dc"/><path d="M23 222 Q34 218 48 222 L48 229 Q34 226 24 230 Z" fill="#fff4dc"/></g></g>`;
+  };
+  const crestTilt = m === "sad" ? "rotate(24 100 132)" : "";
+  // تاج هدهد: بادبزنی که به عقب خم شده، نوک سیاه و نوار کرم
+  const feathers = [-34, -14, 6, 26, 46].map((a, i) => { const y = 44 + Math.abs(i - 2) * 8, h = 132 - y;
+    return `<g transform="rotate(${a} 100 132)">
+      <rect x="91" y="${y}" width="18" height="${h}" rx="9" fill="${i % 2 ? "#e2834a" : "#f4a26b"}"/>
+      <rect x="91" y="${y + 14}" width="18" height="8" fill="#fff4dc"/>
+      <path d="M91 ${y + 14} v-5 a9 9 0 0 1 18 0 v5 z" fill="#1d1410"/></g>`; }).join("");
+  return `<svg viewBox="0 0 200 300" role="img" aria-label="هدهد">
+    <ellipse class="shadow" cx="100" cy="290" rx="54" ry="7" fill="#000" opacity=".14"/>
+    <g class="rig">
+      <g transform="${crestTilt} rotate(12 100 132)"><g class="crest">${feathers}</g></g>
+      <rect x="84" y="262" width="10" height="20" rx="4" fill="#ff6b8b"/><rect x="106" y="262" width="10" height="20" rx="4" fill="#ff6b8b"/>
+      <rect x="74" y="278" width="24" height="10" rx="5" fill="#ff6b8b"/><rect x="102" y="278" width="24" height="10" rx="5" fill="#ff6b8b"/>
+      ${wing("L")}${wing("R")}
+      <path d="M100 118 C 154 118 166 156 164 206 C 162 252 140 272 100 272 C 60 272 38 252 36 206 C 34 156 46 118 100 118 Z" fill="#f4a26b"/>
+      <path d="M130 124 C 156 136 166 166 164 206 C 162 252 140 272 104 272 C 142 252 152 220 150 186 C 148 152 142 134 130 124 Z" fill="#e2834a"/>
+      <path d="M100 196 C 128 196 140 214 138 236 C 136 258 120 266 100 266 C 80 266 64 258 62 236 C 60 214 72 196 100 196 Z" fill="#fff4dc"/>
+      <path d="M78 196 L100 214 L122 196 L118 206 L100 224 L82 206 Z" fill="#179b68"/>
+      <path d="M94 210 l6 -6 l6 6 l-6 6z" fill="#f5c76a"/>
+      <g transform="translate(0 14)">${brows}${eyes}${beak}</g>
+    </g>
+    ${m === "party" ? `<path class="spark" d="M26 120 l4 -10 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4z" fill="#f5c76a"/>
+      <path class="spark s2" d="M172 104 l3 -8 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3z" fill="#2fd393"/>
+      <path class="spark s3" d="M174 206 l3 -7 l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3z" fill="#ff6b8b"/>` : ""}
+    ${m === "think" ? '<circle cx="162" cy="96" r="5" fill="#5ac8fa"/><circle cx="174" cy="78" r="8" fill="#5ac8fa"/>' : ""}
+    ${m === "sad" ? '<path d="M140 150 q5 10 0 15 q-5 -5 0 -15z" fill="#5ac8fa"/>' : ""}</svg>`;
+}
+
+const DRAW = { vazir, hodhod };
+document.querySelectorAll(".cand").forEach((card) => {
+  const draw = DRAW[card.dataset.char];
+  const [stage, , dark] = card.querySelectorAll(".stage, .moods");
+  const stages = card.querySelectorAll(".stage");
+  const moods = card.querySelector(".moods");
+  const set = (m) => {
+    stages[0].className = "stage " + m; stages[0].innerHTML = draw(m);
+    moods.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
+  };
+  MOODS.forEach(([m, label]) => {
+    const b = document.createElement("button"); b.type = "button"; b.dataset.m = m; b.textContent = label;
+    b.onclick = () => set(m); moods.appendChild(b);
+  });
+  // نوار تیره: سه حالت کوچک کنار هم، همان‌طور که در اپ دیده می‌شود
+  stages[1].style.display = "flex"; stages[1].style.justifyContent = "space-around"; stages[1].style.alignItems = "center";
+  stages[1].innerHTML = ["happy", "think", "sad"].map((m) => `<div class="${m}" style="width:28%">${draw(m)}</div>`).join("");
+  set("idle");
+});
+</script>
