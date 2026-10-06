@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>استوری قیمت امروز</title>
+<!-- استوری ۱۰۸۰×۱۹۲۰ «قیمت امروز» در زبان بصری طلای شب (DESIGN.md). داده: story-prices.data.js -->
+<style>
+  @font-face { font-family: Vazir; src: url("../../app/static/fonts/Vazirmatn.woff2") format("woff2"); font-weight: 100 900; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; }
+  body { font-family: Vazir, sans-serif; color: #f2f5f1; position: relative;
+    background: radial-gradient(70% 38% at 50% 22%, rgba(62,232,166,.16), transparent 70%),
+                radial-gradient(60% 30% at 50% 100%, rgba(245,199,106,.12), transparent 70%), #030c08; }
+  .grain { position: absolute; inset: 0; opacity: .13; mix-blend-mode: overlay; }
+  .em { background: linear-gradient(150deg, #8fffd2, #3ee8a6 45%, #b8f35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .gold { background: linear-gradient(160deg, #fff4c9, #f5c76a 40%, #d99a2b 80%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  header { position: absolute; top: 230px; right: 90px; left: 90px; display: flex; justify-content: space-between; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 18px; font-size: 46px; font-weight: 900; }
+  .brand img { width: 72px; height: 72px; border-radius: 20px; }
+  .date { font-size: 34px; font-weight: 300; color: rgba(242,245,241,.7); text-align: left; line-height: 1.5; }
+  h1 { position: absolute; top: 360px; right: 90px; font-size: 112px; font-weight: 900; line-height: 1.15; }
+  h1 small { display: block; font-size: 40px; font-weight: 200; color: rgba(242,245,241,.7); margin-top: 10px; }
+  .rows { position: absolute; top: 640px; right: 90px; left: 90px; display: flex; flex-direction: column; }
+  .row { padding: 30px 0; border-top: 2px solid rgba(242,245,241,.08); display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; }
+  .row:last-child { border-bottom: 2px solid rgba(242,245,241,.08); }
+  .name { font-size: 44px; font-weight: 600; line-height: 1.3; white-space: nowrap; }
+  .name small { display: block; font-size: 30px; font-weight: 300; color: rgba(242,245,241,.55); margin-top: 6px; }
+  .val { text-align: left; direction: ltr; }
+  .val b { font-size: 92px; font-weight: 900; line-height: 1; }
+  .val span { display: block; direction: rtl; text-align: left; font-size: 30px; font-weight: 300; color: rgba(242,245,241,.55); margin-top: 10px; }
+  footer { position: absolute; bottom: 230px; right: 90px; left: 90px; text-align: center; }
+  .cta { font-size: 44px; font-weight: 600; }
+  .cta b { font-weight: 900; direction: ltr; display: inline-block; }
+  .fine { margin-top: 26px; font-size: 26px; font-weight: 300; color: rgba(242,245,241,.45); line-height: 1.7; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><img src="../../app/static/logo.svg" alt="">وزیر</div>
+  <div class="date" id="date"></div>
+</header>
+<h1>قیمت <span class="gold">امروز</span><small>دلار، تتر، طلا و سکه در یک نگاه</small></h1>
+<div class="rows" id="rows"></div>
+<footer>
+  <p class="cta">نمودار و قیمت لحظه‌ای در <b class="em">getvazir.ir</b></p>
+  <p class="fine" id="fine"></p>
+</footer>
+<svg class="grain" width="1080" height="1920"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
+<script src="story-prices.data.js"></script>
+<script>
+const P = window.PRICES;
+const FA = "۰۱۲۳۴۵۶۷۸۹", fa = (s) => String(s).replace(/\d/g, (d) => FA[d]);
+const money = (n) => fa(n.toLocaleString("en-US"));
+const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+const jal = (s) => { const [y, m, d] = s.split("/").map(Number); return `${fa(d)} ${MONTHS[m - 1]} ${fa(y)}`; };
+document.getElementById("date").innerHTML = `${jal(P.date)}<br>ساعت ${fa(P.time)}`;
+const ROWS = [
+  ["دلار آمریکا", "بازار آزاد تهران", P.usd, "em"],
+  ["تتر", "USDT", P.usdt, "em"],
+  ["طلای ۱۸ عیار", "هر گرم", P.gold18_gram, "gold"],
+  ["سکه امامی", "یک عدد", P.coin_emami, "gold"],
+];
+document.getElementById("rows").innerHTML = ROWS.map(([name, sub, v, cls]) =>
+  `<div class="row"><p class="name">${name}<small>${sub}</small></p><p class="val"><b class="${cls}">${money(v)}</b><span>تومان</span></p></div>`).join("");
+const usdNote = P.usd_date !== P.date ? ` · دلار: آخرین نرخ ثبت‌شده ${jal(P.usd_date)}` : "";
+document.getElementById("fine").textContent = `منبع: الان‌چند${usdNote} · آموزشی است، نه توصیه خرید`;
+</script>
+</body>
+</html>

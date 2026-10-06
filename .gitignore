@@ -14,3 +14,4 @@ android/local.properties
 *.jks
 *.keystore
 store/video/*.mp4
+store/social/story-prices.png
