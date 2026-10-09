@@ -38,7 +38,11 @@
   .cover-title .t1 { font-size: 92px; font-weight: 300; color: var(--mute); display: block; }
   .cover-title .t2 { font-size: 168px; font-weight: 900; letter-spacing: -3px; display: block; }
   .cover-title .t3 { font-size: 120px; font-weight: 900; display: block; }
-  .cover-sub { position: absolute; right: var(--m); left: var(--m); top: 720px; font-size: 38px; font-weight: 300; color: var(--mute); line-height: 1.6; }
+  .cover-sub { position: absolute; right: var(--m); left: var(--m); top: 700px; font-size: 38px; font-weight: 300; color: var(--mute); line-height: 1.6; }
+  .logos { display: flex; align-items: center; gap: 22px; margin-bottom: 18px; color: var(--ink); font-weight: 600; font-size: 40px; }
+  .logos .chip { height: 92px; border-radius: 24px; background: #fff; display: flex; align-items: center; padding: 0 26px; box-shadow: 0 14px 40px rgba(0,0,0,.4); }
+  .logos .chip img { height: 52px; }
+  .logos .sq { height: 92px; width: 92px; border-radius: 24px; box-shadow: 0 14px 40px rgba(0,0,0,.4); }
 
   /* ۲ نقشه، ۵ هشدار */
   .steps { position: absolute; right: var(--m); left: var(--m); top: 360px; display: flex; flex-direction: column; }
@@ -71,7 +75,10 @@
   <div class="swipe">ورق بزن ←</div>
   <svg class="cover-art" id="coverArt" viewBox="0 0 1080 1350"></svg>
   <h1 class="cover-title"><span class="t1">چطوری می‌شد</span><span class="t2 gold">از هیچی</span><span class="t3">پول درآورد؟</span></h1>
-  <p class="cover-sub">وام دیجی‌پی و اسنپ‌پی + طلا<br>از مهر ۱۴۰۴ تا امروز</p>
+  <div class="cover-sub">
+    <div class="logos"><span>وام</span><img class="sq" src="assets/digipay.webp" alt="دیجی‌پی"><span>یا</span><span class="chip"><img src="assets/snapppay.png" alt="اسنپ‌پی"></span><span>+ طلای دیجیتال</span></div>
+    از مهر ۱۴۰۴ تا امروز
+  </div>
 </section>
 
 <section class="slide" data-s="2">
@@ -82,7 +89,7 @@
 
 <section class="slide" data-s="3">
   <div class="kicker"><i></i>۱۲ ماه، ۱۲ قسط</div>
-  <div class="head"><h2>هر ماه یه تیکه<br>طلا فروختی</h2><p>طلا گرون‌تر شد، پس هر ماه گرم کمتری لازم بود</p></div>
+  <div class="head"><h2>هر ماه به اندازه قسط<br>طلا فروختی</h2><p>طلا گرون‌تر شد، پس هر ماه گرم کمتری لازم بود</p></div>
   <svg class="chart" id="chart" viewBox="0 0 1080 800"></svg>
 </section>
 
@@ -154,7 +161,7 @@ const idxOf = (j) => { const i = D.series.findIndex((s) => s.d >= j); return i <
 document.getElementById("steps").innerHTML = [
   [`${mil(D.loan)}<small>میلیون</small>`, "", "وام گرفتی", `${jm(D.start)}، دیجی‌پی یا اسنپ‌پی`],
   [`<bdi dir="ltr">−${mil(D.fee)}</bdi><small>میلیون</small>`, "red", "حق اشتراک، همون اول کم شد", `${mil(D.cash)} میلیون اومد دستت`],
-  [`${fa(D.grams0.toFixed(1))}<small>گرم</small>`, "gold", "طلای ۱۸ عیار خریدی", `گرمی ${mil(D.start_price)} میلیون، با ۳٪ کارمزد خرید`],
+  [`${fa(D.grams0.toFixed(1))}<small>گرم</small>`, "gold", "طلای دیجیتال خریدی", `گرمی ${mil(D.start_price)} میلیون (طلای ۱۸)، با ۳٪ کارمزد خرید`],
   [`${mil(D.installment)}<small>میلیون</small>`, "em", "قسط هر ماه، ۱۲ ماه", "سود ۲۳٪ سالانه؛ هر قسط رو با فروش طلا دادی"],
 ].map(([v, c, t, s]) => `<div class="step"><b class="${c}">${v}</b><span>${t}<em>${s}</em></span></div>`).join("");
 
