@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>کاروسل وام و طلا</title>
+<!--
+  کاروسل ۵ اسلایدی (۱۰۸۰×۱۳۵۰) «چطوری می‌شد از هیچی پول درآورد؟» با زبان بصری طلای شب (DESIGN.md). ?s=1 تا ۵.
+  داده: loan-gold.data.js (loan_gold_data.py، قیمت واقعی طلای ۱۸ از الان‌چند).
+-->
+<style>
+  @font-face { font-family: Vazir; src: url("../../app/static/fonts/Vazirmatn.woff2") format("woff2"); font-weight: 100 900; }
+  :root { --m: 80px; --ink: #f2f5f1; --mute: rgba(242,245,241,.58); --faint: rgba(242,245,241,.34); --red: #ff7a6b; --em: #3ee8a6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; }
+  body { font-family: Vazir, sans-serif; color: var(--ink); position: relative; background: #030c08; }
+  .light { position: absolute; inset: 0; background: radial-gradient(60% 45% at 50% 38%, rgba(30,120,86,.5), transparent 70%),
+           radial-gradient(90% 60% at 50% 110%, rgba(245,199,106,.08), transparent 60%); }
+  .grain { position: absolute; inset: 0; opacity: .16; mix-blend-mode: overlay; pointer-events: none; }
+  .slide { position: absolute; inset: 0; display: none; }
+  .slide.on { display: block; }
+  .gold { background: linear-gradient(175deg, #fff3cf 0%, #f6c75a 38%, #c58a17 72%, #ffe29a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .em { background: linear-gradient(150deg, #8fffd2, #3ee8a6 45%, #b8f35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .red { color: var(--red); }
+  .kicker { position: absolute; right: var(--m); top: 86px; font-size: 30px; font-weight: 300; color: var(--mute); display: flex; gap: 18px; align-items: center; }
+  .kicker i { width: 56px; height: 2px; background: var(--em); display: inline-block; }
+  .swipe { position: absolute; left: var(--m); top: 92px; font-size: 28px; font-weight: 300; color: var(--mute); }
+  .foot { position: absolute; left: var(--m); right: var(--m); bottom: 62px; display: flex; justify-content: space-between; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 14px; font-size: 32px; font-weight: 800; }
+  .brand img { width: 48px; height: 48px; border-radius: 13px; }
+  .meta { font-size: 24px; font-weight: 300; color: var(--faint); text-align: left; line-height: 1.6; }
+  .head { position: absolute; right: var(--m); left: var(--m); top: 150px; }
+  .head h2 { font-size: 80px; font-weight: 900; line-height: 1.2; letter-spacing: -1px; }
+  .head p { font-size: 34px; font-weight: 300; color: var(--mute); margin-top: 16px; line-height: 1.6; }
+
+  /* ۱ جلد */
+  .cover-art { position: absolute; inset: 0; width: 1080px; height: 1350px; }
+  .cover-title { position: absolute; right: var(--m); left: var(--m); top: 180px; line-height: 1.12; }
+  .cover-title .t1 { font-size: 92px; font-weight: 300; color: var(--mute); display: block; }
+  .cover-title .t2 { font-size: 168px; font-weight: 900; letter-spacing: -3px; display: block; }
+  .cover-title .t3 { font-size: 120px; font-weight: 900; display: block; }
+  .cover-sub { position: absolute; right: var(--m); left: var(--m); top: 720px; font-size: 38px; font-weight: 300; color: var(--mute); line-height: 1.6; }
+
+  /* ۲ نقشه، ۵ هشدار */
+  .steps { position: absolute; right: var(--m); left: var(--m); top: 360px; display: flex; flex-direction: column; }
+  .step { display: grid; grid-template-columns: 380px 1fr; align-items: center; gap: 30px; padding: 30px 0; border-top: 2px solid rgba(242,245,241,.08); }
+  .step:last-child { border-bottom: 2px solid rgba(242,245,241,.08); }
+  .step b { font-size: 80px; font-weight: 900; line-height: 1; white-space: nowrap; }
+  .step b small { font-size: 34px; font-weight: 300; color: var(--mute); margin-right: 8px; }
+  .step span { font-size: 34px; font-weight: 600; line-height: 1.5; }
+  .step span em { display: block; font-style: normal; font-size: 27px; font-weight: 300; color: var(--mute); }
+
+  /* ۳ نمودار */
+  svg.chart { position: absolute; left: 0; top: 400px; width: 1080px; height: 800px; overflow: visible; }
+
+  /* ۴ نتیجه */
+  .res-label { position: absolute; right: var(--m); top: 200px; font-size: 48px; font-weight: 300; color: var(--mute); }
+  .res-big { position: absolute; right: var(--m); left: var(--m); top: 290px; font-size: 230px; font-weight: 900; line-height: 1; letter-spacing: -4px; }
+  .res-big small { font-size: 70px; font-weight: 600; letter-spacing: 0; }
+  .res-grams { position: absolute; right: var(--m); top: 560px; font-size: 44px; font-weight: 600; }
+  .res-note { position: absolute; right: var(--m); left: var(--m); top: 650px; font-size: 34px; font-weight: 300; color: var(--mute); line-height: 1.7; }
+  .res-vs { position: absolute; right: var(--m); left: var(--m); top: 860px; padding-top: 44px; border-top: 2px solid rgba(242,245,241,.1); }
+  .res-vs p { font-size: 34px; font-weight: 300; color: var(--mute); }
+  .res-vs b { display: block; font-size: 96px; font-weight: 900; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="light"></div>
+
+<section class="slide" data-s="1">
+  <div class="kicker"><i></i>یک سال، عدد واقعی</div>
+  <div class="swipe">ورق بزن ←</div>
+  <svg class="cover-art" id="coverArt" viewBox="0 0 1080 1350"></svg>
+  <h1 class="cover-title"><span class="t1">چطوری می‌شد</span><span class="t2 gold">از هیچی</span><span class="t3">پول درآورد؟</span></h1>
+  <p class="cover-sub">وام دیجی‌پی و اسنپ‌پی + طلا<br>از مهر ۱۴۰۴ تا امروز</p>
+</section>
+
+<section class="slide" data-s="2">
+  <div class="kicker"><i></i>نقشه</div>
+  <div class="head"><h2>بدون یک ریال پول</h2><p>فقط با یه وام اقساطی آنلاین</p></div>
+  <div class="steps" id="steps"></div>
+</section>
+
+<section class="slide" data-s="3">
+  <div class="kicker"><i></i>۱۲ ماه، ۱۲ قسط</div>
+  <div class="head"><h2>هر ماه یه تیکه<br>طلا فروختی</h2><p>طلا گرون‌تر شد، پس هر ماه گرم کمتری لازم بود</p></div>
+  <svg class="chart" id="chart" viewBox="0 0 1080 800"></svg>
+</section>
+
+<section class="slide" data-s="4">
+  <div class="kicker"><i></i>نتیجه</div>
+  <p class="res-label">بعد از دادن هر ۱۲ قسط، برات موند:</p>
+  <p class="res-big gold" id="resBig"></p>
+  <p class="res-grams" id="resGrams"></p>
+  <p class="res-note" id="resNote"></p>
+  <div class="res-vs"><p>اگه وام رو می‌گرفتی ولی طلا نمی‌خریدی:</p><b class="red" id="resCash"></b></div>
+</section>
+
+<section class="slide" data-s="5">
+  <div class="kicker"><i></i>قبل از این‌که امتحانش کنی</div>
+  <div class="head"><h2>ولی گول نخور</h2><p>این سود از وام نبود؛ از گرون شدن طلا بود</p></div>
+  <div class="steps" id="risks" style="top: 400px"></div>
+</section>
+
+<div class="foot">
+  <div class="brand"><img src="../../app/static/logo.svg" alt="">وزیر</div>
+  <div class="meta" id="meta"></div>
+</div>
+<svg class="grain" width="1080" height="1350"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
+
+<script src="loan-gold.data.js"></script>
+<script>
+const D = window.LG;
+const FA = "۰۱۲۳۴۵۶۷۸۹";
+const fa = (s) => String(s).replace(/\d/g, (d) => FA[d]).replace(/\./g, "٫");
+const mil = (n, dp = 1) => { const m = n / 1e6; return fa(Number.isInteger(+m.toFixed(dp)) ? Math.round(m) : m.toFixed(dp)); };
+const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+const jm = (s) => { const [y, m] = s.split("/"); return `${MONTHS[+m - 1]} ${fa(y)}`; };
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; };
+const text = (svg, attrs, s) => { const t = el("text", { "font-family": "Vazir", ...attrs }, svg); t.textContent = s; return t; };
+const LEFT = "end", RIGHT = "start";  // متن راست‌به‌چپ: لبه چپ = end
+function smooth(p) {
+  let d = `M${p[0][0]},${p[0][1]}`;
+  for (let i = 0; i < p.length - 1; i++) {
+    const a = p[i - 1] || p[i], b = p[i], c = p[i + 1], e = p[i + 2] || c;
+    d += ` C${b[0] + (c[0] - a[0]) / 6},${b[1] + (c[1] - a[1]) / 6},${c[0] - (e[0] - b[0]) / 6},${c[1] - (e[1] - b[1]) / 6},${c}`;
+  }
+  return d;
+}
+// شناسه گرادیان و درخشش برای هر svg جدا؛ svg پنهان‌شده نباید مرجع svg دیگر باشد
+function defs(svg) {
+  const id = svg.id;
+  el("defs", {}, svg).innerHTML = `
+    <linearGradient id="lg-${id}" x1="0" x2="1"><stop offset="0" stop-color="#c58a17"/><stop offset="1" stop-color="#ffe29a"/></linearGradient>
+    <filter id="glow-${id}" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  return { stroke: `url(#lg-${id})`, filter: `url(#glow-${id})` };
+}
+// سری هفتگی برای نرمی (هر ۷ نقطه یکی، به‌علاوه آخری)
+const S = D.series.filter((_, i, a) => i % 7 === 0 || i === a.length - 1);
+const pMin = Math.min(...S.map((s) => s.p)), pMax = Math.max(...S.map((s) => s.p));
+const idxOf = (j) => { const i = D.series.findIndex((s) => s.d >= j); return i < 0 ? D.series.length - 1 : i; };
+
+// ۱ جلد: منحنی واقعی طلا، درخشان، نیمه پایین
+(function cover() {
+  const svg = document.getElementById("coverArt"), g = defs(svg);
+  const x = (i) => 40 + 1000 * i / (S.length - 1), y = (p) => 1180 - 330 * (p - pMin) / (pMax - pMin);
+  const pts = S.map((s, i) => [x(i), y(s.p)]);
+  el("path", { d: smooth(pts), fill: "none", stroke: g.stroke, "stroke-width": 9, "stroke-linecap": "round", filter: g.filter, opacity: .95 }, svg);
+  const [lx, ly] = pts[pts.length - 1];
+  el("circle", { cx: lx, cy: ly, r: 14, fill: "#030c08", stroke: "#f6c75a", "stroke-width": 6 }, svg);
+})();
+
+// ۲ نقشه
+document.getElementById("steps").innerHTML = [
+  [`${mil(D.loan)}<small>میلیون</small>`, "", "وام گرفتی", `${jm(D.start)}، دیجی‌پی یا اسنپ‌پی`],
+  [`<bdi dir="ltr">−${mil(D.fee)}</bdi><small>میلیون</small>`, "red", "حق اشتراک، همون اول کم شد", `${mil(D.cash)} میلیون اومد دستت`],
+  [`${fa(D.grams0.toFixed(1))}<small>گرم</small>`, "gold", "طلای ۱۸ عیار خریدی", `گرمی ${mil(D.start_price)} میلیون، با ۳٪ کارمزد خرید`],
+  [`${mil(D.installment)}<small>میلیون</small>`, "em", "قسط هر ماه، ۱۲ ماه", "سود ۲۳٪ سالانه؛ هر قسط رو با فروش طلا دادی"],
+].map(([v, c, t, s]) => `<div class="step"><b class="${c}">${v}</b><span>${t}<em>${s}</em></span></div>`).join("");
+
+// ۳ نمودار قیمت با ۱۲ نقطه فروش و ستون گرم فروخته‌شده
+(function chart() {
+  const svg = document.getElementById("chart"), g = defs(svg);
+  const n = D.series.length - 1, X0 = 90, X1 = 990;
+  const x = (i) => X0 + (X1 - X0) * i / n, y = (p) => 520 - 440 * (p - pMin) / (pMax - pMin);
+  const pts = S.map((s) => [x(D.series.indexOf(s)), y(s.p)]);
+  el("path", { d: smooth(pts), fill: "none", stroke: g.stroke, "stroke-width": 7, "stroke-linecap": "round", filter: g.filter }, svg);
+  const maxSold = Math.max(...D.rows.map((r) => r.sold));
+  D.rows.forEach((r, k) => {
+    const i = idxOf(r.j), cx = x(i), cy = y(r.price), h = 120 * r.sold / maxSold;
+    el("circle", { cx, cy, r: 9, fill: "#030c08", stroke: "#3ee8a6", "stroke-width": 4 }, svg);
+    const bx = X0 + 20 + (X1 - X0 - 40) * k / (D.rows.length - 1);  // ستون‌ها یکنواخت؛ تعطیلات نوروز داده ندارد
+    el("rect", { x: bx - 16, y: 750 - h, width: 32, height: h, rx: 7, fill: "#3ee8a6", opacity: .25 + .75 * (r.sold / maxSold) }, svg);
+    if (k === 0 || k === D.rows.length - 1)
+      text(svg, { x: bx, y: 750 - h - 16, "text-anchor": "middle", "font-size": 30, "font-weight": 800, fill: "#8fffd2" }, fa(r.sold.toFixed(2)) + " گرم");
+  });
+  text(svg, { x: X0, y: 795, "text-anchor": LEFT, "font-size": 26, "font-weight": 300, fill: "rgba(242,245,241,.5)" }, "طلای فروخته‌شده برای هر قسط");
+  // برچسب قیمت ابتدا و انتها
+  text(svg, { x: X0 - 10, y: y(D.start_price) + 58, "text-anchor": LEFT, "font-size": 30, "font-weight": 300, fill: "rgba(242,245,241,.6)" }, `${jm(D.start)} · ${mil(D.start_price)} م`);
+  const ex = x(n), ey = y(D.series[n].p);
+  el("circle", { cx: ex, cy: ey, r: 13, fill: "#030c08", stroke: "#f6c75a", "stroke-width": 6 }, svg);
+  text(svg, { x: ex - 26, y: ey + 12, "text-anchor": RIGHT, "font-size": 44, "font-weight": 900, fill: "#f6c75a" }, `${mil(D.end_price)} م`);
+  text(svg, { x: ex - 26, y: ey + 52, "text-anchor": RIGHT, "font-size": 26, "font-weight": 300, fill: "rgba(242,245,241,.55)" }, "هر گرم، امروز");
+})();
+
+// ۴ نتیجه
+document.getElementById("resBig").innerHTML = `${mil(D.left_value)} <small>میلیون تومان</small>`;
+document.getElementById("resGrams").innerHTML = `<span class="gold">${fa(D.left_grams.toFixed(2))} گرم طلا</span>، بدون این‌که یک ریال از جیبت بدی`;
+document.getElementById("resNote").textContent = `در عوض ${mil(D.cash)} میلیونی که دستت اومد، ${mil(D.total_paid)} میلیون قسط دادی؛ ولی چون طلا گرون شد، طلا قسط‌ها رو داد و تهش چیزی هم موند.`;
+document.getElementById("resCash").textContent = `${mil(-D.cash_left)} میلیون بدهکار`;
+
+// ۵ هشدار
+const rise = Math.round((D.end_price / D.start_price - 1) * 100);
+document.getElementById("risks").innerHTML = [
+  [`<bdi dir="ltr">+${fa(rise)}٪</bdi>`, "gold", "طلا تو این یه سال رفت بالا", "همه سود از همین‌جا اومد"],
+  [`<bdi dir="ltr">−${mil(-D.flat_left)}</bdi><small>میلیون</small>`, "red", "اگه طلا ثابت می‌موند", "همین نقشه ضرر می‌داد"],
+  ['<bdi dir="ltr">−۲۱٪</bdi>', "red", "ریزش طلا در فروردین", "اگه اون موقع مجبور به فروش زیاد بودی، دردناک بود"],
+  ["۶۵٪", "em", "هزینه واقعی این وام در سال", "نه ۲۳٪؛ حق اشتراک اول کار، نرخ رو بالا می‌بره"],
+].map(([v, c, t, s]) => `<div class="step"><b class="${c}">${v}</b><span>${t}<em>${s}</em></span></div>`).join("");
+
+const s = +(new URLSearchParams(location.search).get("s") || 1);
+document.querySelector(`.slide[data-s="${s}"]`).classList.add("on");
+document.getElementById("meta").innerHTML = s === 5
+  ? "هزینه واقعی هر وام رو با ماشین‌حساب وام وزیر حساب کن<br>getvazir.ir · آموزشی است، نه توصیه خرید"
+  : `قیمت طلای ۱۸: الان‌چند · ${fa(s)} / ۵<br>آموزشی است، نه توصیه خرید`;
+</script>
+</body>
+</html>
