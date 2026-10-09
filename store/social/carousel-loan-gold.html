@@ -194,7 +194,7 @@ const rise = Math.round((D.end_price / D.start_price - 1) * 100);
 document.getElementById("risks").innerHTML = [
   [`<bdi dir="ltr">+${fa(rise)}٪</bdi>`, "gold", "طلا تو این یه سال رفت بالا", "همه سود از همین‌جا اومد"],
   [`<bdi dir="ltr">−${mil(-D.flat_left)}</bdi><small>میلیون</small>`, "red", "اگه طلا ثابت می‌موند", "همین نقشه ضرر می‌داد"],
-  ['<bdi dir="ltr">−۲۱٪</bdi>', "red", "ریزش طلا در فروردین", "اگه اون موقع مجبور به فروش زیاد بودی، دردناک بود"],
+  ['<bdi dir="ltr">−۲۱٪</bdi>', "red", "ریزش طلا از اسفند تا فروردین", "اگه اون موقع مجبور به فروش زیاد بودی، دردناک بود"],
   ["۶۵٪", "em", "هزینه واقعی این وام در سال", "نه ۲۳٪؛ حق اشتراک اول کار، نرخ رو بالا می‌بره"],
 ].map(([v, c, t, s]) => `<div class="step"><b class="${c}">${v}</b><span>${t}<em>${s}</em></span></div>`).join("");
 
