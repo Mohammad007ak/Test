@@ -1,6 +1,7 @@
 // Builds the brochure HTML and renders the PDF with Playwright/Chromium.
 //   node build.mjs           -> Bank Tejarat edition (src/content.mjs)
 //   node build.mjs --board   -> Digikala Group board edition (src/content-board.mjs)
+//   node build.mjs --nonum   -> Bank Tejarat edition without figures (src/nonum.mjs)
 //   --html  html only   --png  also write per-page PNG previews
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { execSync } from "node:child_process";
@@ -10,6 +11,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const BOARD = process.argv.includes("--board");
+const NONUM = !BOARD && process.argv.includes("--nonum");
 const C = BOARD ? await import("./src/content-board.mjs") : await import("./src/content.mjs");
 const { SEGMENTS, products, sections } = C;
 const SEG_ORDER = Object.keys(SEGMENTS);
@@ -747,7 +749,7 @@ if (BOARD) {
 }
 
 const body = pages.map((p, i) => p.render(i + 1)).join("\n");
-const html = `<!doctype html>
+let html = `<!doctype html>
 <html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${C.meta.title} — ${C.meta.subtitle}</title>
@@ -755,7 +757,8 @@ const html = `<!doctype html>
 </head><body>
 ${body}
 </body></html>`;
-const HTML_FILE = BOARD ? "index-board.html" : "index.html";
+if (NONUM) html = (await import("./src/nonum.mjs")).stripNumbers(html);
+const HTML_FILE = BOARD ? "index-board.html" : NONUM ? "index-nonum.html" : "index.html";
 writeFileSync(path.join(ROOT, HTML_FILE), html);
 console.log(`${HTML_FILE}: ${pages.length} pages`);
 
@@ -770,10 +773,10 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 await page.goto(pathToFileURL(path.join(ROOT, HTML_FILE)).href, { waitUntil: "networkidle" });
 await page.evaluate(() => document.fonts.ready);
-const out = path.join(ROOT, "dist", C.meta.out || "digipay-tejarat-brochure.pdf");
+const out = path.join(ROOT, "dist", C.meta.out || (NONUM ? "digipay-tejarat-brochure-no-figures.pdf" : "digipay-tejarat-brochure.pdf"));
 await page.pdf({ path: out, width: "297mm", height: "210mm", printBackground: true, preferCSSPageSize: true });
 if (process.argv.includes("--png")) {
-  const PREV = BOARD ? "dist/preview-board" : "dist/preview";
+  const PREV = BOARD ? "dist/preview-board" : NONUM ? "dist/preview-nonum" : "dist/preview";
   rmSync(path.join(ROOT, PREV), { recursive: true, force: true });
   mkdirSync(path.join(ROOT, PREV), { recursive: true });
   await page.setViewportSize({ width: 1123, height: 794 });

@@ -493,3 +493,5 @@ img.mimg { display: block; width: 100%; object-fit: cover; }
 .fsum .r b { display: block; font-size: 9pt; }
 .fsum .r span { font-size: 7.8pt; opacity: .85; line-height: 1.6; }
 .tall .mimg { height: 84mm; }
+
+.statband.words .s .n { font-family: "Vazirmatn"; font-weight: 800; font-size: 20pt; direction: rtl; }
