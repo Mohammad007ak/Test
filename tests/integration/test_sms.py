@@ -197,3 +197,44 @@ def test_without_shortcut_only_manual_steps(tmp_path: Path) -> None:
         page = c.get("/sms", headers={"User-Agent": IPHONE}).text
     assert "icloud.com" not in page and "sms-manual" not in page
     assert "Get Contents of URL" in page
+
+
+FIXTURES = Path(__file__).parent.parent / "fixtures" / "sms" / "blu"
+
+
+def test_first_blu_sms_asks_only_for_account_then_is_automatic(client: TestClient) -> None:
+    h = {"X-Ingest-Token": TOKEN}
+    withdrawal = (FIXTURES / "withdrawal.txt").read_text("utf-8")
+    first = client.post("/api/sms", json={"text": withdrawal}, headers=h)
+    assert first.json()["status"] == "failed"
+    assert "انتخاب حساب" in client.get("/sms").text
+    with db(client) as s:
+        sms_id = s.scalars(select(SmsInbox)).one().id
+    sheet = client.get(f"/sms/{sms_id}/review", headers={"HX-Request": "true"}).text
+    assert "این پیامک مال کدام حساب است؟" in sheet and "۳٬۰۰۰٬۰۰۰ تومان" in sheet
+    assert 'name="amount"' not in sheet  # فقط حساب، نه فرم کامل
+    assert "?manual=1" in sheet
+    manual = client.get(f"/sms/{sms_id}/review?manual=1", headers={"HX-Request": "true"}).text
+    assert 'name="amount"' in manual
+    response = client.post(f"/sms/{sms_id}/account", data={"account": "new"})
+    assert response.status_code == 200 and "خودکار ثبت می‌شوند" in response.text
+    deposit = (FIXTURES / "deposit.txt").read_text("utf-8")
+    assert client.post("/api/sms", json={"text": deposit}, headers=h).json()["status"] == "parsed"
+    with db(client) as s:
+        account = s.scalars(select(Account)).one()
+        assert account.bank == "blu" and len(s.scalars(select(Transaction)).all()) == 2
+
+
+def test_choose_account_validates_choice(client: TestClient) -> None:
+    withdrawal = (FIXTURES / "withdrawal.txt").read_text("utf-8")
+    client.post("/api/sms", json={"text": withdrawal}, headers={"X-Ingest-Token": TOKEN})
+    with db(client) as s:
+        sms_id = s.scalars(select(SmsInbox)).one().id
+    response = client.post(f"/sms/{sms_id}/account", data={"account": "999"},
+                           headers={"HX-Request": "true"})
+    assert response.status_code == 422 and "حساب پیدا نشد" in response.text
+    assert client.post(f"/sms/{sms_id}/account", data={"account": "x"},
+                       headers={"HX-Request": "true"}).status_code == 422
+    unread = client.post("/api/sms", json={"text": SMS}, headers={"X-Ingest-Token": TOKEN})
+    assert client.post(f"/sms/{unread.json()['id']}/account",
+                       data={"account": "new"}).status_code == 404

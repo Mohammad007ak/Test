@@ -1,0 +1,24 @@
+{% from "_ui.html" import icon %}
+{% set action = "/sms/" ~ sms.id ~ "/account" %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#sheet-body" hx-swap="innerHTML" class="form" novalidate>
+  <div class="sheet-head">
+    <h2>{{ T.sms_pick_title }}</h2>
+    <a href="/sms" class="icon-btn" data-close hx-boost="false" aria-label="{{ T.close }}">{{ icon("close") }}</a>
+  </div>
+  <pre class="sms-quote">{{ sms.text_masked }}</pre>
+  {% if new_template %}<p class="muted small">{{ T.sms_pick_first }}</p>{% endif %}
+  <p class="lead"><strong>{{ T.sms_pick_reading.format(direction=s.DIRECTIONS[reading.direction], amount=amount_toman | toman) }}</strong>
+    · {{ s.BANKS.get(reading.bank, reading.bank) }}{% if reading.account_mask %} <span dir="ltr">{{ reading.account_prefix | fa }}••{{ reading.account_mask | fa }}</span>{% endif %}</p>
+  {% if balance_toman is not none %}<p class="muted small">{{ T.sms_pick_balance.format(balance=balance_toman | toman) }}</p>{% endif %}
+  {% if error %}<div class="alert danger">{{ icon("alert") }} {{ error }}</div>{% endif %}
+  <div class="chips" role="radiogroup" aria-label="{{ T.sms_pick_title }}">
+    {% for a in accounts %}
+    <label class="chip"><input type="radio" name="account" value="{{ a.id }}" {{ 'checked' if loop.first }}>
+      <span>{{ a.label or s.BANKS.get(a.bank, a.bank) }}{% if a.account_mask %} <span dir="ltr">••{{ a.account_mask | fa }}</span>{% endif %}</span></label>
+    {% endfor %}
+    <label class="chip"><input type="radio" name="account" value="new" {{ 'checked' if not accounts }}>
+      <span>{{ T.sms_pick_new }}: {{ s.BANKS.get(reading.bank, reading.bank) }}{% if reading.account_mask %} <span dir="ltr">••{{ reading.account_mask | fa }}</span>{% endif %}</span></label>
+  </div>
+  <div class="sheet-actions"><button type="submit" class="btn wide">{{ T.sms_pick_save }}</button></div>
+  <p class="muted small"><a href="/sms/{{ sms.id }}/review?manual=1" hx-boost="false">{{ T.sms_pick_wrong }}</a></p>
+</form>

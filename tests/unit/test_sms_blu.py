@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.models import Account, Transaction
 from app.sms.parsers import PARSERS
 from app.sms.parsers.blu import BluParser
-from app.sms.pipeline import ingest
+from app.sms.pipeline import NEEDS_ACCOUNT, choose_account, ingest
 from app.sms.text import mask_numbers, prepare
 from tests.unit.conftest import memory_session
 
@@ -19,6 +19,8 @@ NOW = datetime(2026, 10, 3, 9, 0, tzinfo=UTC)
 
 WITHDRAWAL = (Path(__file__).parent.parent / "fixtures" / "sms" / "blu" / "withdrawal.txt"
               ).read_text(encoding="utf-8")
+DEPOSIT = (Path(__file__).parent.parent / "fixtures" / "sms" / "blu" / "deposit.txt"
+           ).read_text(encoding="utf-8")
 T0 = datetime(2026, 10, 1, 12, 43, tzinfo=UTC)
 
 
@@ -59,9 +61,11 @@ def session() -> Iterator[Session]:
         yield s
 
 
-def test_creates_single_blu_account_without_number(session: Session) -> None:
+def test_first_blu_sms_asks_for_account_then_creates_it(session: Session) -> None:
     assert any(isinstance(p, BluParser) for p in PARSERS)
-    assert ingest(session, WITHDRAWAL, T0).status == "parsed"
+    result = ingest(session, WITHDRAWAL, T0)
+    assert result.status == "failed" and result.sms.error == NEEDS_ACCOUNT
+    choose_account(session, result.sms, None)
     account = session.scalars(select(Account)).one()
     assert (account.bank, account.account_mask, account.balance_toman) == ("blu", "", 8_655_234)
 
@@ -80,4 +84,8 @@ def test_ambiguous_when_several_blu_accounts(session: Session) -> None:
                      Account(bank="blu", account_mask="2222", balance_toman=1)])
     session.commit()
     result = ingest(session, WITHDRAWAL, T0)
-    assert result.status == "failed" and "چند حساب" in (result.sms.error or "")
+    assert result.status == "failed" and result.sms.error == NEEDS_ACCOUNT
+    choose_account(session, result.sms, session.scalars(select(Account)).all()[1].id)
+    assert session.scalars(select(Account)).all()[1].balance_toman == 8_655_234
+    # بلو شماره ندارد: با چند حساب هر بار پرسیده می‌شود، چیزی به خاطر سپرده نمی‌شود
+    assert ingest(session, DEPOSIT, T0).sms.error == NEEDS_ACCOUNT

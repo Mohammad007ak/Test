@@ -11,7 +11,7 @@
       <span class="sms-text">{{ sms.text_masked }}</span>
       <span class="row-sub">{{ sms.received_at | jalali }}{% if sms.error %} · {{ sms.error }}{% endif %}</span>
       <span class="sms-actions">
-        {% call sheet_link("/sms/" ~ sms.id ~ "/review", "btn small-btn") %}{{ T.sms_complete }}{% endcall %}
+        {% call sheet_link("/sms/" ~ sms.id ~ "/review", "btn small-btn") %}{{ T.sms_pick if sms.parsed_json else T.sms_complete }}{% endcall %}
         <form method="post" action="/sms/{{ sms.id }}/ignore"><button class="btn ghost small-btn" type="submit">{{ T.sms_ignore }}</button></form>
       </span>
     </span>

@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.models import Account, SmsInbox, Transaction
 from app.sms.parsers import PARSERS
 from app.sms.parsers.saman import SamanParser
-from app.sms.pipeline import ingest
+from app.sms.pipeline import NEEDS_ACCOUNT, choose_account, ingest
 from app.sms.text import mask_numbers, prepare
 from tests.unit.conftest import memory_session
 
@@ -66,7 +66,9 @@ def test_registered_and_applied_end_to_end() -> None:
     assert any(isinstance(p, SamanParser) for p in PARSERS)
     with memory_session() as session:
         result = ingest(session, WITHDRAWAL, datetime(2026, 10, 3, 8, 41, tzinfo=UTC))
-        assert result.status == "parsed" and result.sms.parser == "saman"
+        assert result.sms.parser == "saman" and result.sms.error == NEEDS_ACCOUNT
+        choose_account(session, result.sms, None)  # بار اول: «حساب تازه»
+        assert result.sms.parse_status == "parsed"
         account = session.scalars(select(Account)).one()
         assert (account.bank, account.account_prefix, account.account_mask) == (
             "saman", "814", "5671")
@@ -79,8 +81,9 @@ def test_registered_and_applied_end_to_end() -> None:
 def test_two_saman_accounts_with_same_last_four_stay_separate() -> None:
     second = WITHDRAWAL.replace("814-20-", "2137-800-").replace("46,294,698", "16,225,026")
     with memory_session() as session:
-        ingest(session, WITHDRAWAL, datetime(2026, 10, 3, 8, 41, tzinfo=UTC))
-        ingest(session, second, datetime(2026, 10, 3, 8, 42, tzinfo=UTC))
+        for text, minute in ((WITHDRAWAL, 41), (second, 42)):
+            result = ingest(session, text, datetime(2026, 10, 3, 8, minute, tzinfo=UTC))
+            choose_account(session, result.sms, None)  # دو حساب جدا، هر کدام بار اول
         accounts = {a.account_prefix: a.balance_toman for a in session.scalars(select(Account))}
         assert accounts == {"814": 4_629_470, "2137": 1_622_503}
 

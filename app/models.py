@@ -145,6 +145,43 @@ class SmsInbox(UserOwned, Base):
     parse_status: Mapped[str] = mapped_column(String(10))
     parser: Mapped[str | None] = mapped_column(String(50))
     error: Mapped[str | None] = mapped_column(Text)
+    # پیامک خوانده‌شده‌ای که منتظر انتخاب حساب (یا تأیید قالب تازه) است: خوانده به JSON
+    parsed_json: Mapped[str | None] = mapped_column(Text)
+    template_id: Mapped[int | None] = mapped_column(
+        ForeignKey("sms_templates.id", ondelete="SET NULL"))
+
+
+class SmsTemplate(Base):
+    """قالب یادگرفته پیامک، مشترک بین همه کاربران (app.sms.templates).
+
+    pending تا تأیید اولین کاربر، active پس از آن، rejected اگر کاربر خوانده را اشتباه دانست.
+    متن ثابت قالب هیچ عددی ندارد و نام‌ها با {any} پوشانده شده‌اند.
+    """
+
+    __tablename__ = "sms_templates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pattern: Mapped[str] = mapped_column(Text)
+    pattern_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    bank: Mapped[str] = mapped_column(String(50))
+    direction: Mapped[str] = mapped_column(String(3))
+    unit: Mapped[str] = mapped_column(String(5))
+    label: Mapped[str] = mapped_column(String(100), default="")
+    status: Mapped[str] = mapped_column(String(10), default="pending")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    activated_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+
+
+class AccountAlias(UserOwned, Base):
+    """انتخاب کاربر: پیامک این بانک و شماره مال این حساب است (مثلاً کارتِ حساب ثبت‌شده)."""
+
+    __tablename__ = "account_aliases"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
+    bank: Mapped[str] = mapped_column(String(50))
+    account_mask: Mapped[str] = mapped_column(String(4), default="")
+    account_prefix: Mapped[str] = mapped_column(String(4), default="")
 
 
 class Transaction(UserOwned, Base):
