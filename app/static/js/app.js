@@ -927,7 +927,14 @@
         var picked = opts[Number(fb.dataset.pick)];
         if (!ok && picked) picked.classList.add("wrong");
       }
-      inRow = ok ? inRow + 1 : 0;
+      if (fb.dataset.rights) {  // چندانتخابی: درست‌ها سبز، انتخاب‌های غلط قرمز
+        var rights = fb.dataset.rights.split(",");
+        opts.forEach(function (opt, k) {
+          var picked = opt.querySelector("input").checked, right = rights.indexOf(String(k)) !== -1;
+          if (right) opt.classList.add("right"); else if (picked) opt.classList.add("wrong");
+        });
+      }
+            inRow = ok ? inRow + 1 : 0;
       setCombo();
       if (ok && button) fx.burst(button);
       var race = fb.querySelector("[data-race]"), wait = 0;

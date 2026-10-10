@@ -179,8 +179,7 @@ def register_school_routes(app: FastAPI) -> None:
                   for course in COURSES}
         school_service.save_levels(db, chosen)
         db.commit()
-        names = "، ".join(f"{c.title}: {LEVEL_NAMES[chosen[c.key]]}" for c in COURSES)
-        toast(request, s.SCHOOL["placed"].format(levels=names))
+        toast(request, s.SCHOOL["placed"])
         return redirect("/school")
 
     @app.post("/school/placement/skip", dependencies=[LoggedIn])

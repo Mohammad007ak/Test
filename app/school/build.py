@@ -56,7 +56,7 @@ def story(scene: str, text: str, options: tuple[str, ...], correct: int, why: st
 
 
 def match(text: str, pairs: tuple[tuple[str, str], ...], why: str = "",
-          kicker: str = "جفتشون کن") -> Card:
+          kicker: str = "بازی جفت‌ها") -> Card:
     why = why or "جفت‌های درست: " + "؛ ".join(f"{a} ← {b}" for a, b in pairs) + "."
     return Card("match", kicker, text, pairs=pairs, good=why, bad=why)
 
