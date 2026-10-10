@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import onboarding_service as onboarding
-from app import price_history, price_refresh, services
+from app import price_history, price_refresh, school_service, services
 from app.adapters.prices import AlanchandSource, PriceSource, ShakhesbanSource
 from app.adapters.prices.history import AlanchandHistory, HistorySource
 from app.assistant.client import ChatModel
@@ -62,6 +62,7 @@ from app.web.price_pages import PAGES as PRICE_PAGES
 from app.web.price_pages import PATHS as PRICE_PATHS
 from app.web.price_pages import register_price_pages
 from app.web.render import VersionedStatic, jalali, sparkline, tehran_today
+from app.web.school_routes import register_school_routes
 from app.web.sms_routes import queue_count, register_sms_routes
 from app.web.spending_routes import parse_month, register_spending_routes
 from app.web.split_routes import register_split_routes
@@ -186,6 +187,7 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     register_extra_routes(app)
     register_price_pages(app)
     register_learn_routes(app)
+    register_school_routes(app)
     register_split_routes(app)
     register_admin_routes(app)
     register_giveaway_routes(app)
@@ -257,6 +259,7 @@ def _register_routes(app: FastAPI) -> None:
             "avatar_key": services.avatar(db),
             "has_persona": services.get_user_setting(db, services.PERSONA_KEY) is not None,
             "onboarding_done": onboarding.load_state(db).done,
+            "school": school_service.overview(db, today),
         })
 
     @app.get("/sw.js", include_in_schema=False)

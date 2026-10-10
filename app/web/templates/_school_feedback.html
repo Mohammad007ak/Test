@@ -1,0 +1,28 @@
+{% from "_ui.html" import mascot %}
+{% if expired or invalid %}
+<div class="sc-fb bad" data-ok="0" data-retry="1">
+  <h3><span class="sc-badge" aria-hidden="true">!</span>{{ s.SCHOOL.expired if expired else s.SCHOOL.invalid }}</h3>
+  {% if expired %}<a class="sc-check" href="">{{ s.SCHOOL.continue }}</a>
+  {% else %}<button type="button" class="sc-check" data-dismiss>{{ s.SCHOOL.understood }}</button>{% endif %}
+</div>
+{% else %}
+<div class="sc-fb {{ 'good' if ok else 'bad' }}" data-ok="{{ 1 if ok else 0 }}" data-counted="{{ 1 if counted else 0 }}" data-pick="{{ pick }}" data-correct="{{ card.correct if card.correct is not none else '' }}">
+  {{ mascot("party" if ok else "sad", "sc-fb-bird") }}
+  <h3><span class="sc-badge" aria-hidden="true">{{ '✓' if ok else '✕' }}</span>{{ title }}</h3>
+  {% if card.race %}
+  {% set race = card.race %}
+  {% set top = race.rows | map(attribute="final_toman") | max %}
+  <div class="sc-race" data-race>
+    {% for row in race.rows %}
+    <div class="sc-race-row k-{{ row.key }} {{ 'win' if loop.index0 == race.winner }}">
+      <span>{{ card.options[loop.index0] }}</span>
+      <div><i style="--w: {{ (row.final_toman / top * 70) | round(1) }}%"></i><b class="num">{{ row.final_toman | toman_short }}</b></div>
+    </div>
+    {% endfor %}
+    <span class="sc-note">{{ s.SCHOOL.race_note.format(start=race.start | jalali(false), end=race.end | jalali(false)) }} · {{ card.note }}</span>
+  </div>
+  {% endif %}
+  <p>{{ card.good if ok else card.bad }}</p>
+  <button type="button" class="sc-check" data-next>{{ s.SCHOOL.continue if ok else s.SCHOOL.understood }}</button>
+</div>
+{% endif %}

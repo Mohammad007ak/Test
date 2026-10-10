@@ -1,0 +1,16 @@
+{# کارت «درس امروز» مدرسه وزیر روی داشبورد #}
+{% from "_ui.html" import mascot %}
+{% set next = school.next_lesson %}
+<a href="{{ '/school/lesson/' ~ next.slug if next else '/school' }}" class="sc-today">
+  <span class="sc-today-shine" aria-hidden="true"></span>
+  <span class="sc-today-text">
+    <span class="sc-today-eyebrow">{{ s.SCHOOL.today }}{% if next %} · {{ s.SCHOOL.today_meta.format(minutes=s.SCHOOL.lesson_minutes) }}{% endif %}</span>
+    <strong>{{ next.title if next else s.SCHOOL.all_done_title }}</strong>
+    <small>{{ next.summary if next else s.SCHOOL.all_done_body }}</small>
+    <span class="sc-today-foot">
+      <span class="sc-today-go">{{ s.SCHOOL.today_go if next else s.SCHOOL.today_review }} ←</span>
+      {% if school.streak %}<span class="sc-today-streak">🔥 {{ s.SCHOOL.streak_label.format(n=school.streak | fa) }}</span>{% endif %}
+    </span>
+  </span>
+  {{ mascot("idle", "sc-today-bird") }}
+</a>

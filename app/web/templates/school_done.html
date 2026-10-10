@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_ui.html" import mascot, avatar %}
+{% block shell %}
+<div class="sc-lesson sc-done" data-confetti="{{ 'big' if r.station_finale or leveled_up else 'on' }}">
+  <div class="sc-done-hero">
+    {{ mascot("party", "sc-done-bird") }}
+    <h1>{{ s.SCHOOL.done_title }}</h1>
+    <p>{{ r.station_finale or lesson.title }}</p>
+  </div>
+  <div class="sc-stats3">
+    <div class="sc-stat g"><small>{{ s.SCHOOL.done_xp }}</small><b class="num">+{{ r.xp | fa }}</b></div>
+    <div class="sc-stat a"><small>{{ s.SCHOOL.done_accuracy }}</small><b class="num">{{ ((r.correct / r.questions * 100) if r.questions else 100) | round | int | fa }}٪</b></div>
+    <div class="sc-stat f"><small>{{ s.SCHOOL.done_streak }}</small><b class="num">🔥 {{ r.streak | fa }}</b></div>
+  </div>
+  {% if r.chest_xp %}<p class="sc-chest-line">🎁 {{ s.SCHOOL.chest_open }} · {{ s.SCHOOL.chest_xp.format(xp=r.chest_xp | fa) }}</p>{% endif %}
+  {% if not r.first_time %}<p class="muted small sc-center">{{ s.SCHOOL.replay_note }}</p>{% endif %}
+  <p class="sc-streak-line">{% if r.streak_grew and r.streak == 1 %}{{ s.SCHOOL.streak_new }}{% elif r.streak_grew %}{{ s.SCHOOL.streak_grew.format(n=r.streak | fa) }}{% else %}{{ s.SCHOOL.streak_kept }}{% endif %}</p>
+
+  {% set after = r.level_after %}
+  {% if after and card_key %}
+  {% set c = s.PERSONA_CARDS[card_key] %}
+  {% set before = r.level_before %}
+  {% set same_level = before and before.level == after.level %}
+  <a href="/persona" class="sc-knowledge lvl-{{ after.level }} {{ 'leveled' if leveled_up }}">
+    {{ avatar(card_key) }}
+    <span class="sc-k-body">
+      <span class="sc-k-row"><span>{{ c.name }} · {{ s.SCHOOL.knowledge }} · {{ s.SCHOOL.level.format(n=after.level | fa) }}</span>
+        <span class="num">{{ after.progress | fa }}{% if r.knowledge_gain %} <span class="plus">+{{ r.knowledge_gain | fa }}</span>{% endif %}</span></span>
+      <span class="sc-k-meter"><i style="--w: {{ before.progress if same_level else 0 }}%"></i><u style="--w: {{ after.progress - (before.progress if same_level else 0) }}%"></u></span>
+      <small>{% if leveled_up %}{{ s.SCHOOL.level_up.format(name=s.CARD_LEVELS[after.level]) }}{% elif r.knowledge_gain %}{{ s.SCHOOL.knowledge_up }}{% else %}{{ s.SCHOOL.knowledge_same }}{% endif %}</small>
+    </span>
+  </a>
+  {% elif r.knowledge_gain %}
+  <a href="/persona" class="sc-knowledge">
+    <span class="sc-k-body"><span class="sc-k-row"><span>{{ s.SCHOOL.knowledge }}</span><span class="plus">+{{ r.knowledge_gain | fa }}</span></span>
+      <small>{{ s.SCHOOL.no_card }}</small></span>
+    <span class="btn small">{{ s.SCHOOL.no_card_go }}</span>
+  </a>
+  {% endif %}
+
+  <div class="sc-done-actions">
+    <a class="sc-ghost" href="/school/lesson/{{ lesson.slug }}">{{ s.SCHOOL.done_again }}</a>
+    <a class="sc-check" href="/school">{{ s.SCHOOL.done_next }}</a>
+  </div>
+  <canvas class="sc-fx" aria-hidden="true"></canvas>
+</div>
+{% endblock %}

@@ -4,10 +4,11 @@
 {% set c = s.PERSONA_CARDS[card] %}
 {% set p = stored.persona %}
 <div class="tcard-stage">
-<article class="tcard {{ rarity }} {{ 'reveal' if reveal }}" style="--h: {{ c.hue }}" data-tilt>
+<article class="tcard {{ rarity }} lvl-{{ level.level }} {{ 'reveal' if reveal }}" style="--h: {{ c.hue }}" data-tilt>
   <span class="tcard-foil" aria-hidden="true"></span>
   <header class="tcard-top">
     <span class="tcard-rarity">✦ {{ s.PERSONA_RARITY[rarity] }}</span>
+    <a href="/school" class="tcard-level" title="{{ s.SCHOOL.level_name.format(name=s.CARD_LEVELS[level.level]) }}">{{ s.SCHOOL.level.format(n=level.level | fa) }}</a>
     <span class="tcard-no">#{{ c.number | fa }} <small>/ ۵۰</small></span>
   </header>
   <div class="tcard-art"><span class="tcard-ring" aria-hidden="true"></span><span class="tcard-emoji">{{ c.emoji }}</span></div>
@@ -17,7 +18,8 @@
   <p class="tcard-tag">{{ c.tagline }}</p>
   <div class="tcard-stats">
     {% for key, label in s.PERSONA_STATS.items() %}
-    <div class="tstat"><span>{{ label }}</span><b>{{ stats[key] | fa }}</b><i><em style="--w: {{ stats[key] }}%"></em></i></div>
+    {% set value = level.progress if key == "knowledge" else stats[key] %}
+    <div class="tstat"><span>{{ label }}{% if key == "knowledge" %} <small>· {{ s.SCHOOL.level.format(n=level.level | fa) }}</small>{% endif %}</span><b>{{ value | fa }}</b><i><em style="--w: {{ value }}%"></em></i></div>
     {% endfor %}
   </div>
   <footer class="tcard-traits">{% for t in c.traits %}<span>{{ t }}</span>{% endfor %}</footer>

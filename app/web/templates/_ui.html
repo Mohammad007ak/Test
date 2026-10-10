@@ -38,3 +38,8 @@
 {% set c = s.PERSONA_CARDS[key] %}
 <span class="avatar {{ size }}" style="--h: {{ c.hue }}" aria-hidden="true"><span class="avatar-emoji">{{ c.emoji }}</span></span>
 {%- endmacro %}
+
+{# پرنده وزیر، شخصیت مدرسه؛ حالت: idle، think، happy، sad، party #}
+{% macro mascot(mood="idle", cls="") -%}
+<span class="mascot {{ mood }} {{ cls }}" data-mood="{{ mood }}">{{ bird_svg(mood) }}</span>
+{%- endmacro %}

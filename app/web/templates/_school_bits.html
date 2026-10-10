@@ -1,0 +1,15 @@
+{# تکه‌های مشترک مدرسه: قرص زنجیره و امتیاز، نوار هفته #}
+{% macro pills(streak, xp) -%}
+<div class="sc-pills">
+  <span class="sc-pill fire" title="{{ s.SCHOOL.streak }}"><span class="flame" aria-hidden="true">🔥</span><span class="num">{{ streak | fa }}</span><span class="sr-only">{{ s.SCHOOL.streak }}</span></span>
+  <span class="sc-pill xp" title="{{ s.SCHOOL.xp }}"><span aria-hidden="true">⚡</span><span class="num">{{ xp | fa }}</span><span class="sr-only">{{ s.SCHOOL.xp }}</span></span>
+</div>
+{%- endmacro %}
+
+{% macro week(marks) -%}
+<div class="sc-week" role="list" aria-label="{{ s.SCHOOL.week }}">
+  {% for mark in marks %}
+  <div class="{{ mark }}" role="listitem" {% if mark == "frozen" %}title="{{ s.SCHOOL.frozen }}"{% endif %}><i aria-hidden="true">{% if mark == "done" %}✓{% elif mark == "frozen" %}❄{% elif mark == "today" %}🔥{% endif %}</i>{{ s.WEEKDAY_INITIALS[loop.index0] }}</div>
+  {% endfor %}
+</div>
+{%- endmacro %}

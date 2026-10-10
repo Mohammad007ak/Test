@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, mascot %}
+{% from "_school_bits.html" import pills, week %}
+{% block appbar %}<h1>{{ T.school }}</h1>{{ pills(view.streak, view.xp) }}{% endblock %}
+{% block content %}
+{{ week(view.week) }}
+<p class="muted small sc-freeze">{{ s.SCHOOL.freeze_hint }}</p>
+
+{% for m in maps %}
+{% set st = m.station %}
+<section class="sc-station">
+  <div class="sc-unit">
+    <div><small>{{ s.SCHOOL.course.format(n=m.course.number | fa) }} · {{ m.course.title }} · {{ s.SCHOOL.station.format(n=st.station.number | fa) }}</small><b>{{ st.station.title }}</b></div>
+    <span class="sc-count num">{{ s.SCHOOL.progress.format(done=st.done | fa, total=st.nodes | length | fa) }}</span>
+  </div>
+  <div class="sc-path" style="height: {{ m.height }}px">
+    <svg viewBox="0 0 {{ width }} {{ m.height }}" preserveAspectRatio="none" aria-hidden="true">
+      <path d="{{ m.path }}" class="sc-track" vector-effect="non-scaling-stroke"/>
+      <path d="{{ m.lit }}" class="sc-lit" vector-effect="non-scaling-stroke"/>
+    </svg>
+    {% for node in st.nodes %}
+    {% set x, y = m.points[loop.index0] %}
+    {% set pos = "left: " ~ (x / width * 100) ~ "%; top: " ~ y ~ "px; --d: " ~ loop.index0 * 70 ~ "ms" %}
+    {% if node.state == "lock" %}
+    <span class="sc-node lock" style="{{ pos }}" aria-label="{{ node.lesson.title }}" role="img"><span aria-hidden="true">{{ node.lesson.icon }}</span></span>
+    {% else %}
+    <a href="/school/lesson/{{ node.lesson.slug }}" class="sc-node {{ node.state }}" style="{{ pos }}" aria-label="{{ node.lesson.title }}">{% if node.state == "done" %}✓{% else %}<span aria-hidden="true">{{ node.lesson.icon }}</span>{% endif %}</a>
+    {% if node.state == "now" %}<span class="sc-tip" style="{{ pos }}" aria-hidden="true">{{ s.SCHOOL.start }}</span>{% endif %}
+    {% endif %}
+    <span class="sc-label {{ 'lit' if node.state != 'lock' }}" style="{{ pos }}">{{ node.lesson.title }}</span>
+    {% endfor %}
+    {% set x, y = m.points[-1] %}
+    {% set pos = "left: " ~ (x / width * 100) ~ "%; top: " ~ y ~ "px; --d: " ~ (st.nodes | length) * 70 ~ "ms" %}
+    <span class="sc-node chest {{ 'done' if st.complete else 'lock' }}" style="{{ pos }}" role="img" aria-label="{{ s.SCHOOL.chest_open if st.complete else s.SCHOOL.chest }}"><span aria-hidden="true">{{ '🎉' if st.complete else '🎁' }}</span></span>
+    <span class="sc-label {{ 'lit' if st.complete }}" style="{{ pos }}">{{ s.SCHOOL.chest }}</span>
+    {% if loop.first %}<span class="sc-map-bird" aria-hidden="true">{{ mascot("idle") }}</span>{% endif %}
+  </div>
+</section>
+{% endfor %}
+
+{% if upcoming %}
+<h2 class="section-title">{{ s.SCHOOL.soon }}</h2>
+<p class="muted small">{{ s.SCHOOL.soon_hint }}</p>
+<ul class="sc-soon">
+  {% for course, stations in upcoming %}
+  <li><span class="sc-soon-lock" aria-hidden="true">🔒</span><span><small>{{ s.SCHOOL.course.format(n=course.number | fa) }} · {{ course.title }}</small>{% for st in stations %}{{ st.title }}{{ " ← " if not loop.last }}{% endfor %}</span></li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

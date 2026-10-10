@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "_ui.html" import mascot %}
+{% block shell %}
+<div id="school-lesson" class="sc-lesson" data-continue="{{ s.SCHOOL.continue }}">
+  <header class="sc-top">
+    <a href="/school" class="sc-x" aria-label="{{ s.SCHOOL.close }}">✕</a>
+    <div class="sc-bar" role="progressbar" aria-label="{{ lesson.title }}" aria-valuemin="0" aria-valuemax="{{ cards | length }}" aria-valuenow="0"><span></span></div>
+    <span class="sc-combo num" aria-hidden="true"></span>
+  </header>
+  {% if replay %}<p class="sc-replay muted small">{{ s.SCHOOL.replay_note }}</p>{% endif %}
+
+  <div class="sc-stage">
+  {% for card in cards %}
+  {% set i = loop.index0 %}
+  <section class="sc-card" data-index="{{ i }}" data-kind="{{ card.kind }}" {{ 'hidden' if not loop.first }}>
+    <div class="sc-say">
+      <div class="sc-bubble">
+        <span class="sc-kicker">{{ card.kicker }}{% if card.sample %} <span class="sc-sample">{{ s.SCHOOL.sample }}</span>{% endif %}</span>
+        <h2 class="sc-q">{{ card.text | em }}</h2>
+      </div>
+      {{ mascot(card.mood, "sc-say-bird") }}
+    </div>
+    {% if card.sub %}<p class="sc-sub">{{ card.sub | em }}</p>{% endif %}
+
+    {% if card.art == "bill" %}
+    <div class="sc-art" aria-hidden="true">
+      <svg viewBox="0 0 200 150">
+        <rect x="20" y="20" width="160" height="84" rx="12" fill="#2fd393"/>
+        <rect x="32" y="32" width="136" height="60" rx="8" fill="none" stroke="#9ff5cf" stroke-width="4"/>
+        <circle cx="100" cy="62" r="20" fill="#9ff5cf"/>
+        <text x="100" y="71" text-anchor="middle" font-family="Vazirmatn, sans-serif" font-weight="900" font-size="24" fill="#179b68">۱۰۰</text>
+        <path d="M20 92 h160 v12 q-10 0 -14 10 q-6 14 -12 0 q-6 -10 -20 -6 q-8 26 -16 2 q-10 -8 -26 -2 q-10 22 -18 0 q-12 -8 -30 -4 q-8 18 -14 0 q-4 -8 -10 -8z" fill="#22b97c"/>
+        <path class="drip" d="M76 118 q5 9 0 13 q-5 -4 0 -13z" fill="#2fd393"/>
+        <path class="drip d2" d="M126 116 q5 9 0 13 q-5 -4 0 -13z" fill="#2fd393"/>
+        <path class="drip d3" d="M48 114 q4 7 0 10 q-4 -3 0 -10z" fill="#2fd393"/>
+        <ellipse cx="100" cy="142" rx="58" ry="6" fill="#2fd393" opacity=".35"/>
+      </svg>
+    </div>
+    {% endif %}
+
+    {% if card.bars %}
+    {% set top = card.bars[0][1] %}
+    <div class="sc-melt">
+      {% for label, value in card.bars %}
+      <div class="sc-melt-row {{ 'low' if value < top * 0.6 }}"><span>{{ label }}</span><i style="--w: {{ (value / top * 100) | round(1) }}%"></i><b class="num">{{ value | toman_short }}</b></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if card.graded %}
+    <form class="sc-form" hx-post="/school/lesson/{{ lesson.slug }}/answer" hx-target="#sc-feedback" hx-swap="innerHTML">
+      <input type="hidden" name="card" value="{{ i }}">
+      {% if card.kind == "slider" %}
+      {% set sl = card.slider %}
+      <div class="sc-range" data-unit="{{ card.slider_unit_toman }}" data-months-label="{{ s.SCHOOL.months_value }}">
+        <div class="sc-range-head"><b class="num" data-months>{{ s.SCHOOL.months_value.format(n=sl.low | fa) }}</b><span data-total>{{ (sl.low * card.slider_unit_toman) | toman_short }}</span></div>
+        <input type="range" name="answer" min="{{ sl.low }}" max="{{ sl.high }}" step="{{ sl.step }}" value="{{ sl.low }}" aria-label="{{ s.SCHOOL.months }}">
+        <div class="sc-jars" aria-hidden="true">{% for _ in range(sl.high) %}<div class="sc-jar {{ 'on' if loop.index <= sl.low }}"><i></i></div>{% endfor %}</div>
+      </div>
+      {% else %}
+      <fieldset class="sc-opts {{ 'two' if card.kind in ('truefalse', 'market') }}">
+        <legend class="sr-only">{{ card.kicker }}</legend>
+        {% for option in card.options %}
+        <label class="sc-opt {{ 'big' if card.kind in ('truefalse', 'market') }}"><input type="radio" name="answer" value="{{ loop.index0 }}" required><span>{{ option }}</span></label>
+        {% endfor %}
+      </fieldset>
+      {% endif %}
+      {% if card.note %}<p class="sc-note">{{ card.note }}</p>{% endif %}
+      <button class="sc-check" type="submit" {{ 'disabled' if card.kind != 'slider' }}>{{ s.SCHOOL.check }}</button>
+    </form>
+    {% else %}
+    {% if card.note %}<p class="sc-note">{{ card.note }}</p>{% endif %}
+    <button class="sc-check" type="button" data-next>{{ s.SCHOOL.got_it }}</button>
+    {% endif %}
+  </section>
+  {% endfor %}
+  </div>
+
+  <div id="sc-feedback" class="sc-sheet" role="status" aria-live="polite"></div>
+  <form id="sc-finish" method="post" action="/school/lesson/{{ lesson.slug }}/finish" hidden></form>
+  <canvas class="sc-fx" aria-hidden="true"></canvas>
+</div>
+{% endblock %}

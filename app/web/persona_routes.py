@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, Response
 from starlette.datastructures import FormData
 
 from app import onboarding_service as onboarding
-from app import services
+from app import school_service, services
 from app.assistant import interview
 from app.assistant.client import AssistantError, ChatModel
 from app.domain.money import to_persian_digits
@@ -94,6 +94,7 @@ def register_persona_routes(app: FastAPI, model: ChatModel | None = None) -> Non
         return page(request, "persona.html", {
             "active": "persona", "stored": stored, "card": stored.card,
             "rarity": rarity(stored.card), "stats": stats(stored.persona),
+            "level": school_service.card_level(db),
             "current_avatar": services.avatar(db),
             "reveal": request.query_params.get("new") == "1",
             "setup": not onboarding.load_state(db).done})

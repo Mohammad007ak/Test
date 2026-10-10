@@ -26,6 +26,7 @@ from app.domain.money import (
 )
 from app.web import strings
 from app.web.forms import plain_decimal
+from app.web.mascot import bird_svg
 
 TEHRAN = ZoneInfo("Asia/Tehran")
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -203,4 +204,13 @@ templates.env.filters["by_value"] = lambda lines: sorted(
     lines, key=lambda line: -(line.value_toman if line.value_toman is not None else -1))
 templates.env.filters["faq_item"] = lambda qa: {
     "@type": "Question", "name": qa[0], "acceptedAnswer": {"@type": "Answer", "text": qa[1]}}
-templates.env.globals.update(s=strings, T=strings.T, static=static_url)
+_EMPHASIS = re.compile(r"\*(.+?)\*")
+
+
+def emphasis(text: str) -> Markup:
+    """«*واژه*» در متن درس‌های مدرسه ← <em>؛ بقیه متن escape می‌شود."""
+    return Markup(_EMPHASIS.sub(r"<em>\1</em>", str(escape(text))))
+
+
+templates.env.filters["em"] = emphasis
+templates.env.globals.update(s=strings, T=strings.T, static=static_url, bird_svg=bird_svg)
