@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- با نگه داشتن آیکن وزیر: «اتصال پیامک» با کد، بدون نیاز به مرورگر (اندروید ۷.۱ به بعد) -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="sms_pair"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sms_code_shortcut"
+        android:shortcutLongLabel="@string/sms_code_shortcut_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="ir.getvazir.app"
+            android:targetClass="ir.getvazir.app.PairActivity"
+            android:data="vazir://code" />
+    </shortcut>
+</shortcuts>

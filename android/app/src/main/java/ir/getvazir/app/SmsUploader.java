@@ -7,6 +7,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -93,6 +95,54 @@ final class SmsUploader {
             return new JSONArray(prefs(ctx).getString(KEY_QUEUE, "[]"));
         } catch (JSONException e) {
             return new JSONArray();
+        }
+    }
+
+    /**
+     * کد ۶ رقمی صفحه پیامک را با توکن کاربر عوض می‌کند (در رشته پس‌زمینه صدا زده شود).
+     * خروجی {توکن، شماره پوشانده کاربر}، یا null اگر کد نادرست یا منقضی است یا اینترنت نیست.
+     */
+    static String[] redeemPairCode(Context ctx, String code) {
+        if (!code.matches("^[0-9۰-۹]{6}$")) {
+            return null;
+        }
+        String endpoint = "https://" + ctx.getString(R.string.host_name) + "/api/sms/pair";
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(endpoint).openConnection();
+            conn.setRequestMethod("POST");
+            conn.setConnectTimeout(TIMEOUT_MS);
+            conn.setReadTimeout(TIMEOUT_MS);
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            byte[] body = new JSONObject().put("code", code).toString().getBytes(StandardCharsets.UTF_8);
+            try (OutputStream out = conn.getOutputStream()) {
+                out.write(body);
+            }
+            if (conn.getResponseCode() != 200) {
+                return null;
+            }
+            JSONObject answer;
+            try (InputStream in = conn.getInputStream()) {
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                byte[] chunk = new byte[4096];
+                int n;
+                while ((n = in.read(chunk)) != -1) {
+                    buffer.write(chunk, 0, n);
+                }
+                answer = new JSONObject(new String(buffer.toByteArray(), StandardCharsets.UTF_8));
+            }
+            String token = answer.optString("token", "");
+            if (!TOKEN.matcher(token).matches()) {
+                return null;
+            }
+            return new String[] {token, answer.optString("account", "")};
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
         }
     }
 

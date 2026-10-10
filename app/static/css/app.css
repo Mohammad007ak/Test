@@ -2548,3 +2548,6 @@ a.sc-node:focus-visible { outline: 3px solid var(--sc-gold); outline-offset: 6px
 .sc-entry-cap .i { width: 14px; height: 14px; }
 .sc-entry:active { transform: scale(.92); }
 :root[data-theme="light"] .sc-entry.lit { color: #a86f0c; }
+
+.sms-pair-code { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .75rem; }
+.pair-code code { display: inline-block; font-size: 2rem; letter-spacing: .4em; padding: .4rem .8rem; }
