@@ -58,14 +58,14 @@ def test_parsian_day_in_order() -> None:
     from sqlalchemy import select
 
     from app.models import Account
-    from app.sms.pipeline import ingest
+    from app.sms.pipeline import choose_account, ingest
     from tests.unit.conftest import memory_session
 
     deposit = (FIXTURES / "parsian" / "deposit.txt").read_text("utf-8")
     withdrawal = (FIXTURES / "parsian" / "withdrawal.txt").read_text("utf-8")
     with memory_session() as session:
-        ingest(session, withdrawal, RECEIVED)
-        ingest(session, deposit, RECEIVED)  # دیرتر رسید ولی قدیمی‌تر است
+        choose_account(session, ingest(session, withdrawal, RECEIVED).sms, None)
+        assert ingest(session, deposit, RECEIVED).status == "parsed"  # دیرتر رسید ولی قدیمی‌تر است
         account = session.scalars(select(Account)).one()
         assert account.balance_toman == 441_772  # ۴٬۴۱۷٬۷۲۱ ریال پس از برداشت
 
