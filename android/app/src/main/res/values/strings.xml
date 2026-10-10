@@ -8,6 +8,13 @@
     <string name="sms_pair_denied">بدون اجازه دریافت پیامک، ثبت خودکار ممکن نیست.</string>
     <string name="sms_paired">پیامک‌های بانکی از این به بعد خودکار ثبت می‌شوند.</string>
     <string name="sms_unpaired">ثبت خودکار پیامک روی این گوشی خاموش شد.</string>
+    <string name="sms_code_shortcut">اتصال پیامک</string>
+    <string name="sms_code_shortcut_long">اتصال پیامک‌های بانکی با کد</string>
+    <string name="sms_code_title">اتصال پیامک با کد</string>
+    <string name="sms_code_message">در وزیر به صفحه «پیامک‌های بانکی» برو، «گرفتن کد اتصال» را بزن و کد ۶ رقمی را این‌جا وارد کن.</string>
+    <string name="sms_code_hint">کد ۶ رقمی</string>
+    <string name="sms_code_connect">وصل کن</string>
+    <string name="sms_code_failed">کد درست نبود یا منقضی شده (یا اینترنت قطع است). یک کد تازه بگیر و دوباره امتحان کن.</string>
     <string name="asset_statements" translatable="false">
         [{ \"relation\": [\"delegate_permission/common.handle_all_urls\"],
            \"target\": { \"namespace\": \"web\", \"site\": \"https://getvazir.ir\" } }]

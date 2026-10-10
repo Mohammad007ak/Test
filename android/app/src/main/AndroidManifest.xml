@@ -34,6 +34,10 @@
             <meta-data
                 android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY"
                 android:value="webview" />
+            <!-- میان‌بر «اتصال پیامک» با نگه داشتن آیکن (کد اتصال، مستقل از مرورگر) -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -47,7 +51,8 @@
             </intent-filter>
         </activity>
 
-        <!-- اتصال پیامک بانکی: سایت intent://pair یا intent://unpair را باز می‌کند -->
+        <!-- اتصال پیامک بانکی: سایت intent://pair یا intent://unpair را باز می‌کند؛
+             میان‌بر آیکن vazir://code را (ورود کد اتصال) -->
         <activity
             android:name=".PairActivity"
             android:exported="true"
@@ -59,6 +64,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="vazir" android:host="pair" />
                 <data android:scheme="vazir" android:host="unpair" />
+                <data android:scheme="vazir" android:host="code" />
             </intent-filter>
         </activity>
 
