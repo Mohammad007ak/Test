@@ -71,6 +71,8 @@ class User(Base):
     # آخرین بازدید (با فاصله حداقل چند دقیقه به‌روز می‌شود) و غیرفعال‌شده از پنل مدیریت
     last_seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     disabled_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    # اشتراک «وزیر ویژه» (فعلاً از پنل مدیریت داده می‌شود): جان بی‌نهایت در مدرسه
+    premium_until: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
 
 class UserOwned:
@@ -412,3 +414,7 @@ class SchoolStats(UserOwned, Base):
     best_streak: Mapped[int] = mapped_column(Integer, default=0)
     last_day: Mapped[date | None] = mapped_column(Date)  # روز تهران
     freeze_day: Mapped[date | None] = mapped_column(Date)  # آخرین روز جاافتاده‌ای که یخ زد
+    hearts: Mapped[int] = mapped_column(Integer, default=5, server_default="5")
+    hearts_since: Mapped[datetime | None] = mapped_column(UTCDateTime)  # شروع شمارش جان بعدی
+    # سطح شروع هر تاپیک از آزمون تعیین سطح: «basics=2,loans=1»؛ خالی یعنی آزمون نداده
+    levels: Mapped[str] = mapped_column(String(200), default="", server_default="")

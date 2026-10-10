@@ -1,6 +1,13 @@
-{# تکه‌های مشترک مدرسه: قرص زنجیره و امتیاز، نوار هفته #}
-{% macro pills(streak, xp) -%}
+{# تکه‌های مشترک مدرسه: قرص زنجیره، امتیاز و جان، نوار هفته #}
+{% macro hearts_pill(h, wait="") -%}
+{% if h %}
+<span class="sc-pill heart {{ 'inf' if h.premium }} {{ 'empty' if h.empty }}" title="{{ s.SCHOOL.hearts_infinite if h.premium else (s.SCHOOL.hearts_next.format(wait=wait) if wait else s.SCHOOL.hearts_full) }}"><span aria-hidden="true">❤️</span><span class="num" data-hearts>{{ '∞' if h.premium else h.count | fa }}</span><span class="sr-only">{{ s.SCHOOL.hearts }}</span></span>
+{% endif %}
+{%- endmacro %}
+
+{% macro pills(streak, xp, h=None, wait="") -%}
 <div class="sc-pills">
+  {{ hearts_pill(h, wait) }}
   <span class="sc-pill fire" title="{{ s.SCHOOL.streak }}"><span class="flame" aria-hidden="true">🔥</span><span class="num">{{ streak | fa }}</span><span class="sr-only">{{ s.SCHOOL.streak }}</span></span>
   <span class="sc-pill xp" title="{{ s.SCHOOL.xp }}"><span aria-hidden="true">⚡</span><span class="num">{{ xp | fa }}</span><span class="sr-only">{{ s.SCHOOL.xp }}</span></span>
 </div>

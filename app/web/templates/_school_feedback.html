@@ -6,7 +6,7 @@
   {% else %}<button type="button" class="sc-check" data-dismiss>{{ s.SCHOOL.understood }}</button>{% endif %}
 </div>
 {% else %}
-<div class="sc-fb {{ 'good' if ok else 'bad' }}" data-ok="{{ 1 if ok else 0 }}" data-counted="{{ 1 if counted else 0 }}" data-pick="{{ pick }}" data-correct="{{ card.correct if card.correct is not none else '' }}">
+<div class="sc-fb {{ 'good' if ok else 'bad' }}" data-left-hearts="{{ ('∞' if hearts.premium else hearts.count) if hearts else '' }}" data-ok="{{ 1 if ok else 0 }}" data-counted="{{ 1 if counted else 0 }}" data-pick="{{ pick }}" data-correct="{{ card.correct if card.correct is not none else '' }}">
   {{ mascot("party" if ok else "sad", "sc-fb-bird") }}
   <h3><span class="sc-badge" aria-hidden="true">{{ '✓' if ok else '✕' }}</span>{{ title }}</h3>
   {% if card.race %}
@@ -23,6 +23,11 @@
   </div>
   {% endif %}
   <p>{{ card.good if ok else card.bad }}</p>
+  {% if out %}
+  <p class="sc-out"><strong>💔 {{ s.SCHOOL.hearts_out_title }}</strong> {{ s.SCHOOL.hearts_out_body.format(wait=wait) }} <span class="muted">{{ s.SCHOOL.premium_pitch }}</span></p>
+  <a class="sc-check" href="/school" data-out>{{ s.SCHOOL.hearts_out_go }}</a>
+  {% else %}
   <button type="button" class="sc-check" data-next>{{ s.SCHOOL.continue if ok else s.SCHOOL.understood }}</button>
+  {% endif %}
 </div>
 {% endif %}

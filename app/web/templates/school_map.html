@@ -1,16 +1,40 @@
 {% extends "base.html" %}
 {% from "_ui.html" import icon, mascot %}
 {% from "_school_bits.html" import pills, week %}
-{% block appbar %}<h1>{{ T.school }}</h1>{{ pills(view.streak, view.xp) }}{% endblock %}
+{% block appbar %}<h1>{{ T.school }}</h1>{{ pills(view.streak, view.xp, view.hearts, wait) }}{% endblock %}
 {% block content %}
+{% if not view.placed %}
+<section class="sc-placement">
+  {{ mascot("think", "sc-placement-bird") }}
+  <div>
+    <h2>{{ s.SCHOOL.placement_title }}</h2>
+    <p>{{ s.SCHOOL.placement_body }}</p>
+    <div class="sc-placement-actions">
+      <a href="/school/lesson/placement" class="sc-today-go">{{ s.SCHOOL.placement_go }} ←</a>
+      <form method="post" action="/school/placement/skip"><button type="submit" class="text-btn">{{ s.SCHOOL.placement_skip }}</button></form>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 {{ week(view.week) }}
-<p class="muted small sc-freeze">{{ s.SCHOOL.freeze_hint }}</p>
+{% if not view.hearts.premium and view.hearts.count < 5 %}<p class="muted small sc-freeze">❤️ {{ s.SCHOOL.hearts_next.format(wait=wait) }} · {{ s.SCHOOL.review_heart }}</p>{% else %}<p class="muted small sc-freeze">{{ s.SCHOOL.freeze_hint }}</p>{% endif %}
+
+<nav class="sc-topics" aria-label="تاپیک‌ها">
+  {% for c in view.courses %}
+  <a href="/school?t={{ c.course.key }}" class="sc-topic {{ 'on' if c.course.key == chosen.course.key }}" {{ 'aria-current="page"' | safe if c.course.key == chosen.course.key }}>
+    <strong>{{ c.course.title }}</strong>
+    <small>{{ levels[c.start_level] }} · {{ s.SCHOOL.progress.format(done=c.done | fa, total=c.total | fa) }}</small>
+    <i style="--w: {{ (c.done / c.total * 100) | round(1) }}%"></i>
+  </a>
+  {% endfor %}
+</nav>
 
 {% for m in maps %}
 {% set st = m.station %}
 <section class="sc-station">
-  <div class="sc-unit">
-    <div><small>{{ s.SCHOOL.course.format(n=m.course.number | fa) }} · {{ m.course.title }} · {{ s.SCHOOL.station.format(n=st.station.number | fa) }}</small><b>{{ st.station.title }}</b></div>
+  <div class="sc-unit lvl{{ st.station.number }}">
+    <div><small>{{ chosen.course.title }} · {{ levels[st.station.number] }}{% if st.station.number < chosen.start_level %} · {{ s.SCHOOL.review }}{% endif %}</small><b>{{ st.station.title }}</b></div>
     <span class="sc-count num">{{ s.SCHOOL.progress.format(done=st.done | fa, total=st.nodes | length | fa) }}</span>
   </div>
   <div class="sc-path" style="height: {{ m.height }}px">
@@ -37,14 +61,5 @@
   </div>
 </section>
 {% endfor %}
-
-{% if upcoming %}
-<h2 class="section-title">{{ s.SCHOOL.soon }}</h2>
-<p class="muted small">{{ s.SCHOOL.soon_hint }}</p>
-<ul class="sc-soon">
-  {% for course, stations in upcoming %}
-  <li><span class="sc-soon-lock" aria-hidden="true">🔒</span><span><small>{{ s.SCHOOL.course.format(n=course.number | fa) }} · {{ course.title }}</small>{% for st in stations %}{{ st.title }}{{ " ← " if not loop.last }}{% endfor %}</span></li>
-  {% endfor %}
-</ul>
-{% endif %}
+{% if view.placed %}<p class="sc-center small"><a href="/school/lesson/placement" class="muted">{{ s.SCHOOL.placement_again }}</a></p>{% endif %}
 {% endblock %}

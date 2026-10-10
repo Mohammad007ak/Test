@@ -7,7 +7,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import cached_property
 
@@ -17,10 +17,11 @@ from sqlalchemy.orm import Session
 
 from app import price_history, services
 from app.adapters.prices.history import HistorySource
+from app.db import NOBODY, USER_KEY
 from app.domain import school
 from app.domain.persona import stats as persona_stats
 from app.domain.spending import TEHRAN, shift_month
-from app.models import LessonProgress, SchoolStats, utcnow
+from app.models import LessonProgress, SchoolStats, User, utcnow
 from app.school.content import COURSES, find, path
 from app.school.lessons import (
     MIN_PERSONAL_TOMAN,
@@ -121,7 +122,8 @@ def _personal(toman: int, sample: int) -> Personal:
 def load_stats(db: Session) -> SchoolStats:
     row = db.scalars(select(SchoolStats)).first()
     if row is None:
-        row = SchoolStats(xp=0, knowledge=0, streak=0, best_streak=0)
+        row = SchoolStats(xp=0, knowledge=0, streak=0, best_streak=0,
+                          hearts=school.MAX_HEARTS, levels="")
         db.add(row)
     return row
 
@@ -153,8 +155,12 @@ def card_level(db: Session, bonus: int | None = None) -> school.CardLevel | None
 @dataclass(frozen=True)
 class Node:
     lesson: Lesson
-    state: str  # done، now، lock
+    state: str  # done، now، open (سطح پایین‌تر از سطح شروع، برای مرور)، lock
     best_correct: int = 0
+
+    @property
+    def playable(self) -> bool:
+        return self.state != "lock"
 
 
 @dataclass(frozen=True)
@@ -172,54 +178,153 @@ class StationView:
 
 
 @dataclass(frozen=True)
+class CourseView:
+    course: Course
+    stations: tuple[StationView, ...]
+    start_level: int  # از آزمون تعیین سطح؛ ۱ اگر آزمون نداده
+
+    @property
+    def next_lesson(self) -> Lesson | None:
+        return next((n.lesson for s in self.stations for n in s.nodes if n.state == "now"), None)
+
+    @property
+    def done(self) -> int:
+        return sum(s.done for s in self.stations)
+
+    @property
+    def total(self) -> int:
+        return sum(len(s.nodes) for s in self.stations)
+
+
+@dataclass(frozen=True)
+class HeartsView:
+    count: int
+    premium: bool  # وزیر ویژه: جان بی‌نهایت
+    next_in: timedelta | None
+
+    @property
+    def empty(self) -> bool:
+        return not self.premium and self.count <= 0
+
+
+@dataclass(frozen=True)
 class Overview:
     xp: int
     streak: int
     best_streak: int
     week: list[str]
-    stations: list[tuple[Course, StationView]]
-    next_lesson: Lesson | None  # درس امروز: اولین درس تمام‌نشده
+    courses: list[CourseView]
+    next_lesson: Lesson | None  # درس امروز
     completed: int
     total: int
+    placed: bool  # آزمون تعیین سطح داده شده
+    hearts: HeartsView
+
+    def course(self, key: str) -> CourseView | None:
+        return next((c for c in self.courses if c.course.key == key), None)
 
 
-def overview(db: Session, today: date) -> Overview:
-    """نقشه مسیر: هر درس تمام‌شده باز است؛ اولین تمام‌نشده «حالا»؛ بقیه قفل."""
+def levels(row: SchoolStats | None) -> dict[str, int]:
+    """«basics=2,loans=1» ← سطح شروع هر تاپیک."""
+    out: dict[str, int] = {}
+    for part in (row.levels if row else "").split(","):
+        key, _, value = part.partition("=")
+        if key and value.isdecimal() and 1 <= int(value) <= 3:
+            out[key] = int(value)
+    return out
+
+
+def is_placed(db: Session) -> bool:
+    return bool(levels(db.scalars(select(SchoolStats)).first()))
+
+
+def save_levels(db: Session, chosen: dict[str, int]) -> None:
+    row = load_stats(db)
+    row.levels = ",".join(f"{key}={level}" for key, level in chosen.items())
+
+
+def _course_view(course: Course, done: dict[str, LessonProgress], start: int) -> CourseView:
+    found_now = False
+    stations = []
+    for station in course.stations:
+        nodes = []
+        for lesson in station.lessons:
+            record = done.get(lesson.slug)
+            if record is not None:
+                nodes.append(Node(lesson, "done", record.best_correct))
+            elif station.number < start:
+                nodes.append(Node(lesson, "open"))
+            elif not found_now:
+                found_now = True
+                nodes.append(Node(lesson, "now"))
+            else:
+                nodes.append(Node(lesson, "lock"))
+        stations.append(StationView(station, tuple(nodes)))
+    return CourseView(course, tuple(stations), start)
+
+
+def is_premium(db: Session, now: datetime | None = None) -> bool:
+    user = db.get(User, db.info.get(USER_KEY, NOBODY))
+    until = user.premium_until if user else None
+    return until is not None and until > (now or utcnow())
+
+
+def _hearts(row: SchoolStats | None) -> school.Hearts:
+    if row is None:
+        return school.Hearts(school.MAX_HEARTS, None)
+    return school.Hearts(row.hearts, row.hearts_since)
+
+
+def hearts(db: Session, now: datetime | None = None) -> HeartsView:
+    now = now or utcnow()
+    current = school.hearts_now(_hearts(db.scalars(select(SchoolStats)).first()), now)
+    return HeartsView(current.count, is_premium(db, now), school.next_heart_in(current, now))
+
+
+def lose_heart(db: Session, now: datetime | None = None) -> HeartsView:
+    """جواب غلط در درس تازه؛ وزیر ویژه جان از دست نمی‌دهد."""
+    now = now or utcnow()
+    if not is_premium(db, now):
+        row = load_stats(db)
+        h = school.lose_heart(_hearts(row), now)
+        row.hearts, row.hearts_since = h.count, h.since
+        db.flush()
+    return hearts(db, now)
+
+
+def _gain_heart(row: SchoolStats, now: datetime) -> None:
+    h = school.gain_heart(_hearts(row), now)
+    row.hearts, row.hearts_since = h.count, h.since
+
+
+def overview(db: Session, today: date, now: datetime | None = None) -> Overview:
+    """نقشه همه تاپیک‌ها: هر تاپیک از سطح شروع خودش پیش می‌رود؛ سطح‌های پایین‌تر برای مرور باز."""
     done = progress(db)
     row = db.scalars(select(SchoolStats)).first()
     streak = _streak(row) if row else school.Streak()
-    stations: list[tuple[Course, StationView]] = []
-    next_lesson: Lesson | None = None
-    for course in COURSES:
-        for station in course.stations:
-            nodes = []
-            for lesson in station.lessons:
-                record = done.get(lesson.slug)
-                if record is not None:
-                    nodes.append(Node(lesson, "done", record.best_correct))
-                elif next_lesson is None:
-                    next_lesson = lesson
-                    nodes.append(Node(lesson, "now"))
-                else:
-                    nodes.append(Node(lesson, "lock"))
-            stations.append((course, StationView(station, tuple(nodes))))
+    start = levels(row)
+    courses = [_course_view(course, done, start.get(course.key, 1)) for course in COURSES]
     lessons = path()
     return Overview(
         xp=row.xp if row else 0, streak=school.current_streak(streak, today),
-        best_streak=streak.best, week=school.week_marks(streak, today), stations=stations,
-        next_lesson=next_lesson, completed=sum(1 for *_x, lesson in lessons
-                                               if lesson.slug in done),
-        total=len(lessons))
+        best_streak=streak.best, week=school.week_marks(streak, today), courses=courses,
+        next_lesson=next((c.next_lesson for c in courses if c.next_lesson), None),
+        completed=sum(1 for *_x, lesson in lessons if lesson.slug in done),
+        total=len(lessons), placed=bool(start), hearts=hearts(db, now))
+
+
+def node(db: Session, slug: str) -> Node | None:
+    found = find(slug)
+    if found is None:
+        return None
+    row = db.scalars(select(SchoolStats)).first()
+    view = _course_view(found[0], progress(db), levels(row).get(found[0].key, 1))
+    return next(n for s in view.stations for n in s.nodes if n.lesson.slug == slug)
 
 
 def unlocked(db: Session, slug: str) -> bool:
-    """درسی باز است که تمام شده باشد یا درس قبلی‌اش در مسیر تمام شده باشد."""
-    done = progress(db)
-    slugs = [lesson.slug for *_x, lesson in path()]
-    if slug not in slugs:
-        return False
-    i = slugs.index(slug)
-    return slug in done or i == 0 or slugs[i - 1] in done
+    found = node(db, slug)
+    return found is not None and found.playable
 
 
 @dataclass(frozen=True)
@@ -261,6 +366,8 @@ def finish(db: Session, slug: str, correct: int, questions: int, today: date) ->
     chest = 0
     if first_time and all(lesson.slug in progress(db) for lesson in station.lessons):
         chest, finale = school.CHEST_XP, station.finale
+    if not first_time:  # مرور درس تمام‌شده یک جان برمی‌گرداند
+        _gain_heart(stats, utcnow())
     xp = school.lesson_xp(correct, first_time)
     old_count = stats.streak if school.current_streak(_streak(stats), today) else 0
     streak = school.record_day(_streak(stats), today)

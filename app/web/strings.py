@@ -1481,6 +1481,12 @@ WELCOME_POINTS: tuple[tuple[str, int, str], ...] = (
 PAGE_TITLES["admin"] = "مدیریت کاربران"
 TAB_OF_PAGE["admin"] = "more"
 ADMIN: dict[str, str] = {
+    "premium_grant": "۳ ماه وزیر ویژه",
+    "premium_extend": "تمدید ۳ ماه",
+    "premium_revoke": "لغو ویژه",
+    "premium_until": "ویژه تا {date}",
+    "premium_done": "وزیر ویژه داده شد",
+    "premium_revoked": "وزیر ویژه لغو شد",
     "more_sub": "آمار، فهرست کاربران، غیرفعال‌سازی و حذف",
     "privacy_note": "این‌جا فقط شمارش دیده می‌شود؛ مبلغ، نام دارایی، متن پیامک و شماره کامل هیچ "
                     "کاربری نمایش داده نمی‌شود.",
@@ -1712,5 +1718,37 @@ SCHOOL: dict[str, str] = {
     "expired": "درس از اول شروع شد؛ دوباره امتحان کن.",
     "not_finished": "اول همه سؤال‌های درس را جواب بده.",
     "lesson_minutes": "۲",
+    # جان
+    "hearts": "جان",
+    "hearts_infinite": "جان بی‌نهایت (وزیر ویژه)",
+    "hearts_empty": ("جانت تموم شده؛ {wait} دیگه یه جان برمی‌گرده، یا یه درس تموم‌شده رو مرور کن "
+                     "تا جان بگیری."),
+    "hearts_out_title": "جانت تموم شد!",
+    "hearts_out_body": "{wait} دیگه یه جان برمی‌گرده. مرور یه درس تموم‌شده هم یه جان می‌ده.",
+    "hearts_out_go": "برگشت به نقشه",
+    "hearts_next": "جان بعدی: {wait}",
+    "hearts_full": "جان‌ها پرن",
+    "premium_pitch": "با وزیر ویژه جانت بی‌نهایته.",
+    "review": "مرور",
+    "review_heart": "مرور = +۱ جان",
+    # آزمون تعیین سطح
+    "placement_title": "آزمون تعیین سطح",
+    "placement_body": "۱۲ سؤال کوتاه تا هر تاپیک از سطح خودت شروع بشه؛ حدود ۳ دقیقه.",
+    "placement_go": "شروع آزمون",
+    "placement_skip": "از مقدماتی شروع می‌کنم",
+    "placed": "سطح‌هات مشخص شد: {levels}",
+    "placement_again": "آزمون دوباره",
+    "topic_level": "سطح شروع: {level}",
+    # انواع تازه کارت
+    "story": "ماجرا",
+    "match_hint": "اول یکی از راست، بعد جفتش از چپ رو بزن.",
+    "order_hint": "به ترتیب درست روشون بزن؛ دوباره بزنی برمی‌داره.",
+    "order_reset": "از اول",
+    "number_placeholder": "عدد رو بنویس",
+    "multi_hint": "می‌تونه بیشتر از یکی درست باشه.",
+    "quick_start": "شروع دور سریع",
+    "quick_left": "{n} ثانیه",
+    "true": "درسته",
+    "false": "غلطه",
 }
 T["school"] = "مدرسه وزیر"

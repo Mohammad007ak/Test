@@ -53,6 +53,15 @@
         {% if u.passkey %}<span class="pill">{{ A.passkey }}</span>{% endif %}</span>
       <span class="row-sub">{{ A.joined.format(date=u.created_at | jalali(false)) }} · {{ A.seen.format(date=u.last_seen_at | jalali) if u.last_seen_at else A.never_seen }}</span>
       <span class="row-sub">{{ A.counts.format(assets=u.assets | fa, accounts=u.accounts | fa, tx=u.transactions | fa, sms=u.sms | fa) }}</span>
+      <span class="admin-actions">
+        {% if u.premium_until %}
+        <span class="pill">{{ A.premium_until.format(date=u.premium_until | jalali(false)) }}</span>
+        <form method="post" action="/admin/users/{{ u.id }}/premium"><button type="submit" class="btn ghost small-btn">{{ A.premium_extend }}</button></form>
+        <form method="post" action="/admin/users/{{ u.id }}/premium/revoke"><button type="submit" class="btn ghost small-btn">{{ A.premium_revoke }}</button></form>
+        {% else %}
+        <form method="post" action="/admin/users/{{ u.id }}/premium"><button type="submit" class="btn ghost small-btn">{{ A.premium_grant }}</button></form>
+        {% endif %}
+      </span>
       {% if not u.is_owner %}
       <span class="admin-actions">
         {% if u.disabled %}

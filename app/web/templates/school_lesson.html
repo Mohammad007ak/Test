@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% from "_ui.html" import mascot %}
+{% from "_school_bits.html" import hearts_pill %}
 {% block shell %}
 <div id="school-lesson" class="sc-lesson" data-continue="{{ s.SCHOOL.continue }}">
   <header class="sc-top">
     <a href="/school" class="sc-x" aria-label="{{ s.SCHOOL.close }}">✕</a>
     <div class="sc-bar" role="progressbar" aria-label="{{ lesson.title }}" aria-valuemin="0" aria-valuemax="{{ cards | length }}" aria-valuenow="0"><span></span></div>
     <span class="sc-combo num" aria-hidden="true"></span>
+    {{ hearts_pill(hearts) }}
   </header>
   {% if replay %}<p class="sc-replay muted small">{{ s.SCHOOL.replay_note }}</p>{% endif %}
 
@@ -13,10 +15,11 @@
   {% for card in cards %}
   {% set i = loop.index0 %}
   <section class="sc-card" data-index="{{ i }}" data-kind="{{ card.kind }}" {{ 'hidden' if not loop.first }}>
+    {% if card.story %}<div class="sc-story"><span aria-hidden="true">📖</span> {{ card.story | em }}</div>{% endif %}
     <div class="sc-say">
       <div class="sc-bubble">
         <span class="sc-kicker">{{ card.kicker }}{% if card.sample %} <span class="sc-sample">{{ s.SCHOOL.sample }}</span>{% endif %}</span>
-        <h2 class="sc-q">{{ card.text | em }}</h2>
+        <h2 class="sc-q">{% if card.kind == "blank" %}{{ (card.text | em | string).replace("___", '<span class="sc-gap">____</span>') | safe }}{% else %}{{ card.text | em }}{% endif %}</h2>
       </div>
       {{ mascot(card.mood, "sc-say-bird") }}
     </div>
@@ -57,8 +60,44 @@
         <input type="range" name="answer" min="{{ sl.low }}" max="{{ sl.high }}" step="{{ sl.step }}" value="{{ sl.low }}" aria-label="{{ s.SCHOOL.months }}">
         <div class="sc-jars" aria-hidden="true">{% for _ in range(sl.high) %}<div class="sc-jar {{ 'on' if loop.index <= sl.low }}"><i></i></div>{% endfor %}</div>
       </div>
+      {% elif card.kind == "number" %}
+      <div class="sc-number"><input type="text" name="answer" inputmode="decimal" autocomplete="off" placeholder="{{ s.SCHOOL.number_placeholder }}" aria-label="{{ s.SCHOOL.number_placeholder }}" required>{% if card.unit %}<span>{{ card.unit }}</span>{% endif %}</div>
+      {% elif card.kind == "match" %}
+      <input type="hidden" name="answer" value="">
+      <p class="sc-note">{{ s.SCHOOL.match_hint }}</p>
+      <div class="sc-match" data-count="{{ card.pairs | length }}">
+        <div class="sc-match-col" data-side="left">{% for left, _right in card.pairs %}<button type="button" class="sc-chip" data-left="{{ loop.index0 }}">{{ left }}</button>{% endfor %}</div>
+        <div class="sc-match-col" data-side="right">{% for j, text in card.shown %}<button type="button" class="sc-chip" data-right="{{ j }}">{{ text }}</button>{% endfor %}</div>
+      </div>
+      {% elif card.kind == "order" %}
+      <input type="hidden" name="answer" value="">
+      <p class="sc-note">{{ s.SCHOOL.order_hint }}</p>
+      <ol class="sc-order-picked" aria-live="polite"></ol>
+      <div class="sc-order" data-count="{{ card.items | length }}">{% for j, text in card.shown %}<button type="button" class="sc-chip" data-pick="{{ j }}">{{ text }}</button>{% endfor %}</div>
+      {% elif card.kind == "multi" %}
+      <input type="hidden" name="answer" value="">
+      <p class="sc-note">{{ s.SCHOOL.multi_hint }}</p>
+      <fieldset class="sc-opts">
+        <legend class="sr-only">{{ card.kicker }}</legend>
+        {% for option in card.options %}
+        <label class="sc-opt multi"><input type="checkbox" value="{{ loop.index0 }}" data-multi><span>{{ option }}</span></label>
+        {% endfor %}
+      </fieldset>
+      {% elif card.kind == "quick" %}
+      <input type="hidden" name="answer" value="">
+      <div class="sc-quick" data-seconds="{{ card.seconds }}" data-count="{{ card.statements | length }}">
+        <div class="sc-quick-time" aria-hidden="true"><span></span></div>
+        <p class="sc-quick-left num" aria-live="off"></p>
+        {% for text, _truth in card.statements %}
+        <div class="sc-quick-item" data-q="{{ loop.index0 }}" {{ 'hidden' }}>
+          <p class="sc-quick-text"><span class="num">{{ loop.index | fa }}/{{ card.statements | length | fa }}</span> {{ text }}</p>
+          <div class="sc-opts two"><button type="button" class="sc-chip big" data-say="1">👍 {{ s.SCHOOL.true }}</button><button type="button" class="sc-chip big" data-say="0">👎 {{ s.SCHOOL.false }}</button></div>
+        </div>
+        {% endfor %}
+        <button type="button" class="sc-check" data-quick-start>{{ s.SCHOOL.quick_start }} ⚡</button>
+      </div>
       {% else %}
-      <fieldset class="sc-opts {{ 'two' if card.kind in ('truefalse', 'market') }}">
+      <fieldset class="sc-opts {{ 'two' if card.kind in ('truefalse', 'market') }} {{ 'chips' if card.kind == 'blank' }}">
         <legend class="sr-only">{{ card.kicker }}</legend>
         {% for option in card.options %}
         <label class="sc-opt {{ 'big' if card.kind in ('truefalse', 'market') }}"><input type="radio" name="answer" value="{{ loop.index0 }}" required><span>{{ option }}</span></label>
@@ -66,7 +105,7 @@
       </fieldset>
       {% endif %}
       {% if card.note %}<p class="sc-note">{{ card.note }}</p>{% endif %}
-      <button class="sc-check" type="submit" {{ 'disabled' if card.kind != 'slider' }}>{{ s.SCHOOL.check }}</button>
+      <button class="sc-check" type="submit" {{ 'disabled' if card.kind != 'slider' }} {{ 'hidden' if card.kind == 'quick' }}>{{ s.SCHOOL.check }}</button>
     </form>
     {% else %}
     {% if card.note %}<p class="sc-note">{{ card.note }}</p>{% endif %}
@@ -78,6 +117,7 @@
 
   <div id="sc-feedback" class="sc-sheet" role="status" aria-live="polite"></div>
   <form id="sc-finish" method="post" action="/school/lesson/{{ lesson.slug }}/finish" hidden></form>
+  <a id="sc-out" href="/school" hidden></a>
   <canvas class="sc-fx" aria-hidden="true"></canvas>
 </div>
 {% endblock %}

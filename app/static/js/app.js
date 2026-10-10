@@ -913,7 +913,12 @@
       var button = form && form.querySelector(".sc-check");
       if (fb.dataset.retry) { if (button) button.disabled = false; showSheet(false); return; }
       var ok = fb.dataset.ok === "1";
-      form.classList.add("sc-locked");
+      form.classList.add("sc-locked", ok ? "is-right" : "is-wrong");
+      var pill = app.querySelector("[data-hearts]");
+      if (pill && fb.dataset.leftHearts !== "") {
+        if (pill.textContent !== faNumber.format(Number(fb.dataset.leftHearts)) && !ok) pill.closest(".sc-pill").classList.add("lost");
+        pill.textContent = fb.dataset.leftHearts === "∞" ? "∞" : faNumber.format(Number(fb.dataset.leftHearts));
+      }
       form.querySelectorAll("input").forEach(function (input) { if (!input.checked || input.type === "range") input.disabled = true; });
       if (button) button.hidden = true;
       var opts = card.querySelectorAll(".sc-opt");
@@ -934,16 +939,113 @@
       setTimeout(function () { showSheet(ok); }, wait);
     }
 
+    function ready(form, ok) {
+      var b = form.querySelector(".sc-check[type=submit]");
+      if (b) b.disabled = !ok;
+    }
+    function setAnswer(form, value, complete) {
+      form.querySelector("input[name=answer]").value = value;
+      ready(form, complete);
+    }
+    // جفت‌کردن: یکی از ستون راست، بعد جفتش از ستون چپ؛ جواب = برای هر اصطلاح شماره معنای انتخابی
+    function matchClick(chip) {
+      var form = chip.closest("form"), box = chip.closest(".sc-match");
+      if (form.classList.contains("sc-locked")) return;
+      var count = Number(box.dataset.count), pairs = JSON.parse(box.dataset.pairs || "{}");
+      if (chip.dataset.left !== undefined) {
+        var left = chip.dataset.left;
+        if (pairs[left] !== undefined) { delete pairs[left]; }
+        box.querySelectorAll("[data-left]").forEach(function (c) { c.classList.toggle("sel", c === chip); });
+        box.dataset.active = left;
+      } else if (box.dataset.active !== undefined && box.dataset.active !== "") {
+        var right = chip.dataset.right;
+        Object.keys(pairs).forEach(function (k) { if (pairs[k] === right) delete pairs[k]; });
+        pairs[box.dataset.active] = right;
+        box.dataset.active = "";
+      }
+      box.dataset.pairs = JSON.stringify(pairs);
+      box.querySelectorAll(".sc-chip").forEach(function (c) { c.removeAttribute("data-pair"); if (c.dataset.left !== box.dataset.active) c.classList.remove("sel"); });
+      Object.keys(pairs).forEach(function (k, n) {
+        box.querySelector('[data-left="' + k + '"]').setAttribute("data-pair", String(n % 5));
+        box.querySelector('[data-right="' + pairs[k] + '"]').setAttribute("data-pair", String(n % 5));
+      });
+      var answer = [];
+      for (var i = 0; i < count; i++) answer.push(pairs[i] === undefined ? "" : pairs[i]);
+      setAnswer(form, answer.join(","), Object.keys(pairs).length === count);
+    }
+    // مرتب‌کردن: به ترتیب روی گزینه‌ها بزن؛ دوباره زدن برش می‌دارد
+    function orderClick(chip) {
+      var form = chip.closest("form"), box = chip.closest(".sc-order");
+      if (form.classList.contains("sc-locked")) return;
+      var picked = (box.dataset.picked || "").split(",").filter(Boolean);
+      var at = picked.indexOf(chip.dataset.pick);
+      if (at === -1) picked.push(chip.dataset.pick); else picked.splice(at, 1);
+      box.dataset.picked = picked.join(",");
+      box.querySelectorAll("[data-pick]").forEach(function (c) {
+        var n = picked.indexOf(c.dataset.pick);
+        if (n === -1) c.removeAttribute("data-n"); else c.setAttribute("data-n", faNumber.format(n + 1));
+      });
+      var list = form.querySelector(".sc-order-picked");
+      list.innerHTML = "";
+      picked.forEach(function (p) {
+        var li = document.createElement("li");
+        li.textContent = box.querySelector('[data-pick="' + p + '"]').textContent;
+        list.appendChild(li);
+      });
+      setAnswer(form, picked.join(","), picked.length === Number(box.dataset.count));
+    }
+    // دور سریع: جمله‌ها یکی‌یکی با زمان‌سنج؛ تمام شدن وقت = بقیه بی‌جواب و ارسال خودکار
+    function startQuick(box) {
+      var form = box.closest("form"), items = box.querySelectorAll(".sc-quick-item");
+      var seconds = Number(box.dataset.seconds), said = [], at = 0, done = false;
+      var bar = box.querySelector(".sc-quick-time span"), left = box.querySelector(".sc-quick-left");
+      box.querySelector("[data-quick-start]").hidden = true;
+      function show() { items.forEach(function (it, k) { it.hidden = k !== at; }); }
+      function submit() {
+        if (done) return;
+        done = true;
+        while (said.length < items.length) said.push("");
+        items.forEach(function (it) { it.hidden = true; });
+        form.querySelector("input[name=answer]").value = said.join(",");
+        if (window.htmx) htmx.trigger(form, "submit"); else form.requestSubmit();
+      }
+      var t0 = Date.now();
+      var timer = setInterval(function () {
+        var rest = Math.max(0, seconds - (Date.now() - t0) / 1000);
+        bar.style.setProperty("--p", (rest / seconds * 100) + "%");
+        left.textContent = faNumber.format(Math.ceil(rest)) + " ثانیه";
+        if (rest <= 0) { clearInterval(timer); submit(); }
+      }, 200);
+      box.addEventListener("click", function (e) {
+        var say = e.target.closest("[data-say]");
+        if (!say || done) return;
+        said.push(say.dataset.say);
+        at += 1;
+        if (at >= items.length) { clearInterval(timer); submit(); } else show();
+      });
+      show();
+    }
+
     app.addEventListener("change", function (e) {
-      if (e.target.type === "radio") {
-        var b = e.target.form.querySelector(".sc-check");
-        if (b) b.disabled = false;
+      var form = e.target.form;
+      if (!form) return;
+      if (e.target.type === "radio") ready(form, true);
+      if (e.target.dataset.multi !== undefined) {
+        var picks = Array.prototype.slice.call(form.querySelectorAll("[data-multi]:checked")).map(function (c) { return c.value; });
+        setAnswer(form, picks.join(","), picks.length > 0);
       }
     });
-    app.addEventListener("input", function (e) { if (e.target.type === "range") updateRange(e.target); });
+    app.addEventListener("input", function (e) {
+      if (e.target.type === "range") updateRange(e.target);
+      if (e.target.name === "answer" && e.target.type === "text") ready(e.target.form, e.target.value.trim() !== "");
+    });
     app.addEventListener("click", function (e) {
+      var chip = e.target.closest(".sc-chip");
       if (e.target.closest("[data-next]")) next();
       else if (e.target.closest("[data-dismiss]")) hideSheet();
+      else if (e.target.closest("[data-quick-start]")) startQuick(e.target.closest(".sc-quick"));
+      else if (chip && chip.closest(".sc-match")) matchClick(chip);
+      else if (chip && chip.closest(".sc-order")) orderClick(chip);
     });
     app.addEventListener("htmx:beforeRequest", function (e) {
       var b = e.target.querySelector && e.target.querySelector(".sc-check");

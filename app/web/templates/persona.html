@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import icon, avatar %}
+{% from "_ui.html" import icon, avatar, mascot %}
 {% block content %}
 {% set c = s.PERSONA_CARDS[card] %}
 {% set p = stored.persona %}
@@ -25,6 +25,18 @@
   <footer class="tcard-traits">{% for t in c.traits %}<span>{{ t }}</span>{% endfor %}</footer>
 </article>
 </div>
+
+{% if not placed %}
+<a href="/school/lesson/placement" class="sc-today sc-placement-cta">
+  <span class="sc-today-text">
+    <span class="sc-today-eyebrow">{{ T.school }}</span>
+    <strong>{{ s.SCHOOL.placement_title }}</strong>
+    <small>{{ s.SCHOOL.placement_body }}</small>
+    <span class="sc-today-foot"><span class="sc-today-go">{{ s.SCHOOL.placement_go }} ←</span></span>
+  </span>
+  {{ mascot("think", "sc-today-bird") }}
+</a>
+{% endif %}
 
 {% if setup %}
 <div class="setup-next">

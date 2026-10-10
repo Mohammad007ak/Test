@@ -53,6 +53,7 @@ class UserRow:
     transactions: int
     sms: int
     passkey: bool
+    premium_until: datetime | None = None  # وزیر ویژه (جان بی‌نهایت مدرسه)
 
 
 def _day_start(day: date) -> datetime:
@@ -113,7 +114,25 @@ def users(db: Session, owner_phone: str, query: str = "",
         is_owner=u.phone == owner_phone,
         assets=counts[Asset].get(u.id, 0), accounts=counts[Account].get(u.id, 0),
         transactions=counts[Transaction].get(u.id, 0), sms=counts[SmsInbox].get(u.id, 0),
-        passkey=counts[Passkey].get(u.id, 0) > 0) for u in found], total
+        passkey=counts[Passkey].get(u.id, 0) > 0,
+        premium_until=u.premium_until if u.premium_until and u.premium_until > utcnow() else None)
+        for u in found], total
+
+
+PREMIUM_GRANT = timedelta(days=90)  # «۳ ماه وزیر ویژه» (مثلاً جایزه اینستاگرام)
+
+
+def grant_premium(db: Session, user: User, now: datetime | None = None) -> None:
+    """سه ماه وزیر ویژه؛ اگر هنوز فعال است، از پایان فعلی تمدید می‌شود."""
+    now = now or utcnow()
+    start = user.premium_until if user.premium_until and user.premium_until > now else now
+    user.premium_until = start + PREMIUM_GRANT
+    db.commit()
+
+
+def revoke_premium(db: Session, user: User) -> None:
+    user.premium_until = None
+    db.commit()
 
 
 def set_disabled(db: Session, user: User, disabled: bool) -> None:

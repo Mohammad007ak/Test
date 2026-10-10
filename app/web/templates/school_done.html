@@ -40,7 +40,7 @@
 
   <div class="sc-done-actions">
     <a class="sc-ghost" href="/school/lesson/{{ lesson.slug }}">{{ s.SCHOOL.done_again }}</a>
-    <a class="sc-check" href="/school">{{ s.SCHOOL.done_next }}</a>
+    <a class="sc-check" href="/school{{ '?t=' ~ course_key if course_key }}">{{ s.SCHOOL.done_next }}</a>
   </div>
   <canvas class="sc-fx" aria-hidden="true"></canvas>
 </div>

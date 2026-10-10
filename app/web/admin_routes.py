@@ -69,6 +69,24 @@ def register_admin_routes(app: FastAPI) -> None:
             admin_service.set_disabled(system, _target(system, request, user_id), False)
         return done(request, "/admin", s.ADMIN["enabled_done"])
 
+    @app.post("/admin/users/{user_id}/premium", dependencies=[LoggedIn, Owner])
+    def premium(request: Request, user_id: int) -> Response:
+        with request.app.state.session_factory() as system:
+            user = system.get(User, user_id)
+            if user is None:
+                raise HTTPException(404)
+            admin_service.grant_premium(system, user)
+        return done(request, "/admin", s.ADMIN["premium_done"])
+
+    @app.post("/admin/users/{user_id}/premium/revoke", dependencies=[LoggedIn, Owner])
+    def premium_revoke(request: Request, user_id: int) -> Response:
+        with request.app.state.session_factory() as system:
+            user = system.get(User, user_id)
+            if user is None:
+                raise HTTPException(404)
+            admin_service.revoke_premium(system, user)
+        return done(request, "/admin", s.ADMIN["premium_revoked"])
+
     @app.post("/admin/users/{user_id}/delete", dependencies=[LoggedIn, Owner])
     async def delete(request: Request, user_id: int) -> Response:
         confirm = _digits((await read_form(request)).get("confirm", ""))
