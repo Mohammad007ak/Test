@@ -205,7 +205,8 @@ FIXTURES = Path(__file__).parent.parent / "fixtures" / "sms" / "blu"
 def test_first_blu_sms_asks_only_for_account_then_is_automatic(client: TestClient) -> None:
     h = {"X-Ingest-Token": TOKEN}
     withdrawal = (FIXTURES / "withdrawal.txt").read_text("utf-8")
-    assert client.post("/api/sms", json={"text": withdrawal}, headers=h).json()["status"] == "failed"
+    first = client.post("/api/sms", json={"text": withdrawal}, headers=h)
+    assert first.json()["status"] == "failed"
     assert "انتخاب حساب" in client.get("/sms").text
     with db(client) as s:
         sms_id = s.scalars(select(SmsInbox)).one().id
