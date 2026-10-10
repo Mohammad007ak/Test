@@ -819,6 +819,152 @@
     });
   }
 
+  // ---------- مدرسه وزیر: درس کارت‌به‌کارت، برگه بازخورد، کاغذرنگی ----------
+  // جواب را سرور بررسی می‌کند (htmx)؛ این‌جا فقط نمایش: علامت درست/غلط، ترکیب، مسابقه، کارت بعد
+  function confetti(canvas) {
+    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var colors = ["#f5c76a", "#ffe4a3", "#3ee8a6", "#b8f35c", "#ffffff"];
+    var parts = [], running = false, ctx = canvas && canvas.getContext && canvas.getContext("2d");
+    function fit() {
+      var ratio = window.devicePixelRatio || 1;
+      canvas.width = innerWidth * ratio; canvas.height = innerHeight * ratio;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+    function tick() {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      parts = parts.filter(function (p) { return p.life > 0 && p.y < innerHeight + 40; });
+      parts.forEach(function (p) {
+        p.vy += .32; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life -= .006;
+        var squash = Math.abs(Math.cos(p.r * 2));
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.globalAlpha = Math.min(1, p.life * 2);
+        ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2 * squash, p.w, p.h * squash + 1); ctx.restore();
+      });
+      if (parts.length) requestAnimationFrame(tick);
+      else { running = false; ctx.clearRect(0, 0, innerWidth, innerHeight); }
+    }
+    function spawn(x, y, n, spread, up) {
+      if (reduced || !ctx) return;
+      if (!running) fit();
+      for (var i = 0; i < n; i++) {
+        parts.push({ x: x, y: y, vx: (Math.random() - .5) * spread, vy: -Math.random() * up - 2, r: Math.random() * Math.PI,
+          vr: (Math.random() - .5) * .3, w: 5 + Math.random() * 6, h: 8 + Math.random() * 8, c: colors[i % colors.length], life: 1 });
+      }
+      if (!running) { running = true; requestAnimationFrame(tick); }
+    }
+    return {
+      burst: function (el) { var box = el.getBoundingClientRect(); spawn(box.left + box.width / 2, box.top, 26, 10, 10); },
+      rain: function (rounds) {
+        for (var k = 0; k < rounds; k++) {
+          (function (k) { setTimeout(function () { spawn(innerWidth * (.15 + .7 * Math.random()), innerHeight * .35, 40, 14, 14); }, k * 160); })(k);
+        }
+      },
+    };
+  }
+
+  function initLesson(app) {
+    if (app.dataset.ready) return;
+    app.dataset.ready = "1";
+    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var cards = Array.prototype.slice.call(app.querySelectorAll(".sc-card"));
+    var bar = app.querySelector(".sc-bar"), combo = app.querySelector(".sc-combo");
+    var sheet = app.querySelector("#sc-feedback"), finish = app.querySelector("#sc-finish");
+    var fx = confetti(app.querySelector(".sc-fx"));
+    var index = 0, inRow = 0;
+
+    function progress(i) {
+      bar.querySelector("span").style.setProperty("--p", (i / cards.length * 100) + "%");
+      bar.setAttribute("aria-valuenow", String(i));
+    }
+    function setCombo() {
+      combo.textContent = inRow >= 2 ? "×" + faNumber.format(inRow) + " 🔥" : "";
+      combo.classList.remove("pop"); void combo.offsetWidth;
+      if (inRow >= 2) combo.classList.add("pop");
+    }
+    function showSheet(ok) {
+      sheet.className = "sc-sheet show " + (ok ? "good" : "bad");
+      setTimeout(function () { var b = sheet.querySelector(".sc-check"); if (b) b.focus({ preventScroll: true }); }, 300);
+    }
+    function hideSheet() { sheet.classList.remove("show"); }
+    function next() {
+      hideSheet();
+      if (index + 1 >= cards.length) { progress(cards.length); finish.submit(); return; }
+      var current = cards[index];
+      current.classList.add("out");
+      setTimeout(function () {
+        current.hidden = true; current.classList.remove("out");
+        index += 1;
+        cards[index].hidden = false;
+        progress(index);
+        var q = cards[index].querySelector(".sc-q");
+        q.setAttribute("tabindex", "-1"); q.focus({ preventScroll: true });
+        app.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+      }, reduced ? 0 : 260);
+    }
+    function updateRange(range) {
+      var box = range.closest(".sc-range"), n = Number(range.value);
+      box.querySelector("[data-months]").textContent = box.dataset.monthsLabel.replace("{n}", faNumber.format(n));
+      box.querySelector("[data-total]").textContent = shortToman(String(n * Number(box.dataset.unit)));
+      box.querySelectorAll(".sc-jar").forEach(function (jar, k) { jar.classList.toggle("on", k < n); });
+    }
+    function onFeedback() {
+      var fb = sheet.firstElementChild;
+      if (!fb) return;
+      var card = cards[index], form = card.querySelector(".sc-form");
+      var button = form && form.querySelector(".sc-check");
+      if (fb.dataset.retry) { if (button) button.disabled = false; showSheet(false); return; }
+      var ok = fb.dataset.ok === "1";
+      form.classList.add("sc-locked");
+      form.querySelectorAll("input").forEach(function (input) { if (!input.checked || input.type === "range") input.disabled = true; });
+      if (button) button.hidden = true;
+      var opts = card.querySelectorAll(".sc-opt");
+      if (fb.dataset.correct !== "" && opts.length) {
+        opts[Number(fb.dataset.correct)].classList.add("right");
+        var picked = opts[Number(fb.dataset.pick)];
+        if (!ok && picked) picked.classList.add("wrong");
+      }
+      inRow = ok ? inRow + 1 : 0;
+      setCombo();
+      if (ok && button) fx.burst(button);
+      var race = fb.querySelector("[data-race]"), wait = 0;
+      if (race) {
+        card.querySelector(".sc-opts").replaceWith(race);
+        requestAnimationFrame(function () { requestAnimationFrame(function () { race.classList.add("run"); }); });
+        wait = reduced ? 0 : 1700;
+      }
+      setTimeout(function () { showSheet(ok); }, wait);
+    }
+
+    app.addEventListener("change", function (e) {
+      if (e.target.type === "radio") {
+        var b = e.target.form.querySelector(".sc-check");
+        if (b) b.disabled = false;
+      }
+    });
+    app.addEventListener("input", function (e) { if (e.target.type === "range") updateRange(e.target); });
+    app.addEventListener("click", function (e) {
+      if (e.target.closest("[data-next]")) next();
+      else if (e.target.closest("[data-dismiss]")) hideSheet();
+    });
+    app.addEventListener("htmx:beforeRequest", function (e) {
+      var b = e.target.querySelector && e.target.querySelector(".sc-check");
+      if (b) b.disabled = true;
+    });
+    app.addEventListener("htmx:sendError", function (e) {
+      var b = e.target.querySelector && e.target.querySelector(".sc-check");
+      if (b) b.disabled = false;
+    });
+    app.addEventListener("htmx:afterSwap", function (e) { if (e.detail.target === sheet) onFeedback(); });
+    app.querySelectorAll(".sc-range input[type=range]").forEach(updateRange);
+    progress(0);
+  }
+
+  function celebrate(box) {
+    if (box.dataset.ready) return;
+    box.dataset.ready = "1";
+    var fx = confetti(box.querySelector(".sc-fx"));
+    setTimeout(function () { fx.rain(box.dataset.confetti === "big" ? 8 : 4); }, 250);
+  }
+
   function all(root, selector) {
     var found = Array.prototype.slice.call(root.querySelectorAll(selector));
     if (root.matches && root.matches(selector)) found.unshift(root);
@@ -839,6 +985,8 @@
     all(root, "[data-price-chart]").forEach(drawPriceChart);
     all(root, "#chat-app").forEach(initChat);
     all(root, "#interview").forEach(initInterview);
+    all(root, "#school-lesson").forEach(initLesson);
+    all(root, "[data-confetti]").forEach(celebrate);
     all(root, "#landing").forEach(initLanding);
     all(root, "#install").forEach(initInstall);
     initPasskeys(root);

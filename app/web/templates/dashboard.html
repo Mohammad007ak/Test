@@ -30,6 +30,7 @@
   {{ icon("chev", "end") }}
 </a>
 {% endif %}
+{% include "_school_today.html" %}
 {% include "_watchlist.html" %}
 {% if not has_persona %}
 <a href="/persona" class="persona-cta">
@@ -39,7 +40,6 @@
 </a>
 {% endif %}
 <a href="/assistant" class="ask-vazir"><img src="{{ static('logo.svg') }}" alt=""><span><strong>{{ T.assistant }}</strong><small>{{ T.assistant_teaser }}</small></span>{{ icon("chev", "end") }}</a>
-{% include "_school_today.html" %}
 
 <section class="card welcome">
   <div class="bubble s1 big">{{ icon("spark") }}</div>
