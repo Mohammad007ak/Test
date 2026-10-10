@@ -37,6 +37,32 @@ def _assert_valid(card: Card) -> None:
     if not card.graded:
         assert card.correct is None and not card.options
         return
+    assert card.good and card.bad, card.text
+    if card.kind in ("match", "order"):
+        size = len(card.pairs) or len(card.items)
+        assert 3 <= size <= 5, card.text
+        texts = [t for _j, t in card.shown]
+        assert len(set(texts)) == size
+        assert check(card, ",".join(map(str, card.expected))) is True
+        assert check(card, ",".join(map(str, range(size)))) is False  # نمایش هیچ‌وقت درست نیست
+        return
+    if card.kind == "number":
+        assert card.number is not None
+        assert check(card, str(card.number)) is True
+        assert check(card, str(card.number * 2 + 1)) is False
+        return
+    if card.kind == "multi":
+        assert card.rights and all(0 <= r < len(card.options) for r in card.rights)
+        assert len(card.rights) < len(card.options)
+        assert check(card, ",".join(map(str, card.rights))) is True
+        return
+    if card.kind == "quick":
+        truths = [truth for _s, truth in card.statements]
+        assert 4 <= len(truths) <= 6 and card.seconds > 0
+        assert any(truths) and not all(truths)
+        assert check(card, ",".join("1" if x else "0" for x in truths)) is True
+        assert check(card, ",".join("0" if x else "1" for x in truths)) is False
+        return
     if card.kind == "slider":
         assert card.slider is not None
         sl = card.slider
@@ -49,7 +75,6 @@ def _assert_valid(card: Card) -> None:
     assert check(card, str(card.correct)) is True
     assert all(check(card, str(k)) is False for k in range(len(card.options))
                if k != card.correct)
-    assert card.good and card.bad
 
 
 def test_station_one_has_six_lessons_of_four_to_six_cards() -> None:
@@ -61,6 +86,36 @@ def test_station_one_has_six_lessons_of_four_to_six_cards() -> None:
         assert any(card.graded for card in cards)
 
 
+def test_hundred_lessons_in_six_topics_of_three_levels() -> None:
+    assert len(path()) == 100
+    for course in COURSES:
+        assert [s.number for s in course.stations] == [1, 2, 3]
+        assert all(s.lessons and s.finale for s in course.stations)
+        for station in course.stations:
+            for lesson in station.lessons:
+                assert 2 <= len(lesson.cards(Facts())) <= 7, lesson.slug
+
+
+def test_question_types_are_varied() -> None:
+    for course in COURSES:
+        kinds = {card.kind for station in course.stations for lesson in station.lessons
+                 for card in lesson.cards(Facts()) if card.graded}
+        assert len(kinds) >= 5, (course.key, kinds)
+    everywhere = {card.kind for card in _all_cards(Facts())}
+    assert {"match", "order", "number", "multi", "quick", "story", "blank"} <= everywhere
+
+
+def test_placement_has_two_questions_per_topic() -> None:
+    from app.school.content.placement import PLACEMENT, QUESTIONS, topic_of
+
+    assert list(QUESTIONS) == [c.key for c in COURSES]
+    cards = PLACEMENT.cards(Facts())
+    assert len(cards) == 12
+    for i, card in enumerate(cards):
+        _assert_valid(card)
+        assert topic_of(i)[0] == list(QUESTIONS)[i // 2]
+
+
 def test_slugs_are_unique_and_findable() -> None:
     slugs = [lesson.slug for _c, _s, lesson in path()]
     assert len(slugs) == len(set(slugs))
@@ -70,7 +125,6 @@ def test_slugs_are_unique_and_findable() -> None:
 
 def test_six_courses_with_stations() -> None:
     assert [c.number for c in COURSES] == [1, 2, 3, 4, 5, 6]
-    assert all(c.stations for c in COURSES)
     station_keys = [s.key for c in COURSES for s in c.stations]
     assert len(station_keys) == len(set(station_keys))
 

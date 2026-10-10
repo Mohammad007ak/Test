@@ -5,15 +5,29 @@
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import Decimal
 from typing import Literal, Protocol
 
-from app.domain.school import Slider, check_choice, check_slider
+from app.domain.school import (
+    Slider,
+    check_choice,
+    check_multi,
+    check_number,
+    check_quick,
+    check_sequence,
+    check_slider,
+    shuffled,
+)
 
-Kind = Literal["intro", "choice", "truefalse", "slider", "market", "personal"]
-GRADED: frozenset[str] = frozenset({"choice", "truefalse", "slider", "market", "personal"})
+Kind = Literal["intro", "choice", "truefalse", "slider", "market", "personal", "blank", "story",
+               "match", "order", "number", "multi", "quick"]
+GRADED: frozenset[str] = frozenset({"choice", "truefalse", "slider", "market", "personal",
+                                    "blank", "story", "match", "order", "number", "multi",
+                                    "quick"})
+CHOICE_LIKE: frozenset[str] = frozenset({"choice", "truefalse", "market", "personal", "blank",
+                                         "story"})
 SAMPLE_CASH_TOMAN = 40_000_000
 SAMPLE_SPEND_TOMAN = 20_000_000
 MIN_PERSONAL_TOMAN = 1_000_000  # کمتر از این، عدد نمونه بهتر درس می‌دهد
@@ -80,17 +94,51 @@ class Card:
     bars: tuple[tuple[str, int], ...] = ()  # نوارهای intro: (برچسب، تومان)
     race: Race | None = None
     mood: str = "think"
+    story: str = ""  # سناریو: ماجرایی که سؤال درباره‌اش است
+    pairs: tuple[tuple[str, str], ...] = ()  # جفت‌کردن: (اصطلاح، معنا)
+    items: tuple[str, ...] = ()  # مرتب‌کردن: به ترتیب درست
+    number: Decimal | None = None  # حساب کن: جواب درست
+    tolerance: Decimal = Decimal("0.02")
+    unit: str = ""
+    rights: frozenset[int] = frozenset()  # چندانتخابی
+    statements: tuple[tuple[str, bool], ...] = ()  # دور سریع
+    seconds: int = 0  # دور سریع: وقت
+    seed: str = ""  # ترتیب ثابت نمایش (slug:شماره کارت)
 
     @property
     def graded(self) -> bool:
         return self.kind in GRADED
+
+    @property
+    def order(self) -> tuple[int, ...]:
+        """ترتیب نمایش ستون معناها (جفت‌کردن) یا گزینه‌ها (مرتب‌کردن)."""
+        count = len(self.pairs) or len(self.items)
+        return shuffled(count, self.seed or self.text)
+
+    @property
+    def shown(self) -> list[tuple[int, str]]:
+        """(شماره نمایش، متن) برای جفت‌کردن و مرتب‌کردن؛ شماره همان چیزی است که فرم می‌فرستد."""
+        texts = [right for _left, right in self.pairs] or list(self.items)
+        return [(j, texts[i]) for j, i in enumerate(self.order)]
+
+    @property
+    def expected(self) -> tuple[int, ...]:
+        return tuple(self.order.index(i) for i in range(len(self.order)))
 
 
 def check(card: Card, answer: str) -> bool | None:
     """True/False برای جواب، None برای جواب نامعتبر یا کارت بدون سؤال."""
     if card.kind == "slider" and card.slider is not None:
         return check_slider(card.slider, answer)
-    if card.graded and card.correct is not None:
+    if card.kind in ("match", "order"):
+        return check_sequence(card.expected, answer)
+    if card.kind == "number" and card.number is not None:
+        return check_number(card.number, card.tolerance, answer)
+    if card.kind == "multi":
+        return check_multi(card.rights, len(card.options), answer)
+    if card.kind == "quick":
+        return check_quick(tuple(truth for _s, truth in card.statements), answer)
+    if card.kind in CHOICE_LIKE and card.correct is not None:
         return check_choice(card.correct, len(card.options), answer)
     return None
 
@@ -104,11 +152,13 @@ class Lesson:
     build: Callable[[Facts], list[Card]]
 
     def cards(self, facts: Facts) -> list[Card]:
-        return self.build(facts)
+        return [replace(card, seed=f"{self.slug}:{i}") for i, card in enumerate(self.build(facts))]
 
 
 @dataclass(frozen=True)
 class Station:
+    """هر تاپیک سه ایستگاه دارد: سطح ۱ مقدماتی، ۲ متوسط، ۳ پیشرفته."""
+
     key: str
     number: int
     title: str
