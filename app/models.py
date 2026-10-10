@@ -345,3 +345,33 @@ class SplitSettlement(UserOwned, Base):
     payee_id: Mapped[int] = mapped_column(ForeignKey("split_members.id", ondelete="CASCADE"))
     amount_toman: Mapped[int] = mapped_column(BigInteger)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+# ---------- مدرسه وزیر ----------
+
+class LessonProgress(UserOwned, Base):
+    """پیشرفت هر درس؛ امتیاز و زنجیره در school_stats جمع می‌شود."""
+
+    __tablename__ = "lesson_progress"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"),
+                                         primary_key=True, index=True)
+    lesson_slug: Mapped[str] = mapped_column(String(60), primary_key=True)
+    course: Mapped[str] = mapped_column(String(40))
+    best_correct: Mapped[int] = mapped_column(Integer, default=0)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    completed_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)  # اولین بار
+
+
+class SchoolStats(UserOwned, Base):
+    __tablename__ = "school_stats"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"),
+                                         primary_key=True, index=True)
+    xp: Mapped[int] = mapped_column(BigInteger, default=0)
+    # افزوده مدرسه به آمار «دانش» کارت؛ جدا از پرسونا تا گرفتن دوباره کارت صفرش نکند
+    knowledge: Mapped[int] = mapped_column(Integer, default=0)
+    streak: Mapped[int] = mapped_column(Integer, default=0)
+    best_streak: Mapped[int] = mapped_column(Integer, default=0)
+    last_day: Mapped[date | None] = mapped_column(Date)  # روز تهران
+    freeze_day: Mapped[date | None] = mapped_column(Date)  # آخرین روز جاافتاده‌ای که یخ زد

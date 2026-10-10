@@ -69,3 +69,17 @@ def test_background_refresh_ignores_private_manual_prices(engine) -> None:  # ty
         assert latest_quotes(s)["usd"].price_toman == 999  # کاربر قیمت دستی خودش را می‌بیند
     with Session(engine) as system:
         assert latest_quotes(system)["usd"].price_toman == 100
+
+
+def test_school_progress_is_per_user(engine) -> None:  # type: ignore[no-untyped-def]
+    from app.models import LessonProgress, SchoolStats
+
+    for user in (1, 2):
+        with user_session(Session(engine), user) as s:
+            s.add(SchoolStats(xp=user * 10, knowledge=0, streak=0, best_streak=0))
+            s.add(LessonProgress(lesson_slug="money", course="basics", best_correct=user,
+                                 attempts=1))
+            s.commit()
+    with user_session(Session(engine), 2) as s:
+        assert [x.xp for x in s.scalars(select(SchoolStats))] == [20]
+        assert [p.best_correct for p in s.scalars(select(LessonProgress))] == [2]
