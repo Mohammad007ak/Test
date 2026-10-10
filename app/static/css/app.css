@@ -2533,3 +2533,6 @@ a.sc-node:focus-visible { outline: 3px solid var(--sc-gold); outline-offset: 6px
 .tstat small { font-weight: 700; opacity: .7; }
 :root[data-theme="light"] .sc-q em, :root[data-theme="light"] .sc-sub em, :root[data-theme="light"] .sc-race-row.win b,
 :root[data-theme="light"] .sc-range-head b, :root[data-theme="light"] .sc-pill.fire { color: #a86f0c; }
+
+.sms-pair-code { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .75rem; }
+.pair-code code { display: inline-block; font-size: 2rem; letter-spacing: .4em; padding: .4rem .8rem; }

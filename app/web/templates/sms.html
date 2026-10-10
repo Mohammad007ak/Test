@@ -30,6 +30,17 @@
   <ul class="muted small">{% for line in T.sms_android_points %}<li>{{ line }}</li>{% endfor %}</ul>
   <a href="{{ android_pair }}" class="btn wide" hx-boost="false">{{ T.sms_android_connect }}</a>
   <p class="muted small">{{ T.sms_android_hint }} · <a href="{{ android_unpair }}" hx-boost="false">{{ T.sms_android_disconnect }}</a></p>
+  <div class="sms-pair-code" id="pair">
+    <h3>{{ T.sms_android_code_title }}</h3>
+    {% if pair_code %}
+    <p class="pair-code"><code dir="ltr" id="pair-code">{{ pair_code | fa }}</code></p>
+    <ol class="ios-steps">{% for line in T.sms_android_code_steps %}<li>{{ line }}</li>{% endfor %}</ol>
+    <p class="muted small">{{ T.sms_android_code_note }}</p>
+    {% else %}
+    <p class="muted small">{{ T.sms_android_code_body }}</p>
+    <form method="post" action="/sms/pair-code"><button type="submit" class="btn ghost wide">{{ T.sms_android_code_button }}</button></form>
+    {% endif %}
+  </div>
 </section>
 {% endif %}
 

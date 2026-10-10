@@ -1,10 +1,11 @@
 """مسیرهای پیامک بانکی: اندپوینت Shortcuts، واردکردن فایل و صف بررسی (SPEC: F6)."""
 
+import hashlib
 import secrets
 import time
 from collections import deque
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import quote, urlencode
 
 from fastapi import FastAPI, HTTPException, Request
@@ -35,6 +36,11 @@ from app.web.common import Db, LoggedIn, done, page, read_form, site_url, wants_
 from app.web.forms import Field, FormError
 
 TOKEN_KEY = "sms_ingest_token"
+# کد اتصال اپ اندروید: جایگزین لینک intent که فقط در Chrome کار می‌کند
+PAIR_CODE_KEY = "sms_pair_code"  # فقط هش کد
+PAIR_EXPIRES_KEY = "sms_pair_expires"
+PAIR_CODE_TTL = timedelta(minutes=10)
+PAIR_RATE_LIMIT = 10  # تلاش در دقیقه برای هر IP
 RATE_LIMIT = 60  # درخواست در دقیقه
 MAX_TEXT = 2000
 
@@ -67,6 +73,50 @@ def token_owner(factory: Callable[[], Session], token: str) -> int | None:
         row = system.scalars(select(UserSetting).where(
             UserSetting.key == TOKEN_KEY, UserSetting.value == token)).first()
         return row.user_id if row is not None else None
+
+
+def _code_hash(code: str) -> str:
+    return hashlib.sha256(f"pair:{code}".encode()).hexdigest()
+
+
+def _active_pair_owner(system: Session, digest: str) -> int | None:
+    row = system.scalars(select(UserSetting).where(
+        UserSetting.key == PAIR_CODE_KEY, UserSetting.value == digest)).first()
+    if row is None:
+        return None
+    expires = system.get(UserSetting, {"key": PAIR_EXPIRES_KEY, "user_id": row.user_id})
+    if expires is None or datetime.fromisoformat(expires.value) < utcnow():
+        return None
+    return row.user_id
+
+
+def new_pair_code(factory: Callable[[], Session], db: Session) -> str:
+    """کد ۶ رقمی یک‌بارمصرف ۱۰ دقیقه‌ای برای کاربر جاری؛ کد قبلی او باطل می‌شود."""
+    with factory() as system:
+        while True:
+            code = f"{secrets.randbelow(10**6):06d}"
+            if _active_pair_owner(system, _code_hash(code)) is None:
+                break
+    services.set_user_setting(db, PAIR_CODE_KEY, _code_hash(code))
+    services.set_user_setting(db, PAIR_EXPIRES_KEY, (utcnow() + PAIR_CODE_TTL).isoformat())
+    db.commit()
+    return code
+
+
+def pair_code_owner(factory: Callable[[], Session], code: str) -> int | None:
+    """صاحب کد (جست‌وجوی سیستمی، چون اپ نشست ورود ندارد)؛ کد مصرف و پاک می‌شود."""
+    if not (len(code) == 6 and code.isdigit()):
+        return None
+    with factory() as system:
+        owner = _active_pair_owner(system, _code_hash(code))
+        if owner is None:
+            return None
+        for key in (PAIR_CODE_KEY, PAIR_EXPIRES_KEY):
+            row = system.get(UserSetting, {"key": key, "user_id": owner})
+            if row is not None:
+                system.delete(row)
+        system.commit()
+        return owner
 
 
 def sms_endpoint(public_url: str, scheme: str, host: str, port: int | None) -> str:
@@ -149,8 +199,28 @@ def register_sms_routes(app: FastAPI) -> None:
         result = ingest(db, text, received, llm=request.app.state.llm)
         return JSONResponse({"status": result.status, "id": result.sms.id})
 
-    @app.get("/sms", response_class=HTMLResponse, dependencies=[LoggedIn])
-    def sms_page(request: Request, db: Db) -> Response:
+    pair_limiters: dict[str, _RateLimiter] = {}
+
+    @app.post("/api/sms/pair")
+    async def api_sms_pair(request: Request, db: Db) -> Response:
+        """اپ اندروید با کد ۶ رقمی صفحه پیامک، توکن کاربر را می‌گیرد (بدون مرورگر)."""
+        ip = request.client.host if request.client else ""
+        if not pair_limiters.setdefault(ip, _RateLimiter(PAIR_RATE_LIMIT)).allow():
+            return JSONResponse({"error": "rate limited"}, status_code=429)
+        try:
+            code = forms.normalize_digits(str((await request.json())["code"])).strip()
+        except (ValueError, KeyError, TypeError):
+            code = ""
+        owner = pair_code_owner(request.app.state.session_factory, code) if code else None
+        if owner is None:
+            return JSONResponse({"error": "invalid code"}, status_code=400)
+        user_session(db, owner)
+        token = ingest_token(db)
+        user = db.get(User, owner)
+        return JSONResponse({"token": token,
+                             "account": mask_phone(user.phone) if user and user.phone else ""})
+
+    def _sms_page(request: Request, db: Session, pair_code: str = "") -> Response:
         queue = db.scalars(select(SmsInbox).where(SmsInbox.parse_status == "failed")
                            .order_by(SmsInbox.received_at.desc())).all()
         recent = db.scalars(select(SmsInbox).where(SmsInbox.parse_status != "failed")
@@ -161,13 +231,22 @@ def register_sms_routes(app: FastAPI) -> None:
             "active": "sms", "queue": queue, "recent": recent, "token": token,
             "android_pair": android_pair_url(token, mask_phone(user.phone) if user and user.phone
                                              else "", site_url(request)),
-            "android_unpair": ANDROID_UNPAIR,
+            "android_unpair": ANDROID_UNPAIR, "pair_code": pair_code,
             "shortcut_url": getattr(request.app.state, "ios_shortcut_url", ""),
             "platform": phone_platform(request.headers.get("user-agent", "")),
             "endpoint": sms_endpoint(getattr(request.app.state, "public_url", ""),
                                      _public_scheme(request), request.url.hostname or "",
                                      request.url.port),
         })
+
+    @app.get("/sms", response_class=HTMLResponse, dependencies=[LoggedIn])
+    def sms_page(request: Request, db: Db) -> Response:
+        return _sms_page(request, db)
+
+    @app.post("/sms/pair-code", response_class=HTMLResponse, dependencies=[LoggedIn])
+    def sms_pair_code(request: Request, db: Db) -> Response:
+        code = new_pair_code(request.app.state.session_factory, db)
+        return _sms_page(request, db, pair_code=code)
 
     @app.post("/sms/upload", dependencies=[LoggedIn])
     async def sms_upload(request: Request, db: Db) -> Response:
