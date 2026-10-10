@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
@@ -15,6 +16,13 @@ FIXTURES = Path(__file__).parent.parent / "fixtures" / "prices" / "alanchand"
 CURRENCIES = (FIXTURES / "currencies.html").read_text(encoding="utf-8")
 GOLD = (FIXTURES / "gold.html").read_text(encoding="utf-8")
 CRYPTO = (FIXTURES / "crypto.html").read_text(encoding="utf-8")
+# صفحه واقعی ۱۸ مهر ۱۴۰۵: الان‌چند ردیف دلار را برداشته
+CURRENCIES_NO_USD = (FIXTURES / "currencies_no_usd.html").read_text(encoding="utf-8")
+ARCHIVE_USD = (FIXTURES / "archive_usd.html").read_text(encoding="utf-8")  # آخرین روز: ۲۰۲۶-۱۰-۰۳
+CURRENCIES_URL = "https://alanchand.com/currencies-price"
+GOLD_URL = "https://alanchand.com/gold-price"
+CRYPTO_URL = "https://alanchand.com/crypto-price"
+ARCHIVE_URL = "https://alanchand.com/currencies-price/archive/usd"
 
 
 def as_dict(quotes):  # type: ignore[no-untyped-def]
@@ -57,6 +65,80 @@ def test_source_fetches_both_pages() -> None:
     quotes = as_dict(AlanchandSource(fetch_html=pages.__getitem__).fetch())
     assert quotes["usd"] == 269_500 and quotes["gold18_gram"] == 26_473_980
     assert quotes["crypto:btc"] == 22_762_553_884
+
+
+def site(**overrides: str | None):  # type: ignore[no-untyped-def]
+    """صفحه‌های سایت؛ None یعنی آن صفحه در دسترس نیست."""
+    pages: dict[str, str | None] = {CURRENCIES_URL: CURRENCIES_NO_USD, GOLD_URL: GOLD,
+                                    CRYPTO_URL: CRYPTO, ARCHIVE_URL: ARCHIVE_USD}
+    pages.update({{"currencies": CURRENCIES_URL, "gold": GOLD_URL, "crypto": CRYPTO_URL,
+                   "archive": ARCHIVE_URL}[name]: page for name, page in overrides.items()})
+    fetched: list[str] = []
+
+    def fetch(url: str) -> str:
+        fetched.append(url)
+        page = pages.get(url)
+        if page is None:
+            raise PriceSourceError(f"{url}: timeout")
+        return page
+
+    return fetch, fetched
+
+
+def source(fetch, today: date = date(2026, 10, 4)) -> AlanchandSource:  # type: ignore[no-untyped-def]
+    return AlanchandSource(fetch_html=fetch, today=lambda: today)
+
+
+class TestUsdMissingFromLivePage:
+    def test_usd_comes_from_daily_archive(self) -> None:
+        fetch, _ = site()
+        src = source(fetch)
+        quotes = as_dict(src.fetch())
+        assert quotes["usd"] == 269_500  # آخرین روز آرشیو
+        assert quotes["eur"] == 301_200 and quotes["gold18_gram"] == 26_473_980
+        assert "crypto:btc" in quotes
+        assert "آرشیو" in src.warning and "۱۴۰۵/۰۷/۱۱" in src.warning
+
+    def test_archive_not_fetched_when_live_usd_exists(self) -> None:
+        fetch, fetched = site(currencies=CURRENCIES)
+        src = source(fetch)
+        assert as_dict(src.fetch())["usd"] == 269_500
+        assert ARCHIVE_URL not in fetched and src.warning == ""
+
+    def test_old_archive_is_not_used(self) -> None:
+        fetch, _ = site()
+        src = source(fetch, today=date(2026, 10, 20))
+        quotes = as_dict(src.fetch())
+        assert "usd" not in quotes and quotes["gold18_gram"] == 26_473_980
+        assert "دلار" in src.warning
+
+    def test_archive_failure_keeps_other_prices(self) -> None:
+        fetch, _ = site(archive=None)
+        src = source(fetch)
+        quotes = as_dict(src.fetch())
+        assert "usd" not in quotes and quotes["coin_emami"] == 274_000_000
+        assert "دلار" in src.warning
+
+
+class TestOnePageFailing:
+    def test_gold_page_down_keeps_currencies_and_crypto(self) -> None:
+        fetch, _ = site(currencies=CURRENCIES, gold=None)
+        src = source(fetch)
+        quotes = as_dict(src.fetch())
+        assert quotes["usd"] == 269_500 and "crypto:btc" in quotes
+        assert "gold18_gram" not in quotes and "طلا" in src.warning
+
+    def test_changed_gold_layout_is_a_warning(self) -> None:
+        fetch, _ = site(currencies=CURRENCIES, gold="<html></html>")
+        src = source(fetch)
+        assert "gold18_gram" not in as_dict(src.fetch()) and "طلا" in src.warning
+
+    def test_currencies_page_down_keeps_gold(self) -> None:
+        fetch, _ = site(currencies=None)
+        src = source(fetch)
+        quotes = as_dict(src.fetch())
+        assert quotes["usd"] == 269_500 and quotes["gold18_gram"] == 26_473_980
+        assert "eur" not in quotes and "ارز" in src.warning
 
 
 def test_changed_layout_is_reported() -> None:

@@ -7,16 +7,23 @@
 - اونس‌ها دلاری‌اند و کنار گذاشته می‌شوند.
 - رمزارز: قیمت تومانی سایت برای کوین‌های ارزان گرد شده یا گاهی صفر است؛ در آن حالت
   قیمت دلاری × قیمت تتر حساب و برای «units» واحد ذخیره می‌شود تا دقت از دست نرود.
+- از مهر ۱۴۰۵ ردیف دلار از صفحه ارزها برداشته شده؛ تا پیدا شدن منبع زنده، دلار از آخرین
+  روز آرشیو (معمولاً یک روز عقب) برداشته و در هشدار منبع اعلام می‌شود.
+- شکست یک صفحه بقیه را از کار نمی‌اندازد؛ فقط اگر هیچ قیمتی نیاید خطا داده می‌شود.
 """
 
 import re
 from collections.abc import Callable
+from datetime import date, datetime
 from decimal import Decimal
 from html.parser import HTMLParser
+from zoneinfo import ZoneInfo
+
+import jdatetime
 
 from app.adapters.prices.base import FetchedQuote, PriceSourceError
 from app.adapters.prices.http import http_get
-from app.domain.money import round_toman
+from app.domain.money import round_toman, to_persian_digits
 from app.domain.normalize import normalize_digits
 
 BASE_URL = "https://alanchand.com"
@@ -38,6 +45,8 @@ _ROW_URL = re.compile(r"/(currencies-price|gold-price|crypto-price)/([a-z0-9_]+)
 SITE_TOMAN_MIN = 100_000  # کمتر از این، قیمت تومانی سایت دقت کافی ندارد
 SIGNIFICANT_TOMAN = 1_000_000  # قیمت ذخیره‌شده دست‌کم این‌قدر باشد (۶ رقم معنادار)
 _PRICE = re.compile(r"[\d,]+")
+USD_ARCHIVE_MAX_AGE_DAYS = 3  # آرشیو قدیمی‌تر از این جای قیمت لحظه‌ای را نمی‌گیرد
+TEHRAN = ZoneInfo("Asia/Tehran")
 
 
 class _Row:
@@ -173,17 +182,60 @@ def parse_crypto(page: str) -> list[FetchedQuote]:
     return quotes
 
 
+def _tehran_today() -> date:
+    return datetime.now(TEHRAN).date()
+
+
 class AlanchandSource:
     name = "alanchand"
 
-    def __init__(self, fetch_html: Callable[[str], str] | None = None) -> None:
+    def __init__(self, fetch_html: Callable[[str], str] | None = None,
+                 today: Callable[[], date] = _tehran_today) -> None:
+        # history ثابت‌هایش را از همین ماژول می‌گیرد؛ وارد کردن در سطح ماژول چرخه می‌سازد
+        from app.adapters.prices.history import AlanchandHistory
+
         self._get = fetch_html or http_get
+        self._history = AlanchandHistory(fetch_html=self._get)
+        self._today = today
+        self.warning = ""
+
+    def _page(self, label: str, url: str, parse: Callable[[str], list[FetchedQuote]],
+              problems: list[str]) -> list[FetchedQuote]:
+        try:
+            quotes = parse(self._get(url))
+        except PriceSourceError as exc:
+            problems.append(f"{label}: {exc}")
+            return []
+        if not quotes:
+            problems.append(f"{label}: قالب صفحه عوض شده")
+        return quotes
+
+    def _usd_from_archive(self, problems: list[str]) -> list[FetchedQuote]:
+        try:
+            points = self._history.fetch_history("usd")
+        except PriceSourceError as exc:
+            problems.append(f"دلار در صفحه و آرشیو پیدا نشد ({exc})")
+            return []
+        if not points:
+            problems.append("دلار در صفحه و آرشیو پیدا نشد")
+            return []
+        last = points[-1]
+        shamsi = to_persian_digits(jdatetime.date.fromgregorian(date=last.day).strftime("%Y/%m/%d"))
+        if (self._today() - last.day).days > USD_ARCHIVE_MAX_AGE_DAYS:
+            problems.append(f"دلار در صفحه نیست و آرشیو قدیمی است ({shamsi})")
+            return []
+        problems.append(f"دلار از آرشیو روزانه ({shamsi})")
+        return [FetchedQuote("usd", last.price_toman)]
 
     def fetch(self) -> list[FetchedQuote]:
-        currencies = parse_currencies(self._get(CURRENCIES_URL))
-        gold = parse_gold(self._get(GOLD_URL))
-        crypto = parse_crypto(self._get(CRYPTO_URL))
-        if not any(q.key == "usd" for q in currencies) or not any(
-                q.key == "gold18_gram" for q in gold):
-            raise PriceSourceError("قالب صفحه عوض شده؛ دلار یا طلای ۱۸ پیدا نشد")
-        return currencies + gold + crypto
+        problems: list[str] = []
+        currencies = self._page("ارز", CURRENCIES_URL, parse_currencies, problems)
+        if not any(q.key == "usd" for q in currencies):
+            currencies += self._usd_from_archive(problems)
+        gold = self._page("طلا", GOLD_URL, parse_gold, problems)
+        crypto = self._page("رمزارز", CRYPTO_URL, parse_crypto, problems)
+        self.warning = " · ".join(problems)
+        quotes = currencies + gold + crypto
+        if not quotes:
+            raise PriceSourceError(self.warning or "هیچ قیمتی دریافت نشد")
+        return quotes
