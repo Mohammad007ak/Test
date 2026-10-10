@@ -5,13 +5,14 @@
 """
 
 import bisect
+import random
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from app.domain.money import round_toman
-from app.domain.normalize import normalize_digits
+from app.domain.normalize import normalize_digits, parse_decimal
 
 XP_BASE = 40
 XP_PER_CORRECT = 4
@@ -146,6 +147,106 @@ def check_slider(slider: Slider, answer: str) -> bool | None:
     if value is None or not slider.low <= value <= slider.high:
         return None
     return slider.right_low <= value <= slider.right_high
+
+
+def _parse_list(answer: str) -> list[str]:
+    text = normalize_digits(answer.strip())
+    return text.split(",") if text else []
+
+
+def check_sequence(expected: tuple[int, ...], answer: str) -> bool | None:
+    """جفت‌کردن و مرتب‌کردن: جواب جایگشتی از اندیس‌ها، به ترتیب."""
+    parts = _parse_list(answer)
+    if len(parts) != len(expected) or not all(p.isdecimal() for p in parts):
+        return None
+    picks = tuple(int(p) for p in parts)
+    if sorted(picks) != list(range(len(expected))):
+        return None
+    return picks == expected
+
+
+def check_number(correct: Decimal, tolerance: Decimal, answer: str) -> bool | None:
+    """عدد واردشده؛ تا tolerance (نسبی) دور از جواب درست پذیرفته می‌شود."""
+    try:
+        value = parse_decimal(answer)
+    except (ValueError, ArithmeticError):
+        return None
+    return abs(value - correct) <= abs(correct) * tolerance
+
+
+def check_multi(rights: frozenset[int], count: int, answer: str) -> bool | None:
+    parts = _parse_list(answer)
+    if not all(p.isdecimal() and int(p) < count for p in parts):
+        return None
+    return {int(p) for p in parts} == rights
+
+
+QUICK_MISSES = 1  # دور سریع: یک اشتباه (یا بی‌جواب ماندن) بخشیده می‌شود
+
+
+def check_quick(truths: tuple[bool, ...], answer: str) -> bool | None:
+    """دور سریع درست/غلط: «1,0,,1»؛ خانه خالی یعنی وقت تمام شد (غلط)."""
+    parts = normalize_digits(answer.strip()).split(",")
+    if len(parts) != len(truths) or not all(p in ("", "0", "1") for p in parts):
+        return None
+    misses = sum(p != ("1" if truth else "0") for p, truth in zip(parts, truths, strict=True))
+    return misses <= QUICK_MISSES
+
+
+def shuffled(count: int, seed: str) -> tuple[int, ...]:
+    """ترتیب نمایش ثابت (برای جفت‌کردن و مرتب‌کردن) که هیچ‌وقت همان ترتیب درست نیست."""
+    order = list(range(count))
+    random.Random(seed).shuffle(order)  # noqa: S311 - چیدن گزینه‌ها، نه امنیت
+    if count > 1 and order == sorted(order):
+        order = order[1:] + order[:1]
+    return tuple(order)
+
+
+# ---------- جان (نوار جان؛ اشتراک وزیر ویژه = بی‌نهایت) ----------
+
+MAX_HEARTS = 5
+HEART_EVERY = timedelta(hours=4)
+
+
+@dataclass(frozen=True)
+class Hearts:
+    count: int
+    since: datetime | None  # شروع شمارش جان بعدی؛ None یعنی پر است
+
+
+def hearts_now(hearts: Hearts, now: datetime) -> Hearts:
+    if hearts.count >= MAX_HEARTS:
+        return Hearts(MAX_HEARTS, None)
+    if hearts.since is None:  # نباید پیش بیاید؛ شمارش از همین حالا
+        return Hearts(hearts.count, now)
+    gained = (now - hearts.since) // HEART_EVERY
+    count = min(MAX_HEARTS, hearts.count + gained)
+    return Hearts(count, None if count >= MAX_HEARTS else hearts.since + gained * HEART_EVERY)
+
+
+def lose_heart(hearts: Hearts, now: datetime) -> Hearts:
+    current = hearts_now(hearts, now)
+    if current.count <= 0:
+        return current
+    return Hearts(current.count - 1, current.since or now)
+
+
+def gain_heart(hearts: Hearts, now: datetime) -> Hearts:
+    current = hearts_now(hearts, now)
+    count = min(MAX_HEARTS, current.count + 1)
+    return Hearts(count, None if count >= MAX_HEARTS else current.since)
+
+
+def next_heart_in(hearts: Hearts, now: datetime) -> timedelta | None:
+    current = hearts_now(hearts, now)
+    return None if current.since is None else current.since + HEART_EVERY - now
+
+
+# ---------- آزمون تعیین سطح ----------
+
+def placement_level(answers: tuple[bool, ...]) -> int:
+    """دو سؤال برای هر تاپیک (متوسط، پیشرفته): ۱ مقدماتی، ۲ متوسط، ۳ پیشرفته."""
+    return 1 + sum(answers)
 
 
 # ---------- حساب‌های درس‌ها ----------

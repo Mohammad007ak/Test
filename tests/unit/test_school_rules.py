@@ -191,3 +191,96 @@ class TestPrices:
     def test_years_before(self) -> None:
         assert years_before(date(2026, 10, 10), 3) == date(2023, 10, 10)
         assert years_before(date(2028, 2, 29), 3) == date(2025, 2, 28)
+
+
+# ---------- جان، تعیین سطح و انواع تازه سؤال ----------
+
+from datetime import UTC, datetime  # noqa: E402
+
+from app.domain.school import (  # noqa: E402
+    HEART_EVERY,
+    MAX_HEARTS,
+    Hearts,
+    check_multi,
+    check_number,
+    check_quick,
+    check_sequence,
+    gain_heart,
+    hearts_now,
+    lose_heart,
+    next_heart_in,
+    placement_level,
+    shuffled,
+)
+
+NOW = datetime(2026, 10, 10, 8, 0, tzinfo=UTC)
+
+
+class TestHearts:
+    def test_full_bar_has_no_timer(self) -> None:
+        h = hearts_now(Hearts(MAX_HEARTS, None), NOW)
+        assert h == Hearts(5, None) and next_heart_in(h, NOW) is None
+
+    def test_losing_starts_the_refill_timer(self) -> None:
+        h = lose_heart(Hearts(5, None), NOW)
+        assert h == Hearts(4, NOW)
+        assert next_heart_in(h, NOW + timedelta(hours=1)) == timedelta(hours=3)
+
+    def test_one_heart_back_every_four_hours(self) -> None:
+        h = Hearts(1, NOW)
+        later = hearts_now(h, NOW + HEART_EVERY * 2 + timedelta(minutes=5))
+        assert later == Hearts(3, NOW + HEART_EVERY * 2)
+
+    def test_refill_stops_at_five(self) -> None:
+        assert hearts_now(Hearts(2, NOW), NOW + timedelta(days=3)) == Hearts(5, None)
+
+    def test_cannot_go_below_zero(self) -> None:
+        assert lose_heart(Hearts(0, NOW), NOW).count == 0
+
+    def test_losing_keeps_running_timer(self) -> None:
+        h = lose_heart(Hearts(3, NOW), NOW + timedelta(hours=1))
+        assert h == Hearts(2, NOW)
+
+    def test_gain_heart_from_review(self) -> None:
+        assert gain_heart(Hearts(4, NOW), NOW) == Hearts(5, None)
+        assert gain_heart(Hearts(1, NOW), NOW + timedelta(hours=1)) == Hearts(2, NOW)
+
+
+class TestPlacement:
+    @pytest.mark.parametrize(("answers", "level"), [
+        ((False, False), 1), ((True, False), 2), ((False, True), 2), ((True, True), 3)])
+    def test_two_questions_per_topic(self, answers: tuple[bool, bool], level: int) -> None:
+        assert placement_level(answers) == level
+
+
+class TestNewChecks:
+    def test_sequence(self) -> None:
+        assert check_sequence((2, 0, 1), "2,0,1") is True
+        assert check_sequence((2, 0, 1), "۰,۲,۱") is False
+        assert check_sequence((2, 0, 1), "0,0,1") is None  # جایگشت نیست
+        assert check_sequence((2, 0, 1), "0,1") is None
+
+    def test_number_with_tolerance(self) -> None:
+        assert check_number(Decimal(74), Decimal("0.03"), "۷۴٫۵") is True
+        assert check_number(Decimal(74), Decimal("0.03"), "72") is True
+        assert check_number(Decimal(74), Decimal("0.03"), "65") is False
+        assert check_number(Decimal(74), Decimal("0.03"), "abc") is None
+
+    def test_multi(self) -> None:
+        assert check_multi(frozenset({0, 2}), 4, "2,0") is True
+        assert check_multi(frozenset({0, 2}), 4, "0") is False
+        assert check_multi(frozenset({0, 2}), 4, "") is False
+        assert check_multi(frozenset({0, 2}), 4, "5") is None
+
+    def test_quick_round_allows_one_miss(self) -> None:
+        truths = (True, False, True, True, False)
+        assert check_quick(truths, "1,0,1,1,0") is True
+        assert check_quick(truths, "1,0,1,1,1") is True
+        assert check_quick(truths, "1,0,,1,1") is False  # بی‌جواب = غلط
+        assert check_quick(truths, "1,0") is None
+
+    def test_shuffle_is_stable_and_never_identity(self) -> None:
+        assert shuffled(4, "a") == shuffled(4, "a")
+        assert sorted(shuffled(4, "a")) == [0, 1, 2, 3]
+        assert all(shuffled(n, str(seed)) != tuple(range(n)) for n in (2, 3, 5)
+                   for seed in range(30))
