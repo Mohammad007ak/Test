@@ -15,11 +15,19 @@ from starlette.datastructures import UploadFile
 
 from app import services
 from app.db import user_session
+from app.domain.money import rial_to_toman
 from app.domain.phone import mask_phone
-from app.models import SmsInbox, User, UserSetting, utcnow
+from app.models import Account, SmsInbox, User, UserSetting, utcnow
 from app.sms.importer import import_text, parse_time
 from app.sms.parsers import ParsedSms
-from app.sms.pipeline import complete_manually, ignore, ingest
+from app.sms.pipeline import (
+    NEW_TEMPLATE,
+    choose_account,
+    complete_manually,
+    held_reading,
+    ignore,
+    ingest,
+)
 from app.sms.text import is_secret
 from app.web import forms
 from app.web import strings as s
@@ -168,7 +176,7 @@ def register_sms_routes(app: FastAPI) -> None:
         if not isinstance(upload, UploadFile):
             raise HTTPException(400)
         content = (await upload.read()).decode("utf-8", errors="replace")
-        counts = import_text(db, content)
+        counts = import_text(db, content, llm=request.app.state.llm)
         return done(request, "/sms", s.TOASTS["sms_imported"].format(
             **{k: forms.to_persian_digits(str(v)) for k, v in counts.items()}))
 
@@ -191,11 +199,46 @@ def register_sms_routes(app: FastAPI) -> None:
             status = 422
         return page(request, "sms_review_sheet.html" if fragment else "sms_review_page.html", {
             "active": "sms", "sms": sms, "fields": REVIEW_FIELDS, "values": values,
-            "errors": errors or {}}, status)
+            "errors": errors or {}, "body": None}, status)
+
+    def _pick(request: Request, db: Session, sms: SmsInbox, reading: ParsedSms,
+              error: str = "", status: int = 200) -> Response:
+        """پیامک خوانده‌شده: کاربر فقط حساب را انتخاب می‌کند (حساب‌های همان بانک اول)."""
+        accounts = sorted(db.scalars(select(Account)).all(),
+                          key=lambda a: (a.bank != reading.bank, a.id))
+        fragment = wants_fragment(request)
+        if fragment and status >= 400:
+            status = 422
+        return page(request, "sms_review_sheet.html" if fragment else "sms_review_page.html", {
+            "active": "sms", "sms": sms, "reading": reading, "accounts": accounts,
+            "amount_toman": rial_to_toman(reading.amount_rial),
+            "balance_toman": (None if reading.balance_after_rial is None
+                              else rial_to_toman(reading.balance_after_rial)),
+            "new_template": sms.error == NEW_TEMPLATE, "error": error,
+            "body": "_sms_account_body.html"}, status)
 
     @app.get("/sms/{sms_id}/review", response_class=HTMLResponse, dependencies=[LoggedIn])
-    def sms_review(request: Request, sms_id: int, db: Db) -> Response:
-        return _review(request, _sms(db, sms_id), {"direction": "out"})
+    def sms_review(request: Request, sms_id: int, db: Db, manual: int = 0) -> Response:
+        sms = _sms(db, sms_id)
+        reading = held_reading(sms) if not manual else None
+        if reading is not None:
+            return _pick(request, db, sms, reading)
+        return _review(request, sms, {"direction": "out"})
+
+    @app.post("/sms/{sms_id}/account", response_class=HTMLResponse, dependencies=[LoggedIn])
+    async def sms_choose_account(request: Request, sms_id: int, db: Db) -> Response:
+        sms = _sms(db, sms_id)
+        reading = held_reading(sms)
+        if reading is None:
+            raise HTTPException(404)
+        choice = (await read_form(request)).get("account", "")
+        if choice != "new" and not choice.isdigit():
+            return _pick(request, db, sms, reading, s.T["sms_pick_title"], status=400)
+        try:
+            choose_account(db, sms, None if choice == "new" else int(choice))
+        except ValueError as exc:
+            return _pick(request, db, sms, reading, str(exc), status=400)
+        return done(request, "/sms", s.TOASTS["sms_account_chosen"])
 
     @app.post("/sms/{sms_id}/review", response_class=HTMLResponse, dependencies=[LoggedIn])
     async def sms_complete(request: Request, sms_id: int, db: Db) -> Response:

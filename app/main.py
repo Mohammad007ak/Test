@@ -34,7 +34,7 @@ from app.domain.phone import mask_phone, normalize_phone
 from app.models import Asset, LoanAnalysis, PriceQuote, User, UserOwned, utcnow
 from app.otp import LogSender, OtpSender, OtpService, SmsIrSender
 from app.scheduler import Activity, Pace, refresh_now, run_adaptive
-from app.sms.llm import DisabledLLM
+from app.sms.llm import ChatSmsReader, DisabledLLM
 from app.web import auth, categories, forms
 from app.web import strings as s
 from app.web.admin_routes import register_admin_routes
@@ -141,7 +141,9 @@ def create_app(settings: Settings | None = None, *, migrate: bool = True,
     app.state.price_sources = sources
     app.state.history_sources = (history_sources if history_sources is not None
                                  else [AlanchandHistory()] if price_sources is None else [])
-    app.state.llm = DisabledLLM()  # ارائه‌دهنده LLM هنوز انتخاب نشده (SPEC: تصمیم باز)
+    # خواندن پیامک ناشناخته با همان مدل زبانی دستیار (فقط متن پوشانده)؛ بدون تنظیم، خاموش
+    sms_model = default_chat_model(settings.llm_url, settings.llm_key, settings.llm_model)
+    app.state.llm = ChatSmsReader(sms_model) if sms_model is not None else DisabledLLM()
     app.state.public_url = settings.public_url
     app.state.contact_email = settings.contact_email
     app.state.android_apk_url = settings.android_apk_url
