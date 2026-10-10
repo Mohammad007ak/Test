@@ -17,6 +17,7 @@ from app.school.content import COURSES, find
 from app.school.lessons import Card
 from app.school_service import DbFacts
 from app.web import school_routes
+from app.web import strings as s
 from tests.integration.conftest import FakeSender, register
 
 DAY = date(2026, 10, 10)
@@ -95,7 +96,8 @@ def _stats(client: TestClient) -> SchoolStats:
 def test_dashboard_card_and_tab_lead_to_first_lesson(client: TestClient) -> None:
     home = client.get("/").text
     assert 'href="/school/lesson/money"' in home
-    assert 'href="/school"' in home  # تب پایین
+    assert 'class="sc-entry' in home and 'href="/school"' in home  # قرص زنجیره بالای خانه
+    assert len(s.TABS) == 5 and all(tab[0] != "school" for tab in s.TABS)  # نوار پایین دست نخورده
     school = client.get("/school").text
     assert 'href="/school/lesson/money"' in school
     assert 'href="/school/lesson/inflation"' not in school  # هنوز قفل است

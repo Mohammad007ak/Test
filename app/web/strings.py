@@ -1629,12 +1629,13 @@ GIFT: dict[str, Any] = {
 
 # ---------- مدرسه وزیر ----------
 PAGE_TITLES["school"] = "مدرسه وزیر"
-TABS = (TABS[0], TABS[1], TABS[2], ("school", "/school", "مدرسه", "school"), *TABS[3:])
+TAB_OF_PAGE["school"] = "dashboard"  # ورود از قرص زنجیره بالای خانه
 WEEKDAY_INITIALS: tuple[str, ...] = ("ش", "ی", "د", "س", "چ", "پ", "ج")
 CARD_LEVELS: dict[int, str] = {1: "برنزی", 2: "نقره‌ای", 3: "طلایی"}
 SCHOOL: dict[str, str] = {
     "streak": "زنجیره",
     "streak_label": "زنجیره {n} روزه",
+    "pill_label": "مدرسه وزیر؛ زنجیره {n} روزه",
     "xp": "امتیاز",
     "week": "زنجیره این هفته",
     "frozen": "یخ‌زده",

@@ -2,6 +2,7 @@
 {% from "_ui.html" import icon, sheet_link, bubble, avatar, mascot %}
 {% block appbar %}
   <div class="greet"><span class="muted small">{{ today | jalali_long }}</span><h1>{{ T.greeting }}</h1></div>
+  <a href="/school" class="sc-entry {{ 'lit' if school.streak }}" aria-label="{{ s.SCHOOL.pill_label.format(n=school.streak | fa) }}"><span class="flame" aria-hidden="true">🔥</span><span class="num">{{ school.streak | fa }}</span><span class="sc-entry-cap" aria-hidden="true">{{ icon("school") }}</span></a>
   <a href="/persona" class="greet-avatar" aria-label="{{ T.persona }}">{% if avatar_key %}{{ avatar(avatar_key) }}{% else %}<span class="avatar avatar-empty">{{ icon("spark") }}</span>{% endif %}</a>
 {% endblock %}
 {% block content %}

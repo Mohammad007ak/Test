@@ -2533,3 +2533,18 @@ a.sc-node:focus-visible { outline: 3px solid var(--sc-gold); outline-offset: 6px
 .tstat small { font-weight: 700; opacity: .7; }
 :root[data-theme="light"] .sc-q em, :root[data-theme="light"] .sc-sub em, :root[data-theme="light"] .sc-race-row.win b,
 :root[data-theme="light"] .sc-range-head b, :root[data-theme="light"] .sc-pill.fire { color: #a86f0c; }
+
+/* ورود به مدرسه: قرص زنجیره کنار آواتار بالای خانه */
+.sc-entry { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 42px; padding: 0 12px 0 14px;
+  margin-inline-end: 8px; border-radius: 999px; font-weight: 900; font-size: 1rem; color: var(--muted);
+  background: var(--surface-2); border: 1px solid var(--hairline); transition: transform .2s var(--spring); }
+.sc-entry .flame { filter: grayscale(1); opacity: .6; animation: none; }
+.sc-entry.lit { color: var(--sc-gold); border-color: color-mix(in srgb, var(--sc-gold) 45%, transparent);
+  box-shadow: 0 0 18px rgba(245, 199, 106, .2); }
+.sc-entry.lit .flame { filter: none; opacity: 1; animation: sc-flicker 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .sc-entry.lit .flame { animation: none; } }
+.sc-entry-cap { position: absolute; top: -7px; left: -5px; width: 22px; height: 22px; border-radius: 50%; display: grid;
+  place-items: center; background: var(--accent); color: var(--on-accent); }
+.sc-entry-cap .i { width: 14px; height: 14px; }
+.sc-entry:active { transform: scale(.92); }
+:root[data-theme="light"] .sc-entry.lit { color: #a86f0c; }
